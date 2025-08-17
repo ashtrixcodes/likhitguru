@@ -1,9 +1,7 @@
-import React, { useRef, useEffect } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
 	const scrollViewRef = useRef<ScrollView>(null);
@@ -21,7 +19,7 @@ export default function HomeScreen() {
 	useEffect(() => {
 		// Scroll to BIKE category (second position) when component mounts
 		setTimeout(() => {
-			scrollViewRef.current?.scrollTo({ x: 280, animated: false });
+			scrollViewRef.current?.scrollTo({ x: 230, animated: false });
 		}, 100);
 	}, []);
 
@@ -66,31 +64,13 @@ export default function HomeScreen() {
 					showsHorizontalScrollIndicator={false} 
 					style={styles.categoryScroll}
 					contentContainerStyle={styles.categoryScrollContent}
-					snapToInterval={280}
+					snapToInterval={20}
 					decelerationRate="fast"
 					snapToAlignment="center"
 					pagingEnabled={false}
 					onScroll={handleScroll}
 					scrollEventThrottle={16}
 				>
-					<View style={styles.categoryCard}>
-						<View style={styles.categoryTag}>
-							<Text style={styles.categoryTagText}>CAR</Text>
-						</View>
-						<View style={styles.categoryImageContainer}>
-							<Image 
-								source={require('@/assets/images/push.png')} 
-								style={styles.categoryImage}
-								resizeMode="contain"
-							/>
-						</View>
-						<TouchableOpacity style={styles.viewButton}>
-							<View style={styles.playIconContainer}>
-								<Ionicons name="play" size={16} color="#434D57" />
-							</View>
-							<Text style={styles.viewButtonText}>View</Text>
-						</TouchableOpacity>
-					</View>
 
 					<View style={styles.categoryCard}>
 						<View style={styles.categoryTag}>
@@ -111,6 +91,25 @@ export default function HomeScreen() {
 						</TouchableOpacity>
 					</View>
 
+					<View style={styles.categoryCard}>
+						<View style={styles.categoryTag}>
+							<Text style={styles.categoryTagText}>CAR</Text>
+						</View>
+						<View style={styles.categoryImageContainer}>
+							<Image 
+								source={require('@/assets/images/push.png')} 
+								style={styles.categoryImage}
+								resizeMode="contain"
+							/>
+						</View>
+						<TouchableOpacity style={styles.viewButton}>
+							<View style={styles.playIconContainer}>
+								<Ionicons name="play" size={16} color="#434D57" />
+							</View>
+							<Text style={styles.viewButtonText}>View</Text>
+						</TouchableOpacity>
+					</View>
+					
 					<View style={styles.categoryCard}>
 						<View style={styles.categoryTag}>
 							<Text style={styles.categoryTagText}>MOPED</Text>
@@ -253,7 +252,10 @@ export default function HomeScreen() {
 			<View style={styles.section}>
 				<Text style={styles.sectionTitle}>Others</Text>
 				<View style={styles.practiceGrid}>
-					<TouchableOpacity style={styles.practiceCard}>
+					<TouchableOpacity 
+						style={styles.practiceCard}
+						onPress={() => router.push('/others/licenseForm')}>
+
 						<View style={styles.practiceIcon}>
 							<Image 
 								source={require('@/assets/images/government.png')} 
@@ -261,10 +263,13 @@ export default function HomeScreen() {
 								resizeMode="contain"
 							/>
 						</View>
-						<Text style={styles.practiceCardText}>Online license form</Text>
+						<Text style={styles.practiceCardText}>Online  license form</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity style={styles.practiceCard}>
+					<TouchableOpacity
+							style={styles.practiceCard}
+							onPress={() => router.push('/others/licensePrintCheck')}>
+
 						<View style={styles.practiceIcon}>
 							<Image 
 								source={require('@/assets/images/printer.png')} 
@@ -272,10 +277,12 @@ export default function HomeScreen() {
 								resizeMode="contain"
 							/>
 						</View>
-						<Text style={styles.practiceCardText}>License Print Check</Text>
+						<Text style={styles.practiceCardText}>License    Print Check</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity style={styles.practiceCard}>
+					<TouchableOpacity 
+							style={styles.practiceCard}
+							onPress={() => router.push('/others/trafficFines')}>
 						<View style={styles.practiceIcon}>
 							<Image 
 								source={require('@/assets/images/fine.png')} 
@@ -283,10 +290,12 @@ export default function HomeScreen() {
 								resizeMode="contain"
 							/>
 						</View>
-						<Text style={styles.practiceCardText}>Traffic Fines   Info</Text>
+						<Text style={styles.practiceCardText}>Traffic     Fines Info</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity style={styles.practiceCard}>
+					<TouchableOpacity
+						style={styles.practiceCard}
+						onPress={() => router.push('/others/moreInfo')}>
 						<View style={styles.practiceIcon}>
 							<Image 
 								source={require('@/assets/images/question.png')} 
@@ -319,6 +328,14 @@ const styles = StyleSheet.create({
 		borderTopRightRadius: 0,
 		borderBottomLeftRadius: 40,
 		borderBottomRightRadius: 40,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.4,
+		shadowRadius: 10,
+		elevation: 3,
+		position: 'relative', // For layering
+	
+	
 	},
 	headerTop: {
 		flexDirection: 'row',
@@ -327,10 +344,11 @@ const styles = StyleSheet.create({
 		marginBottom: 20,
 	},
 	menuButton: {
+	marginTop: 20,
     padding: 8,
     backgroundColor: 'rgba(180, 180, 180, 0.6)', // Dark semi-transparent background
     borderRadius: 30, // Keep it circular
-    width: 40,
+    width: 50,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
@@ -343,7 +361,7 @@ const styles = StyleSheet.create({
 		height: 2,
 		backgroundColor: '#fff',
 		marginVertical: 1.5,
-		borderRadius: 1,
+		borderRadius: 2,
 },
 
 	menuLineTop: {
@@ -360,14 +378,15 @@ const styles = StyleSheet.create({
 	userInfo: {
 		flex: 1,
 		marginLeft: 10,
-		marginRight: 30, // Adjusted for better spacing
+		marginRight: 0, // Adjusted for better spacing
+		marginTop: 10
     
 },
 	greeting: {
 		color: '#fff',
 		fontSize: 12,
 		opacity: 0.4,
-		marginTop: 5,
+		marginTop: 10,
 		
 },
 	userName: {
@@ -397,7 +416,7 @@ const styles = StyleSheet.create({
 },
 	searchTitle: {
 		color: '#fff',
-		fontSize: 18,
+		fontSize: 16,
 		
 		marginBottom: 10,
     marginLeft: 10,
@@ -427,25 +446,26 @@ const styles = StyleSheet.create({
 		
 	},
 	sectionTitle: {
-		fontSize: 20,
+		fontSize: 16,
+		fontWeight: 'bold',
 		//fontFamily: 'SpacaMono-Regular',
 		color: '#333',
-		marginBottom: 15,
-    	marginLeft:10,
+		marginBottom: 10,
+    	marginLeft:15,
 	},
 	categoryScroll: {
 		marginBottom: 5,
 	},
 	categoryScrollContent: {
-		paddingHorizontal: 25,
+		paddingHorizontal: 30,
 	},
 	categoryCard: {
 		backgroundColor: '#fff',
 		borderRadius: 25,
-		padding: 25,
-		marginRight: 30,
-		width: 270,
-		height: 310,
+		padding: 20,
+		marginRight: 15, //fills the gap between cards
+		width: 250,
+		height: 270,
 		alignItems: 'center',
 		shadowColor: '#000',
 		shadowOffset: { width: 0, height: 0 },
@@ -459,7 +479,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 6,
 		borderRadius: 20,
 		alignSelf: 'flex-start',
-		marginBottom: 25,
+		//marginBottom: 0,
 	},
 	categoryTagText: {
 		color: '#fff',
@@ -482,9 +502,9 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingHorizontal: 20,
-		paddingVertical: 5,
-		gap: 1, // Adjust this value to change spacing
+		paddingHorizontal: 10,
+		paddingVertical: 15,
+		gap: 0, // Adjust this value to change spacing
 	},
 	playIconContainer: {
 		width: 32,
@@ -497,7 +517,7 @@ const styles = StyleSheet.create({
 		color: '#434D57',
 		fontSize: 16,
 		height: 20,
-		marginBottom: 5,
+		//marginBottom: 0,
 	},
 	pagination: {
 		flexDirection: 'row',
@@ -517,7 +537,7 @@ const styles = StyleSheet.create({
 		borderRadius: 5,
 	},
 	quizList: {
-		gap: 15,
+		gap: 12,
 	},
 	quizItem: {
     flexDirection: 'row',
@@ -574,14 +594,14 @@ const styles = StyleSheet.create({
 	practiceGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
-		gap: 10,
+		gap: 14,
 	},
 	practiceCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
     //paddingVertical: 0,
-    width: '23%',        // <= this makes 4 cards fit in a single row
-    paddingTop: 12,
+    width: '22%',        // <= this makes 4 cards fit in a single row
+    paddingTop: 15,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -596,7 +616,7 @@ const styles = StyleSheet.create({
 		backgroundColor: '#f0f0f0',
 		alignItems: 'center',
 		justifyContent: 'center',
-		marginBottom: 8,
+		marginBottom: 10,
 	},
 	practiceIconImage: {
 		width: 30,

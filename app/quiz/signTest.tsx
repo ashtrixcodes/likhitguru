@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function SignTest() {
+    const timer = 3; // 3 seconds for the test
     const router = useRouter();
     const [started, setStarted] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(60); // 60 seconds = 1 minute
+    const [endded, setEnded] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(0);
     const scaleAnim = React.useRef(new Animated.Value(1)).current;
     const buttonWidthAnim = React.useRef(new Animated.Value(100)).current;
     const liquidProgressAnim = React.useRef(new Animated.Value(0)).current;
@@ -36,8 +38,8 @@ export default function SignTest() {
                     if (prev <= 1) {
                         clearInterval(interval);
                         setStarted(false);
-                        // Reset the liquid animation
-                        liquidProgressAnim.setValue(0);
+                        setEnded(true);
+                        // Keep the liquid animation at 100% - don't reset it
                         return 0;
                     }
                     pulseAnimation(); // Animate on each second
@@ -48,7 +50,7 @@ export default function SignTest() {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [started]);
+    }, [started, timeLeft]); // Removed scaleAnim and liquidProgressAnim from dependencies
 
     // Format time as MM:SS
     const formatTime = (seconds: number): string => {
@@ -59,23 +61,50 @@ export default function SignTest() {
 
     // Handle start button press
     const handleStart = () => {
-        setTimeLeft(60);
+        setTimeLeft(timer);
         setStarted(true);
+        setEnded(false); // Reset ended state
+        
+        // Reset liquid animation to 0 before starting
+        liquidProgressAnim.setValue(0);
         
         // Animate button width
         Animated.spring(buttonWidthAnim, {
             toValue: 140,
             useNativeDriver: false,
-            friction: 8
+            friction: 8,
         }).start();
 
-        // Animate liquid progress
+        // Animate liquid progress - this should complete exactly when timer ends
         Animated.timing(liquidProgressAnim, {
             toValue: 1,
-            duration: 60000, // 60 seconds
-            useNativeDriver: false
+            duration: timer * 1000, // Match the timer duration exactly
+            useNativeDriver: false,
         }).start();
     };
+
+    // Show alert when time is up and animate button back
+    React.useEffect(() => {
+        if (timeLeft <= 0 && endded) {
+            Alert.alert("Time Up!", undefined, [
+                {
+                    text: "OK",
+                    onPress: () => {
+                        // Reset ended state, reset liquid animation, and animate button back to original width
+                        setEnded(false);
+                        liquidProgressAnim.setValue(0);
+                        Animated.spring(buttonWidthAnim, {
+                            toValue: 100,
+                            useNativeDriver: false,
+                            friction: 8,
+                        }).start();
+                    }
+                }
+            ]);
+        }
+    }, [timeLeft, endded]);
+
+    console.log({timeLeft, started, endded});
 
     return (
         <>
@@ -87,7 +116,6 @@ export default function SignTest() {
                         backgroundColor: '#434D57',
                     },
                     headerTitleStyle: {
-                        fontFamily: 'Raleway-Bold',
                         fontSize: 20,
                         color: '#FFFFFF',
                     },
@@ -109,7 +137,7 @@ export default function SignTest() {
                         <Animated.View 
                             style={[
                                 styles.timerIconBackground,
-                                { transform: [{ scale: scaleAnim }] }
+                                { transform: [{ scale: scaleAnim }] },
                             ]}
                         >
                             <Image 
@@ -121,23 +149,25 @@ export default function SignTest() {
                         <View style={styles.timerTextContainer}>
                             <Text style={styles.timerLabel}>Timer</Text>
                             <Text style={styles.timerSubtext}>
-                                {started ? "Your time has started" : "Press start to begin"}
+                                {started ? "Time has started" : endded ? "Time has ended" : "Press start to begin"}
                             </Text>
                         </View>
                     </View>
                     <Animated.View style={[styles.buttonContainer, { width: buttonWidthAnim }]}>
-                        {started ? (
+                        {started || endded ? (
                             <View style={styles.startButton}>
-                                <Animated.View style={[
-                                    styles.liquidFill,
-                                    {
-                                        width: liquidProgressAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: ['0%', '100%']
-                                        }),
-                                        backgroundColor: '#FE8153'
-                                    }
-                                ]}>
+                                <Animated.View 
+                                    style={[
+                                        styles.liquidFill,
+                                        {
+                                            width: liquidProgressAnim.interpolate({
+                                                inputRange: [0, 1],
+                                                outputRange: ['0%', '100%'],
+                                            }),
+                                            backgroundColor: '#FE8153',
+                                        },
+                                    ]}
+                                >
                                     <View style={styles.liquidBubble} />
                                 </Animated.View>
                                 <Text style={[styles.startButtonText, styles.timerText]}>
@@ -258,7 +288,7 @@ const styles = StyleSheet.create({
         height: 32,
     },
     timerTextContainer: {
-        marginLeft: 12,
+        marginLeft: 10,
     },
     timerLabel: {
         fontFamily: 'Raleway-Bold',
@@ -273,12 +303,12 @@ const styles = StyleSheet.create({
     },
     startButton: {
         backgroundColor: '#666',
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
         paddingVertical: 10,
         borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        minHeight: 40,
+        minHeight: 30,
     },
     startButtonText: {
         color: '#fff',
@@ -363,5 +393,5 @@ const styles = StyleSheet.create({
         padding: 8,
         marginLeft: 10,
         borderRadius: 20,
-    }
+    },
 });
