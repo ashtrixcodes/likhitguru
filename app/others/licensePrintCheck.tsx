@@ -10,7 +10,7 @@ export default function licensePrintCheckScreen() {
     <>
       <Stack.Screen 
         options={{
-          title: "License Form",
+          title: "License Print Check",
           headerTitleAlign: 'center',
           headerStyle: {
             backgroundColor: '#434D57',

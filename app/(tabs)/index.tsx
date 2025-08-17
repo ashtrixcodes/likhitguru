@@ -174,7 +174,10 @@ export default function HomeScreen() {
 						<Text style={styles.practiceText}>Practice →</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity style={styles.quizItem}>
+					<TouchableOpacity 
+						style={styles.quizItem}
+						onPress={() => router.push('/quiz/eyeTest')}
+					>
 						<View style={styles.quizIcon}>
 							<Image 
 								source={require('@/assets/images/number-block.png')} 
