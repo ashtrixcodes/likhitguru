@@ -1,11 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, ActivityIndicator } from 'react-native';
 
-export default function HomeScreen() {
-	const scrollViewRef = useRef<ScrollView>(null);
-	const [currentCategoryIndex, setCurrentCategoryIndex] = React.useState(1); // Start with BIKE (index 1)
+function HomeHeader() {
 	const router = useRouter();
 
 	const getGreeting = () => {
@@ -15,6 +13,38 @@ export default function HomeScreen() {
 		if (hour < 22) return 'Good Evening!';
 		return 'Good Night!';
 	};
+
+	return (
+		<>
+			<View style={styles.headerTop}>
+				<TouchableOpacity style={styles.menuButton} onPress={() => router.push('/slider/sideview')}>
+					<View style={[styles.menuLine, styles.menuLineTop]} />
+					<View style={[styles.menuLine, styles.menuLineMiddle]} />
+					<View style={[styles.menuLine, styles.menuLineBottom]} />
+				</TouchableOpacity>
+				<View style={styles.userInfo}>
+					<Text style={styles.greeting}>{getGreeting()}</Text>
+					<Text style={styles.userName}>Prashant Khanal</Text>
+				</View>
+			</View>
+			<View style={styles.searchSection}>
+				<Text style={styles.searchTitle}>Search Category</Text>
+				<View style={styles.searchBar}>
+					<Ionicons name="search" size={20} color="#ffffff85" />
+					<Text style={styles.searchPlaceholder}>search here..</Text>
+				</View>
+			</View>
+		</>
+	);
+}
+
+export default function HomeScreen() {
+	const scrollViewRef = useRef<ScrollView>(null);
+	const [currentCategoryIndex, setCurrentCategoryIndex] = React.useState(1); // Start with BIKE (index 1)
+	const [refreshing, setRefreshing] = React.useState(false);
+	const router = useRouter();
+	// Removed animated scroll for sticky header;
+	const didTriggerLightPullRef = useRef(false);
 
 	useEffect(() => {
 		// Scroll to BIKE category (second position) when component mounts
@@ -30,31 +60,35 @@ export default function HomeScreen() {
 		setCurrentCategoryIndex(newIndex);
 	};
 
+	const onRefresh = () => {
+		setRefreshing(true);
+		setTimeout(() => {
+			setRefreshing(false);
+			didTriggerLightPullRef.current = false;
+		}, 800);
+	};
+
+	// Remove custom light-pull listener to avoid sticky effects
+
+	// No sticky or parallax animation
+
 	return (
-	<ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-	{/* Header Section */}
-	<View style={styles.header}>
-		<View style={styles.headerTop}>
-			<TouchableOpacity style={styles.menuButton} onPress={() => router.push('/slider/sideview')}>
-				<View style={[styles.menuLine, styles.menuLineTop]} />
-				<View style={[styles.menuLine, styles.menuLineMiddle]} />
-				<View style={[styles.menuLine, styles.menuLineBottom]} />
-			</TouchableOpacity>
-			<View style={styles.userInfo}>
-				<Text style={styles.greeting}>{getGreeting()}</Text>
-				<Text style={styles.userName}>Prashant Khanal</Text>
-			</View>
-		</View>
-	
-				<View style={styles.searchSection}>
-					<Text style={styles.searchTitle}>Search Category</Text>
-					<View style={styles.searchBar}>
-						<Ionicons name="search" size={20} color="#ffffff85" />
-						<Text style={styles.searchPlaceholder}>search here..</Text>
-					</View>
+		<ScrollView
+			style={styles.container}
+			showsVerticalScrollIndicator={false}
+			refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+		>
+			<View style={styles.header}> 
+				<View style={styles.headerBackground} />
+				<View style={styles.headerContent}>
+					<HomeHeader />
 				</View>
 			</View>
-			
+			{refreshing && (
+				<View style={styles.refreshContainer}>
+					<ActivityIndicator size="small" color="#666" />
+				</View>
+			)}
 			{/* Choose Category Section */}
 			<View style={styles.section}>
 				<Text style={styles.sectionTitle}>Choose Category</Text>
@@ -205,7 +239,10 @@ export default function HomeScreen() {
 			<View style={styles.section}>
 				<Text style={styles.sectionTitle}>Practice More</Text>
 				<View style={styles.practiceGrid}>
-					<TouchableOpacity style={styles.practiceCard}>
+					<TouchableOpacity
+						style={styles.practiceCard}
+						onPress={() => router.push('/practiceMore/informativeSign')}
+					>
 						<View style={styles.practiceIcon}>
 							<Image 
 								source={require('@/assets/images/stop-sgn.png')} 
@@ -216,7 +253,10 @@ export default function HomeScreen() {
 						<Text style={styles.practiceCardText}>Informative</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity style={styles.practiceCard}>
+					<TouchableOpacity
+						style={styles.practiceCard}
+						onPress={() => router.push('/practiceMore/restrictiveSign')}
+					>
 						<View style={styles.practiceIcon}>
 							<Image 
 								source={require('@/assets/images/restriction.png')} 
@@ -227,7 +267,10 @@ export default function HomeScreen() {
 						<Text style={styles.practiceCardText}>Restrictive</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity style={styles.practiceCard}>
+					<TouchableOpacity
+						style={styles.practiceCard}
+						onPress={() => router.push('/practiceMore/numberSign')}
+					>
 						<View style={styles.practiceIcon}>
 							<Image 
 								source={require('@/assets/images/numbers.png')} 
@@ -238,7 +281,10 @@ export default function HomeScreen() {
 						<Text style={styles.practiceCardText}>Numbers</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity style={styles.practiceCard}>
+					<TouchableOpacity
+						style={styles.practiceCard}
+						onPress={() => router.push('/practiceMore/examTest')}
+					>
 						<View style={styles.practiceIcon}>
 							<Image 
 								source={require('@/assets/images/exam.png')} 
@@ -322,6 +368,9 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: '#f5f5f5',
 	},
+	scroll: {
+		flex: 1,
+	},
 	header: {
 		backgroundColor: '#434D57',
 		paddingTop: 50,
@@ -335,10 +384,21 @@ const styles = StyleSheet.create({
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.4,
 		shadowRadius: 10,
-		elevation: 3,
+		elevation: 20,
 		position: 'relative', // For layering
+		zIndex: 1000,
 	
 	
+	},
+	headerBackground: {
+		...StyleSheet.absoluteFillObject,
+		backgroundColor: '#434D57',
+		borderBottomLeftRadius: 40,
+		borderBottomRightRadius: 40,
+	},
+	headerContent: {
+		position: 'relative',
+		zIndex: 1,
 	},
 	headerTop: {
 		flexDirection: 'row',
@@ -638,5 +698,12 @@ const styles = StyleSheet.create({
 	},
 	bottomSpacing: {
 		height: 100,
+	},
+	refreshContainer: {
+		paddingVertical: 8,
+		marginTop: 14,
+		marginBottom: 6,
+		alignItems: 'center',
+		justifyContent: 'center',
 	},
 });

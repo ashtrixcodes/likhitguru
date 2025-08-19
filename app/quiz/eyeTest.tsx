@@ -259,7 +259,7 @@ export default function SignTest() {
                     headerTintColor: '#FFFFFF',
                     headerLeft: () => (
                         <Pressable 
-                            onPress={() => router.replace("/")}
+                            onPress={() => router.back()}
                             style={styles.headerBackButton}
                         >
                             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />

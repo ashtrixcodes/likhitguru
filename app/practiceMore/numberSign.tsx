@@ -1,17 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { informativeSign } from './constant';
+import { numberSign } from './constant';
 
-export default function informativeSignScreen() {
+export default function numberSignScreen() {
   const router = useRouter();
-  
-  
+
   return (
     <>
       <Stack.Screen 
         options={{
-          title: "Informative Sign",
+          title: "Number Test",
           headerTitleAlign: 'center',
           headerStyle: {
             backgroundColor: '#434D57',
@@ -33,11 +32,11 @@ export default function informativeSignScreen() {
       />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.grid}>
-          {informativeSign.map((item) => (
+          {numberSign.map((item) => (
             <View key={item.key} style={styles.card}>
               <View style={styles.cardInner}>
                 <Image source={item.src} style={styles.cardImage} resizeMode="contain" />
-                <Text style={styles.cardLabel} numberOfLines={2}>{item.label}</Text>
+                <Text style={styles.cardLabel}>{item.label}</Text>
               </View>
             </View>
           ))}

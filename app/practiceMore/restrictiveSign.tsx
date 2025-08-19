@@ -1,17 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { informativeSign } from './constant';
+import { restrictiveSign } from './constant';
 
-export default function informativeSignScreen() {
+export default function restrictiveSignScreen() {
   const router = useRouter();
-  
-  
+
   return (
     <>
       <Stack.Screen 
         options={{
-          title: "Informative Sign",
+          title: "Restrictive Sign",
           headerTitleAlign: 'center',
           headerStyle: {
             backgroundColor: '#434D57',
@@ -33,7 +32,7 @@ export default function informativeSignScreen() {
       />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.grid}>
-          {informativeSign.map((item) => (
+          {restrictiveSign.map((item) => (
             <View key={item.key} style={styles.card}>
               <View style={styles.cardInner}>
                 <Image source={item.src} style={styles.cardImage} resizeMode="contain" />
