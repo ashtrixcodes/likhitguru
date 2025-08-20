@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Stack, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Image, Pressable, ScrollView, StyleSheet, Text, View, PanResponder } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 import { knowledgeAnswerKeyLetters, knowledgeQuestions } from './knowledge';
 let SecureStore: any;
 try {
@@ -14,6 +15,7 @@ export default function examTestScreen() {
   const TOTAL_TIME = 120; // seconds (2 minutes)
   const TOTAL_QUESTIONS = 20;
   const PASS_PERCENT = 40;
+  const TOTAL_TESTS = Math.ceil(knowledgeQuestions.length / 20);
   const router = useRouter();
   const [selectedTestIndex, setSelectedTestIndex] = useState(0); // 0-based: Test 1..7
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'finished'>('idle');
@@ -22,6 +24,7 @@ export default function examTestScreen() {
   const [showResults, setShowResults] = useState(false);
   const [currentQuiz, setCurrentQuiz] = useState<any[]>([]);
   const [unlockedTests, setUnlockedTests] = useState<number>(1); // Only Test 1 unlocked initially
+  const [clearedTests, setClearedTests] = useState<number[]>([]); // Persisted indices of passed tests
   const [hasPassed, setHasPassed] = useState<boolean>(false);
   const [showOutcomeModal, setShowOutcomeModal] = useState<boolean>(false);
   const [answers, setAnswers] = useState<(string | null)[]>([]);
@@ -35,8 +38,66 @@ export default function examTestScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const lastScrollYRef = useRef(0);
   const questionOffsetsRef = useRef<number[]>([]);
+  const questionRefsRef = useRef<Array<View | null>>([]);
   const testSelectorRef = useRef<ScrollView>(null);
   const sheetHeightRef = useRef(0);
+  const MAX_SCROLL_RETRY = 80;
+
+  const scrollToNextQuestionWithRetry = (currentIndex: number, attempt: number = 0) => {
+    const nextIndex = currentIndex + 1;
+    const currentTop = questionOffsetsRef.current[currentIndex];
+    const nextTop = questionOffsetsRef.current[nextIndex];
+    const firstTop = questionOffsetsRef.current[0];
+    const canUseAbsoluteToFirst = typeof nextTop === 'number' && typeof firstTop === 'number';
+    const canUseDelta = typeof currentTop === 'number' && typeof nextTop === 'number';
+    const canUseAbsolute = typeof nextTop === 'number';
+    if (canUseAbsoluteToFirst) {
+      const targetY = Math.max(0, nextTop - firstTop);
+      scrollRef.current?.scrollTo({ y: targetY, animated: true });
+      return;
+    }
+    if (canUseDelta) {
+      const delta = nextTop - currentTop;
+      const targetY = Math.max(0, lastScrollYRef.current + delta);
+      scrollRef.current?.scrollTo({ y: targetY, animated: true });
+      return;
+    }
+    if (canUseAbsolute) {
+      const targetY = Math.max(0, nextTop);
+      scrollRef.current?.scrollTo({ y: targetY, animated: true });
+      return;
+    }
+    // Measurement-based fallback relative to ScrollView when offsets aren't ready
+    const nextRef = questionRefsRef.current[nextIndex] as any;
+    const scrollNode = scrollRef.current as any;
+    if (nextRef) {
+      try {
+        const scrollHandle = scrollNode ? findNodeHandle(scrollNode) : null;
+        if (scrollHandle && typeof nextRef.measureLayout === 'function') {
+          nextRef.measureLayout(scrollHandle, (lx: number, ly: number) => {
+            const targetY = Math.max(0, ly);
+            scrollRef.current?.scrollTo({ y: targetY, animated: true });
+          }, () => {});
+          return;
+        }
+      } catch {}
+    }
+    if (nextRef && typeof nextRef.measure === 'function' && scrollNode && typeof scrollNode.measure === 'function') {
+      try {
+        nextRef.measure((nx: number, ny: number, nw: number, nh: number, npx: number, npy: number) => {
+          scrollNode.measure((sx: number, sy: number, sw: number, sh: number, spx: number, spy: number) => {
+            const relativeY = npy - spy; // distance from ScrollView top
+            const targetY = Math.max(0, lastScrollYRef.current + relativeY);
+            scrollRef.current?.scrollTo({ y: targetY, animated: true });
+          });
+        });
+        return;
+      } catch {}
+    }
+    if (attempt < MAX_SCROLL_RETRY) {
+      setTimeout(() => scrollToNextQuestionWithRetry(currentIndex, attempt + 1), 16);
+    }
+  };
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => gesture.dy > 5,
@@ -100,10 +161,21 @@ export default function examTestScreen() {
     return knowledgeQuestions.slice(start, end);
   };
 
-  const handleStart = () => {
-    const baseSet = getTestSlice(selectedTestIndex);
+  const resetScrollToTop = () => {
+    questionOffsetsRef.current = [];
+    questionRefsRef.current = [];
+    lastScrollYRef.current = 0;
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+  };
+
+  const handleStart = (testIndex?: number) => {
+    const effectiveIndex = typeof testIndex === 'number' ? testIndex : selectedTestIndex;
+    resetScrollToTop();
+    const baseSet = getTestSlice(effectiveIndex);
     // Do NOT shuffle questions or options. Keep the original order and map the correct answer from the key.
-    const startIndex = selectedTestIndex * 20;
+    const startIndex = effectiveIndex * 20;
     const quiz = baseSet.map((q, idx) => {
       const globalIndex = startIndex + idx; // 0-based across all questions
       const letter = knowledgeAnswerKeyLetters[globalIndex] ?? 'a';
@@ -130,9 +202,64 @@ export default function examTestScreen() {
       try {
         const saved = await SecureStore.getItemAsync('exam_unlocked_tests');
         if (saved) setUnlockedTests(Number(saved) || 1);
+        const savedSelected = await SecureStore.getItemAsync('exam_selected_test_index');
+        if (savedSelected !== null && savedSelected !== undefined) {
+          const parsed = Number(savedSelected);
+          if (!Number.isNaN(parsed)) setSelectedTestIndex(parsed);
+        }
+        const savedCleared = await SecureStore.getItemAsync('exam_cleared_tests');
+        if (savedCleared) {
+          try {
+            const parsed: number[] = JSON.parse(savedCleared);
+            if (Array.isArray(parsed)) setClearedTests(parsed.filter((n) => Number.isFinite(n)));
+          } catch {}
+        }
       } catch {}
     })();
   }, []);
+
+  useEffect(() => {
+    // Keep selected index within unlocked range
+    if (selectedTestIndex >= unlockedTests) {
+      setSelectedTestIndex(Math.max(0, unlockedTests - 1));
+    }
+  }, [unlockedTests]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await SecureStore.setItemAsync('exam_selected_test_index', String(selectedTestIndex));
+      } catch {}
+    })();
+  }, [selectedTestIndex]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await SecureStore.setItemAsync('exam_cleared_tests', JSON.stringify(clearedTests));
+      } catch {}
+    })();
+  }, [clearedTests]);
+
+  const persistAllProgress = async () => {
+    try {
+      await SecureStore.setItemAsync('exam_unlocked_tests', String(unlockedTests));
+      await SecureStore.setItemAsync('exam_selected_test_index', String(selectedTestIndex));
+      await SecureStore.setItemAsync('exam_cleared_tests', JSON.stringify(clearedTests));
+    } catch {}
+  };
+
+  // Ensure persistence when screen gains focus and before it unfocuses
+  useFocusEffect(
+    useCallback(() => {
+      // On focus, ensure any in-memory changes are flushed soon after
+      persistAllProgress();
+      return () => {
+        // On blur/unmount, persist again
+        persistAllProgress();
+      };
+    }, [unlockedTests, selectedTestIndex, clearedTests])
+  );
 
   const persistUnlocked = async (next: number) => {
     try {
@@ -153,17 +280,8 @@ export default function examTestScreen() {
     const next = [...answers];
     next[qIndex] = option;
     setAnswers(next);
-    // Auto-scroll so that the next question takes the current question's position
-    const nextIndex = qIndex + 1;
-    const currentTop = questionOffsetsRef.current[qIndex];
-    const nextTop = questionOffsetsRef.current[nextIndex];
-    if (typeof currentTop === 'number' && typeof nextTop === 'number') {
-      const delta = nextTop - currentTop;
-      const targetY = Math.max(0, lastScrollYRef.current + delta);
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ y: targetY, animated: true });
-      });
-    }
+    // Auto-advance to next question with retries until layouts are captured
+    requestAnimationFrame(() => scrollToNextQuestionWithRetry(qIndex));
   };
 
   const calculateAndShowResults = () => {
@@ -179,6 +297,12 @@ export default function examTestScreen() {
     const passed = computedScore >= passThreshold;
     setHasPassed(passed);
     if (passed) {
+      // Mark current test as cleared and persist
+      setClearedTests((prev) => {
+        if (prev.includes(selectedTestIndex)) return prev;
+        const next = [...prev, selectedTestIndex].sort((a, b) => a - b);
+        return next;
+      });
       // Sequential unlock: only unlock the immediate next test
       const nextIndex = selectedTestIndex + 1; // 0-based
       const shouldUnlock = unlockedTests < nextIndex + 1; // unlockedTests is a count
@@ -264,6 +388,7 @@ export default function examTestScreen() {
           {Array.from({ length: Math.ceil(knowledgeQuestions.length / 20) }, (_, i) => {
             const isLocked = i >= unlockedTests;
             const isActive = selectedTestIndex === i && !isLocked;
+            const isCleared = clearedTests.includes(i);
             return (
               <Pressable
                 key={i}
@@ -276,18 +401,8 @@ export default function examTestScreen() {
                   // Selecting another test should only switch the visible question set
                   if (selectedTestIndex !== i) {
                     setSelectedTestIndex(i);
-                    const nextBase = getTestSlice(i);
-                    const startIndex = i * 20;
-                    const nextQuiz = nextBase.map((q, idx) => {
-                      const letter = knowledgeAnswerKeyLetters[startIndex + idx] ?? 'a';
-                      const correctFromLetter = ({ a: 0, b: 1, c: 2, d: 3 } as const)[letter];
-                      return { ...q, options: [...q.options], correctAnswer: q.options[correctFromLetter] };
-                    });
-                    setCurrentQuiz(nextQuiz);
-                    setAnswers(Array(nextQuiz.length).fill(null));
-                    setShowResults(false);
-                    setScore(0);
-                    setTimeLeft(TOTAL_TIME);
+                    setShowSheet(false);
+                    handleStart(i);
                   }
                 }}
              >
@@ -309,6 +424,7 @@ export default function examTestScreen() {
                     <Ionicons name="chevron-forward" size={16} color={isActive ? '#fff' : '#9AA0A6'} />
                   </View>
                   {isLocked && <Ionicons name="lock-closed" size={14} color="#9AA0A6" style={styles.testLockBadge} />}
+                  {!isLocked && isCleared && <Ionicons name="checkmark-circle" size={16} color="#2E7D32" style={{ marginLeft: 6 }} />}
                 </View>
               </Pressable>
             );
@@ -323,7 +439,8 @@ export default function examTestScreen() {
         {gameState !== 'idle' && currentQuiz.length > 0 && (
             currentQuiz.map((q, qIndex) => (
               <View
-                key={qIndex}
+                key={`${selectedTestIndex}-${qIndex}`}
+                ref={(el) => { questionRefsRef.current[qIndex] = el; }}
                 onLayout={(e) => {
                   questionOffsetsRef.current[qIndex] = e.nativeEvent.layout.y;
                 }}
@@ -433,27 +550,24 @@ export default function examTestScreen() {
                     const nextCount = Math.max(unlockedTests, next + 1);
                     setUnlockedTests(nextCount);
                     persistUnlocked(nextCount);
-                    // Slide to the newly unlocked test card
-                    setTimeout(() => {
+                    setSelectedTestIndex(next);
+                    setShowSheet(false);
+                    setShowResults(false);
+                    setScore(0);
+                    setTimeLeft(TOTAL_TIME);
+                    // Start the next test using the target index to avoid stale state
+                    requestAnimationFrame(() => {
+                      handleStart(next);
                       const CARD_W = 300;
                       const GAP = 12;
                       const PADDING = 20;
                       const x = Math.max(0, next * (CARD_W + GAP) - PADDING);
                       testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
-                    }, 50);
-                    setSelectedTestIndex(next);
-                    // start next test immediately with reset timer
-                    setShowSheet(false);
-                    setScore(0);
-                    setTimeLeft(TOTAL_TIME);
-                    setShowResults(false);
-                    setAnswers([]);
-                    // Delay to ensure state update before generating quiz for next test
-                    setTimeout(() => handleStart(), 0);
+                    });
                   }}
                   disabled={!hasPassed}
                 >
-                  <Text style={styles.bottomButtonText}>Next Test</Text>
+                  <Text style={styles.bottomButtonText}>{hasPassed ? 'Next Test' : 'Try Again'}</Text>
                 </Pressable>
               </View>
             )}

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 function HomeHeader() {
 	const router = useRouter();
@@ -140,7 +140,7 @@ export default function HomeScreen() {
 
 					<View style={styles.categoryImageContainer}>
 						<Image
-						source={require('@/assets/images/push.png')}
+						source={require('@/assets/images/car.png')}
 						style={styles.categoryImage}
 						resizeMode="contain"
 						/>
@@ -323,7 +323,7 @@ export default function HomeScreen() {
 								resizeMode="contain"
 							/>
 						</View>
-						<Text style={styles.practiceCardText}>Online  license form</Text>
+						<Text style={styles.practiceCardText}>Online license form</Text>
 					</TouchableOpacity>
 
 					<TouchableOpacity
@@ -337,7 +337,7 @@ export default function HomeScreen() {
 								resizeMode="contain"
 							/>
 						</View>
-						<Text style={styles.practiceCardText}>License    Print Check</Text>
+						<Text style={styles.practiceCardText}>License Print Check</Text>
 					</TouchableOpacity>
 
 					<TouchableOpacity 
@@ -350,7 +350,7 @@ export default function HomeScreen() {
 								resizeMode="contain"
 							/>
 						</View>
-						<Text style={styles.practiceCardText}>Traffic     Fines Info</Text>
+						<Text style={styles.practiceCardText}>Traffic Fines    Info</Text>
 					</TouchableOpacity>
 
 					<TouchableOpacity
