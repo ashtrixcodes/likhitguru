@@ -106,43 +106,54 @@ export default function HomeScreen() {
 					scrollEventThrottle={16}
 				>
 
-					<View style={styles.categoryCard}>
-						<View style={styles.categoryTag}>
-							<Text style={styles.categoryTagText}>BIKE</Text>
-						</View>
-						<View style={styles.categoryImageContainer}>
-							<Image 
-								source={require('@/assets/images/bike.png')} 
-								style={styles.categoryImage}
-								resizeMode="contain"
-							/>
-						</View>
-						<TouchableOpacity style={styles.viewButton}>
-							<View style={styles.playIconContainer}>
-								<Ionicons name="play" size={16} color="#434D57" />
-							</View>
-							<Text style={styles.viewButtonText}>View</Text>
-						</TouchableOpacity>
+				<TouchableOpacity
+					onPress={() => router.push('/chooseCategory/twoWheeler')}
+					style={styles.categoryCard}
+				>
+				<View style={styles.categoryTag}>
+					<Text style={styles.categoryTagText}>BIKE</Text>
+				</View>
+
+				<View style={styles.categoryImageContainer}>
+					<Image
+					source={require('@/assets/images/bike.png')}
+					style={styles.categoryImage}
+					resizeMode="contain"
+					/>
+				</View>
+
+				<View style={styles.viewButton}>
+					<View style={styles.playIconContainer}>
+					<Ionicons name="play" size={16} color="#434D57" />
+					</View>
+					<Text style={styles.viewButtonText}>View</Text>
+				</View>
+				</TouchableOpacity>
+
+				<TouchableOpacity
+					onPress={() => router.push('/chooseCategory/fourWheeler')}
+					style={styles.categoryCard}
+				>
+					<View style={styles.categoryTag}>
+						<Text style={styles.categoryTagText}>CAR</Text>
 					</View>
 
-					<View style={styles.categoryCard}>
-						<View style={styles.categoryTag}>
-							<Text style={styles.categoryTagText}>CAR</Text>
-						</View>
-						<View style={styles.categoryImageContainer}>
-							<Image 
-								source={require('@/assets/images/push.png')} 
-								style={styles.categoryImage}
-								resizeMode="contain"
-							/>
-						</View>
-						<TouchableOpacity style={styles.viewButton}>
-							<View style={styles.playIconContainer}>
-								<Ionicons name="play" size={16} color="#434D57" />
-							</View>
-							<Text style={styles.viewButtonText}>View</Text>
-						</TouchableOpacity>
+					<View style={styles.categoryImageContainer}>
+						<Image
+						source={require('@/assets/images/push.png')}
+						style={styles.categoryImage}
+						resizeMode="contain"
+						/>
 					</View>
+
+					<View style={styles.viewButton}>
+						<View style={styles.playIconContainer}>
+						<Ionicons name="play" size={16} color="#434D57" />
+						</View>
+						<Text style={styles.viewButtonText}>View</Text>
+					</View>
+					</TouchableOpacity>
+
 					
 					<View style={styles.categoryCard}>
 						<View style={styles.categoryTag}>

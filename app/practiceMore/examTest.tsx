@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Image, Pressable, ScrollView, StyleSheet, Text, View, PanResponder } from 'react-native';
-import { knowledgeQuestions } from './knowledge';
+import { knowledgeAnswerKeyLetters, knowledgeQuestions } from './knowledge';
 let SecureStore: any;
 try {
   // Lazy import to avoid type errors if module types are missing during lint
@@ -13,7 +13,7 @@ try {
 export default function examTestScreen() {
   const TOTAL_TIME = 120; // seconds (2 minutes)
   const TOTAL_QUESTIONS = 20;
-  const PASS_PERCENT = 60;
+  const PASS_PERCENT = 40;
   const router = useRouter();
   const [selectedTestIndex, setSelectedTestIndex] = useState(0); // 0-based: Test 1..7
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'finished'>('idle');
@@ -32,6 +32,10 @@ export default function examTestScreen() {
   const buttonWidthAnim = useRef(new Animated.Value(100)).current;
   const liquidProgressAnim = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
+  const lastScrollYRef = useRef(0);
+  const questionOffsetsRef = useRef<number[]>([]);
+  const testSelectorRef = useRef<ScrollView>(null);
   const sheetHeightRef = useRef(0);
   const panResponder = useRef(
     PanResponder.create({
@@ -98,14 +102,15 @@ export default function examTestScreen() {
 
   const handleStart = () => {
     const baseSet = getTestSlice(selectedTestIndex);
-    // Shuffle options per question, keep first option as assumed correct until answer key provided
-    const quiz = baseSet.map((q) => {
+    // Do NOT shuffle questions or options. Keep the original order and map the correct answer from the key.
+    const startIndex = selectedTestIndex * 20;
+    const quiz = baseSet.map((q, idx) => {
+      const globalIndex = startIndex + idx; // 0-based across all questions
+      const letter = knowledgeAnswerKeyLetters[globalIndex] ?? 'a';
+      const correctFromLetter = ({ a: 0, b: 1, c: 2, d: 3 } as const)[letter];
+      const correctAnswerOriginal = q.options[correctFromLetter];
       const options = [...q.options];
-      for (let i = options.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [options[i], options[j]] = [options[j], options[i]];
-      }
-      return { ...q, options, correctAnswer: q.options[0] };
+      return { ...q, options, correctAnswer: correctAnswerOriginal };
     });
 
     setCurrentQuiz(quiz);
@@ -148,6 +153,17 @@ export default function examTestScreen() {
     const next = [...answers];
     next[qIndex] = option;
     setAnswers(next);
+    // Auto-scroll so that the next question takes the current question's position
+    const nextIndex = qIndex + 1;
+    const currentTop = questionOffsetsRef.current[qIndex];
+    const nextTop = questionOffsetsRef.current[nextIndex];
+    if (typeof currentTop === 'number' && typeof nextTop === 'number') {
+      const delta = nextTop - currentTop;
+      const targetY = Math.max(0, lastScrollYRef.current + delta);
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ y: targetY, animated: true });
+      });
+    }
   };
 
   const calculateAndShowResults = () => {
@@ -170,6 +186,14 @@ export default function examTestScreen() {
         const nextCount = nextIndex + 1;
         setUnlockedTests(nextCount);
         persistUnlocked(nextCount);
+        // Gently slide the test selector to reveal the next test card
+        setTimeout(() => {
+          const CARD_W = 300; // match styles.testCard width
+          const GAP = 12;     // match styles.testCard marginRight
+          const PADDING = 20; // match styles.testSelectorContent horizontal padding
+          const x = Math.max(0, nextIndex * (CARD_W + GAP) - PADDING);
+          testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
+        }, 50);
       }
     }
     setShowOutcomeModal(true);
@@ -219,7 +243,77 @@ export default function examTestScreen() {
         }}
       />
       <View style={styles.container}>
-        {/* Moved Test Selector inside the main scroll to eliminate spacing */}
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 96 }}
+          onScroll={(e) => {
+            lastScrollYRef.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
+        >
+        {/* Test selector - always visible so cards are clickable */}
+        <ScrollView
+          ref={testSelectorRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.testSelector}
+          contentContainerStyle={styles.testSelectorContent}
+          decelerationRate="fast"
+        >
+          {Array.from({ length: Math.ceil(knowledgeQuestions.length / 20) }, (_, i) => {
+            const isLocked = i >= unlockedTests;
+            const isActive = selectedTestIndex === i && !isLocked;
+            return (
+              <Pressable
+                key={i}
+                style={[styles.testCard, isActive && styles.testCardActive, isLocked && styles.testCardLocked]}
+                onPress={() => {
+                  if (i >= unlockedTests) {
+                    Alert.alert('Locked', 'Complete the previous test to unlock this level.');
+                    return;
+                  }
+                  // Selecting another test should only switch the visible question set
+                  if (selectedTestIndex !== i) {
+                    setSelectedTestIndex(i);
+                    const nextBase = getTestSlice(i);
+                    const startIndex = i * 20;
+                    const nextQuiz = nextBase.map((q, idx) => {
+                      const letter = knowledgeAnswerKeyLetters[startIndex + idx] ?? 'a';
+                      const correctFromLetter = ({ a: 0, b: 1, c: 2, d: 3 } as const)[letter];
+                      return { ...q, options: [...q.options], correctAnswer: q.options[correctFromLetter] };
+                    });
+                    setCurrentQuiz(nextQuiz);
+                    setAnswers(Array(nextQuiz.length).fill(null));
+                    setShowResults(false);
+                    setScore(0);
+                    setTimeLeft(TOTAL_TIME);
+                  }
+                }}
+             >
+                <View style={styles.testCardRow}>
+                  <View style={styles.testIconCircle}>
+                    <Image source={require('../../assets/images/exam.png')} style={styles.testIcon} resizeMode="contain" />
+                  </View>
+                  <View style={styles.testCardTextArea}>
+                    <Text style={styles.testTitle}>Test {i + 1}</Text>
+                    <Text style={styles.testSubtitle}>
+                      {i === 0
+                        ? 'Complete this test in time to unlock test 2'
+                        : isLocked
+                          ? 'Complete previous test to unlock'
+                          : 'You are ready to start'}
+                    </Text>
+                  </View>
+                  <View style={[styles.testArrowCircle, isActive && styles.testArrowCircleActive]}>
+                    <Ionicons name="chevron-forward" size={16} color={isActive ? '#fff' : '#9AA0A6'} />
+                  </View>
+                  {isLocked && <Ionicons name="lock-closed" size={14} color="#9AA0A6" style={styles.testLockBadge} />}
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
         {/* Timer row removed - using header timer after sheet dismiss */}
 
@@ -227,57 +321,14 @@ export default function examTestScreen() {
 
         {/* Questions List */}
         {gameState !== 'idle' && currentQuiz.length > 0 && (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 0, paddingHorizontal: 0, paddingBottom: 64 }}>
-            <View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.testSelector}
-                contentContainerStyle={styles.testSelectorContent}
-                decelerationRate="fast"
-              >
-                {Array.from({ length: Math.ceil(knowledgeQuestions.length / 20) }, (_, i) => {
-                  const isLocked = i >= unlockedTests;
-                  const isActive = selectedTestIndex === i && !isLocked;
-                  return (
-                    <Pressable
-                      key={i}
-                      style={[styles.testCard, isActive && styles.testCardActive, isLocked && styles.testCardLocked]}
-                      onPress={() => {
-                        if (i >= unlockedTests) {
-                          Alert.alert('Locked', 'Complete the previous test to unlock this level.');
-                          return;
-                        }
-                        setSelectedTestIndex(i);
-                        resetGame();
-                      }}
-                    >
-                      <View style={styles.testCardRow}>
-                        <View style={styles.testIconCircle}>
-                          <Image source={require('../../assets/images/exam.png')} style={styles.testIcon} resizeMode="contain" />
-                        </View>
-                        <View style={styles.testCardTextArea}>
-                          <Text style={styles.testTitle}>Test {i + 1}</Text>
-                          <Text style={styles.testSubtitle}>
-                            {i === 0
-                              ? 'Complete this test in time to unlock test 2'
-                              : isLocked
-                                ? 'Complete previous test to unlock'
-                                : 'You are ready to start'}
-                          </Text>
-                        </View>
-                        <View style={[styles.testArrowCircle, isActive && styles.testArrowCircleActive]}>
-                          <Ionicons name="chevron-forward" size={16} color={isActive ? '#fff' : '#9AA0A6'} />
-                        </View>
-                        {isLocked && <Ionicons name="lock-closed" size={14} color="#9AA0A6" style={styles.testLockBadge} />}
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
-            {currentQuiz.map((q, qIndex) => (
-              <View key={qIndex} style={[styles.qaCard, { marginBottom: 20, marginTop: qIndex === 0 ? 20 : 0 }]}>
+            currentQuiz.map((q, qIndex) => (
+              <View
+                key={qIndex}
+                onLayout={(e) => {
+                  questionOffsetsRef.current[qIndex] = e.nativeEvent.layout.y;
+                }}
+                style={[styles.qaCard, { marginBottom: 14, marginTop: qIndex === 0 ? 0 : 0 }]}
+              > 
                 <View style={styles.questionHeader}>
                   <View style={styles.flagBadge}>
                     <Image source={require('../../assets/images/nepal.png')} style={styles.flagIcon} resizeMode="contain" />
@@ -348,9 +399,10 @@ export default function examTestScreen() {
                 </View>
                 {qIndex < currentQuiz.length - 1 && <View style={styles.dottedSeparator} />}
               </View>
-            ))}
-          </ScrollView>
+            ))
         )}
+
+        </ScrollView>
 
         {/* Bottom action bar */}
         {gameState !== 'idle' && (
@@ -381,6 +433,14 @@ export default function examTestScreen() {
                     const nextCount = Math.max(unlockedTests, next + 1);
                     setUnlockedTests(nextCount);
                     persistUnlocked(nextCount);
+                    // Slide to the newly unlocked test card
+                    setTimeout(() => {
+                      const CARD_W = 300;
+                      const GAP = 12;
+                      const PADDING = 20;
+                      const x = Math.max(0, next * (CARD_W + GAP) - PADDING);
+                      testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
+                    }, 50);
                     setSelectedTestIndex(next);
                     // start next test immediately with reset timer
                     setShowSheet(false);
@@ -442,44 +502,17 @@ export default function examTestScreen() {
                 {hasPassed ? 'Passed!' : 'Failed'}
               </Text>
               <Text style={styles.modalSubtitle}>
-                {hasPassed ? 'you have successfully scored above 60%' : 'you have scored below 60%'}
+                {hasPassed ? 'you have successfully scored above 40%' : 'you have scored below 60%'}
               </Text>
               <View style={styles.modalButtonsRow}>
                 <Pressable
-                  style={[styles.modalButton, styles.modalButtonSecondary]}
+                  style={[styles.modalButton, styles.modalButtonPrimary]}
                   onPress={() => {
-                    // Retry current test from start
+                    // Dismiss modal so user can review correct/incorrect answers
                     setShowOutcomeModal(false);
-                    setShowResults(false);
-                    setScore(0);
-                    setTimeLeft(TOTAL_TIME);
-                    setAnswers([]);
-                    setShowSheet(false);
-                    setTimeout(() => handleStart(), 0);
                   }}
                 >
-                  <Text style={styles.modalButtonText}>Retry</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.modalButton, hasPassed ? styles.modalButtonPrimary : styles.modalButtonDisabled]}
-                  onPress={() => {
-                    if (!hasPassed) return;
-                    const next = selectedTestIndex + 1;
-                    const totalTests = Math.ceil(knowledgeQuestions.length / 20);
-                    if (next >= totalTests) return;
-                    const nextCount = Math.max(unlockedTests, next + 1);
-                    setUnlockedTests(nextCount);
-                    persistUnlocked(nextCount);
-                    setSelectedTestIndex(next);
-                    setShowOutcomeModal(false);
-                    setShowResults(false);
-                    setScore(0);
-                    setTimeLeft(TOTAL_TIME);
-                    setAnswers([]);
-                    setTimeout(() => handleStart(), 0);
-                  }}
-                >
-                  <Text style={styles.modalButtonText}>{hasPassed ? 'next' : 'next'}</Text>
+                  <Text style={styles.modalButtonText}>Okay</Text>
                 </Pressable>
               </View>
             </View>
@@ -495,10 +528,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
     paddingHorizontal: 0,
-    paddingTop: 12,
+    paddingTop: 0,
   },
   testSelector: {
-    marginBottom: -8,
+    marginBottom: 6,
   },
   testSelectorContent: {
     paddingHorizontal: 20,
@@ -509,6 +542,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     marginRight: 12,
+    marginTop: 20,
     borderWidth: 1,
     borderColor: '#eee',
     shadowColor: '#000',
@@ -830,13 +864,14 @@ const styles = StyleSheet.create({
   bottomButton: {
     backgroundColor: '#434D57',
     paddingVertical: 12,
-    borderRadius: 24,
+    paddingHorizontal: 18,
+    borderRadius: 10,
     alignItems: 'center',
   },
   bottomButtonText: { color: '#fff', fontSize: 16 },
   resultCapsule: {
     backgroundColor: '#fff',
-    borderRadius: 24,
+    borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',

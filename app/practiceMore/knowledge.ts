@@ -140,3 +140,20 @@ export const knowledgeQuestions: KnowledgeQuestion[] = [
 ];
 
 
+// Correct answer key for the first 130 questions (letters a-d). Remaining questions default to 'a'.
+export const knowledgeAnswerKeyLetters: ('a'|'b'|'c'|'d')[] = [
+  'd','a','d','d','d','b','b','b','b','c',
+  'b','b','d','c','d','b','d','d','b','a',
+  'd','c','a','b','b','d','b','c','a','b',
+  'b','a','a','c','d','a','c','b','c','c',
+  'd','a','a','a','a','d','c','b','c','b',
+  'c','d','a','a','c','d','c','b','d','b',
+  'd','a','a','b','a','d','a','c','c','c',
+  'a','a','c','a','c','d','d','d','d','b',
+  'a','b','a','a','c','a','d','c','d','a',
+  'b','c','a','d','c','a','d','d','b','d',
+  'a','c','d','b','a','d','c','b','d','a',
+  'd','c','a','a','c','d','b','b','b','d'
+];
+
+

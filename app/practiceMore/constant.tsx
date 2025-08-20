@@ -1,3 +1,5 @@
+
+
 export const informativeSign: { key: string; label: string; src: any }[] = [
     { key: 'traffic', label: 'Traffic', src: require('../../assets/images/informativeSign/traffic.png') },
     { key: 'turnFullRight', label: 'Full Right Turn', src: require('../../assets/images/informativeSign/turnFullRight.png') },
