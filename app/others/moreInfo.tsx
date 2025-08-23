@@ -9,7 +9,7 @@ export default function moreInfoScreen() {
     <>
       <Stack.Screen 
         options={{
-          title: "Traffic Fines",
+          title: "More Info",
           headerTitleAlign: 'center',
           headerStyle: {
             backgroundColor: '#434D57',
@@ -30,7 +30,7 @@ export default function moreInfoScreen() {
         }}
       />
       <View style={styles.container}>
-        <Text style={styles.title}>License Form</Text>
+        <Text style={styles.title}>More Info</Text>
         <Text>Coming Soon..</Text>
       </View>
     </>

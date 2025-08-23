@@ -5,7 +5,7 @@ import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 
 import { knowledgeAnswerKeyLetters, knowledgeQuestions } from '../practiceMore/knowledge';
 import { actRegulationAnswerKeyIndices, actRegulationQuestions, techAndMechanicalAnswerKeyIndices, techAndMechanicalQuestions, trafficSignalKnowledgeAnswerKeyIndices, trafficSignalKnowledgeQuestions, vehiclePollutionAnswerKeyIndices, vehiclePollutionQuestions } from './constant';
 
-export default function TwoWheelerScreen() {
+export default function OthersScreen() {
   // Resolve constants each render so we don't freeze empty values
   let QUESTIONS: any[] = Array.isArray(actRegulationQuestions) ? (actRegulationQuestions as any[]) : [];
   let ANSWER_KEYS: number[] = Array.isArray(actRegulationAnswerKeyIndices) ? (actRegulationAnswerKeyIndices as number[]) : [];
@@ -23,6 +23,7 @@ export default function TwoWheelerScreen() {
   // Traffic signal knowledge (Section 6)
   let SIGNAL_QUESTIONS: any[] = Array.isArray(trafficSignalKnowledgeQuestions) ? (trafficSignalKnowledgeQuestions as any[]) : [];
   let SIGNAL_ANSWER_KEYS: number[] = Array.isArray(trafficSignalKnowledgeAnswerKeyIndices) ? (trafficSignalKnowledgeAnswerKeyIndices as number[]) : [];
+  
   if (QUESTIONS.length === 0 || TECH_QUESTIONS.length === 0) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -105,129 +106,46 @@ export default function TwoWheelerScreen() {
     ACC_ANSWER_KEYS = ACC_ANSWER_LETTERS.map((l: string) => letterToIndex(l));
   }
 
-  // Fixed sections per spec; Section 1 contains all current questions
-  const sections = useMemo(() => {
-    const allCount = QUESTIONS.length;
-    const techCount = TECH_QUESTIONS.length;
-    const accCount = ACC_QUESTIONS.length;
-    
-    // Create sections array and shuffle it randomly
-    const sectionsArray = [
-      {
-        title: 'Section 1',
-        subtitle: 'Knowledge related to vehicular act/regulation.',
-        start: 0,
-        end: allCount,
-        originalIndex: 0,
-      },
-      {
-        title: 'Section 2',
-        subtitle: 'Technical or mechanical knowledge of vehicle',
-        start: 0,
-        end: techCount,
-        originalIndex: 1,
-      },
-      {
-        title: 'Section 3',
-        subtitle: 'Conceptual knowledge related to environment pollution',
-        start: 0,
-        end: POLLUTION_QUESTIONS.length,
-        originalIndex: 2,
-      },
-      {
-        title: 'Section 4',
-        subtitle: 'Knowledge related to driving',
-        start: 0,
-        end: DRIVE_QUESTIONS.length,
-        originalIndex: 3,
-      },
-      {
-        title: 'Section 5',
-        subtitle: 'Knowledge related to accidental awareness',
-        start: 0,
-        end: accCount,
-        originalIndex: 4,
-      },
-      {
-        title: 'Section 6',
-        subtitle: 'Knowledge related to traffic signals',
-        start: 0,
-        end: SIGNAL_QUESTIONS.length,
-        originalIndex: 5,
-      },
-    ];
+  // Combine all questions into one array
+  const allQuestions = useMemo(() => {
+    const combinedQuestions: any[] = [];
+    let currentId = 0;
 
-    // Fisher-Yates shuffle algorithm for random sorting
-    const shuffled = [...sectionsArray];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+    // Add all questions from each section with proper ID mapping
+    const addQuestions = (questions: any[], answerKeys: number[], sectionName: string) => {
+      questions.forEach((q, idx) => {
+        const key = Number.isFinite(answerKeys[idx]) ? Number(answerKeys[idx]) : 0;
+        combinedQuestions.push({
+          q: q?.question ?? '',
+          opts: Array.isArray(q?.options) ? q.options : ['', '', '', ''],
+          correctIndex: Math.max(0, Math.min(3, key)),
+          id: currentId++,
+          section: sectionName,
+        });
+      });
+    };
 
-    // Reassign section numbers starting from 1 after shuffling
-    return shuffled.map((section, index) => ({
-      ...section,
-      title: `Section ${index + 1}`,
-    }));
-  }, [QUESTIONS, TECH_QUESTIONS, POLLUTION_QUESTIONS, DRIVE_QUESTIONS, ACC_QUESTIONS, SIGNAL_QUESTIONS]);
+    // Add questions from each section
+    addQuestions(QUESTIONS, ANSWER_KEYS, 'Vehicular Act/Regulation');
+    addQuestions(TECH_QUESTIONS, TECH_ANSWER_KEYS, 'Technical Knowledge');
+    addQuestions(POLLUTION_QUESTIONS, POLLUTION_ANSWER_KEYS, 'Environment Pollution');
+    addQuestions(DRIVE_QUESTIONS, DRIVE_ANSWER_KEYS, 'Driving Knowledge');
+    addQuestions(ACC_QUESTIONS, ACC_ANSWER_KEYS, 'Accidental Awareness');
+    addQuestions(SIGNAL_QUESTIONS, SIGNAL_ANSWER_KEYS, 'Traffic Signals');
 
-  const [activeSection, setActiveSection] = useState(0);
+    return combinedQuestions;
+  }, [QUESTIONS, ANSWER_KEYS, TECH_QUESTIONS, TECH_ANSWER_KEYS, POLLUTION_QUESTIONS, POLLUTION_ANSWER_KEYS, DRIVE_QUESTIONS, DRIVE_ANSWER_KEYS, ACC_QUESTIONS, ACC_ANSWER_KEYS, SIGNAL_QUESTIONS, SIGNAL_ANSWER_KEYS]);
+
   const [revealedSet, setRevealedSet] = useState<Set<number>>(new Set());
   const answerAnimMapRef = useRef<Map<number, Animated.Value>>(new Map());
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [showGoToTop, setShowGoToTop] = useState(false);
 
   const getAnimForId = (id: number) => {
     const map = answerAnimMapRef.current;
     if (!map.has(id)) map.set(id, new Animated.Value(0));
     return map.get(id)!;
   };
-
-  const questionsForActive = useMemo(() => {
-    let dataQ: any[] = [];
-    let dataA: number[] = [];
-    let baseId = 0;
-    
-    // Get the original index of the active section to determine which data to load
-    const activeSectionData = sections[activeSection];
-    const originalIndex = activeSectionData?.originalIndex ?? 0;
-    
-    if (originalIndex === 0) {
-      dataQ = QUESTIONS;
-      dataA = ANSWER_KEYS;
-      baseId = 0;
-    } else if (originalIndex === 1) {
-      dataQ = TECH_QUESTIONS;
-      dataA = TECH_ANSWER_KEYS;
-      baseId = 1000; // ensure unique ids across sections
-    } else if (originalIndex === 2) {
-      dataQ = POLLUTION_QUESTIONS;
-      dataA = POLLUTION_ANSWER_KEYS;
-      baseId = 2000;
-    } else if (originalIndex === 3) {
-      dataQ = DRIVE_QUESTIONS;
-      dataA = DRIVE_ANSWER_KEYS;
-      baseId = 3000;
-    } else if (originalIndex === 4) {
-      dataQ = ACC_QUESTIONS;
-      dataA = ACC_ANSWER_KEYS;
-      baseId = 4000;
-    } else if (originalIndex === 5) {
-      dataQ = SIGNAL_QUESTIONS;
-      dataA = SIGNAL_ANSWER_KEYS;
-      baseId = 5000;
-    } else {
-      dataQ = [];
-      dataA = [];
-    }
-    return dataQ.map((q, idx) => {
-      const key = Number.isFinite(dataA[idx]) ? Number(dataA[idx]) : 0;
-      return {
-        q: q?.question ?? '',
-        opts: Array.isArray(q?.options) ? q.options : ['', '', '', ''],
-        correctIndex: Math.max(0, Math.min(3, key)),
-        id: baseId + idx,
-      };
-    });
-  }, [activeSection, sections, QUESTIONS, ANSWER_KEYS, TECH_QUESTIONS, TECH_ANSWER_KEYS, POLLUTION_QUESTIONS, POLLUTION_ANSWER_KEYS, DRIVE_QUESTIONS, DRIVE_ANSWER_KEYS, ACC_QUESTIONS, ACC_ANSWER_KEYS, SIGNAL_QUESTIONS, SIGNAL_ANSWER_KEYS]);
 
   const toggleReveal = (id: number) => {
     const anim = getAnimForId(id);
@@ -246,56 +164,63 @@ export default function TwoWheelerScreen() {
     });
   };
 
+  const scrollToTop = () => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  const handleScroll = (event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    setShowGoToTop(scrollY > 200);
+  };
+
   const router = useRouter();
   return (
     <>
-       <Stack.Screen 
-                options={{
-                    title: "Two Wheeler Lekhit Test",
-                    headerTitleAlign: 'center',
-                    headerStyle: {
-                        backgroundColor: '#434D57',
-                    },
-                    headerTitleStyle: {
-                        fontSize: 18,
-                        color: '#FFFFFF',
-                    },
-                    headerTintColor: '#FFFFFF',
-                    headerLeft: () => (
-                        <Pressable 
-                            onPress={() => router.back()}
-                            style={styles.headerBackButton}
-                        >
-                            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-                        </Pressable>
-                    ),
-                }}
-            />
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sectionTabs}
-        >
-          {sections.map((s, idx) => (
-            <Pressable
-              key={idx}
-              style={[styles.sectionCard, idx === activeSection && styles.sectionCardActive]}
-              onPress={() => setActiveSection(idx)}
+      <Stack.Screen 
+        options={{
+          title: "Others - All Questions",
+          headerTitleAlign: 'center',
+          headerStyle: {
+            backgroundColor: '#434D57',
+          },
+          headerTitleStyle: {
+            fontSize: 18,
+            color: '#FFFFFF',
+          },
+          headerTintColor: '#FFFFFF',
+          headerLeft: () => (
+            <Pressable 
+              onPress={() => router.back()}
+              style={styles.headerBackButton}
             >
-              <View style={styles.sectionRow}>
-                <View style={styles.sectionIcon}><Ionicons name="document-text-outline" size={22} color="#434D57" /></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sectionTitle}>{s.title}</Text>
-                  <Text style={styles.sectionSubtitle}>{s.subtitle}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#9AA0A6" />
-              </View>
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </Pressable>
-          ))}
-        </ScrollView>
+          ),
+        }}
+      />
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.container} 
+        contentContainerStyle={{ paddingBottom: 32 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {/* Single section card showing all questions */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionRow}>
+            <View style={styles.sectionIcon}>
+              <Ionicons name="document-text-outline" size={22} color="#434D57" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sectionTitle}>All Questions</Text>
+              <Text style={styles.sectionSubtitle}>
+                Complete collection of all driving test questions from all sections
+              </Text>
+            </View>
+          </View>
+        </View>
 
-        {questionsForActive.map((item) => {
+        {allQuestions.map((item) => {
           const show = revealedSet.has(item.id);
           const anim = getAnimForId(item.id);
           const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] });
@@ -304,6 +229,9 @@ export default function TwoWheelerScreen() {
           return (
             <View key={item.id}>
               <View style={styles.card}>
+                <View style={styles.questionHeader}>
+                  <Text style={styles.sectionTag}>{item.section}</Text>
+                </View>
                 <Text style={styles.questionText}>{item.q}</Text>
                 <View style={styles.dashed} />
                 <View style={styles.optionGrid}>
@@ -334,12 +262,22 @@ export default function TwoWheelerScreen() {
           );
         })}
 
-        {questionsForActive.length === 0 && (
+        {allQuestions.length === 0 && (
           <View style={{ padding: 16, alignItems: 'center' }}>
             <Text style={{ color: '#666' }}>Questions will be added soon.</Text>
-    </View>
+          </View>
         )}
       </ScrollView>
+
+      {/* Go to top floating button */}
+      {showGoToTop && (
+        <Pressable 
+          style={styles.goToTopButton}
+          onPress={scrollToTop}
+        >
+          <Ionicons name="chevron-up" size={20} color="#FFFFFF" />
+        </Pressable>
+      )}
     </>
   );
 }
@@ -353,24 +291,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  sectionTabs: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 6,
-  },
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
-    marginLeft: 8,  
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#EEE',
-    width: 260,
-  },
-  sectionCardActive: {
     borderColor: '#434D57',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sectionRow: {
     flexDirection: 'row',
@@ -386,14 +321,14 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#333',
     fontWeight: '700',
-    marginTop: 12,
   },
   sectionSubtitle: {
     fontSize: 12,
     color: '#666',
+    marginTop: 2,
   },
   card: {
     backgroundColor: '#fff',
@@ -410,6 +345,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
+  },
+  questionHeader: {
+    marginBottom: 8,
+  },
+  sectionTag: {
+    fontSize: 11,
+    color: '#434D57',
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    fontWeight: '600',
   },
   questionText: {
     fontSize: 16,
@@ -478,5 +426,23 @@ const styles = StyleSheet.create({
     padding: 8,
     marginLeft: 10,
     borderRadius: 20,
-},
+  },
+  goToTopButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 40,
+    height: 40,
+    borderRadius: 25,
+    backgroundColor: '#434D57',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+    zIndex: 1000,
+    opacity: 0.6,
+  },
 });

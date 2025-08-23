@@ -27,13 +27,13 @@ function HomeHeader() {
 					<Text style={styles.userName}>Prashant Khanal</Text>
 				</View>
 			</View>
-			<View style={styles.searchSection}>
+			{/* <View style={styles.searchSection}>
 				<Text style={styles.searchTitle}>Search Category</Text>
 				<View style={styles.searchBar}>
 					<Ionicons name="search" size={20} color="#ffffff85" />
 					<Text style={styles.searchPlaceholder}>search here..</Text>
 				</View>
-			</View>
+			</View> */}
 		</>
 	);
 }
@@ -91,7 +91,7 @@ export default function HomeScreen() {
 			)}
 			{/* Choose Category Section */}
 			<View style={styles.section}>
-				<Text style={styles.sectionTitle}>Choose Category</Text>
+				<Text style={styles.sectionTitle}>Lekhit Exam</Text>
 				<ScrollView 
 					ref={scrollViewRef}
 					horizontal 
@@ -111,7 +111,7 @@ export default function HomeScreen() {
 					style={styles.categoryCard}
 				>
 				<View style={styles.categoryTag}>
-					<Text style={styles.categoryTagText}>BIKE</Text>
+					<Text style={styles.categoryTagText}>Bike</Text>
 				</View>
 
 				<View style={styles.categoryImageContainer}>
@@ -135,12 +135,12 @@ export default function HomeScreen() {
 					style={styles.categoryCard}
 				>
 					<View style={styles.categoryTag}>
-						<Text style={styles.categoryTagText}>CAR</Text>
+						<Text style={styles.categoryTagText}>Car</Text>
 					</View>
 
 					<View style={styles.categoryImageContainer}>
 						<Image
-						source={require('@/assets/images/car.png')}
+						source={require('@/assets/images/redcar.jpg')}
 						style={styles.categoryImage}
 						resizeMode="contain"
 						/>
@@ -154,25 +154,30 @@ export default function HomeScreen() {
 					</View>
 					</TouchableOpacity>
 
-					
-					<View style={styles.categoryCard}>
-						<View style={styles.categoryTag}>
-							<Text style={styles.categoryTagText}>MOPED</Text>
-						</View>
-						<View style={styles.categoryImageContainer}>
-							<Image 
-								source={require('@/assets/images/stopwatch.png')} 
-								style={styles.categoryImage}
-								resizeMode="contain"
-							/>
-						</View>
-						<TouchableOpacity style={styles.viewButton}>
-							<View style={styles.playIconContainer}>
-								<Ionicons name="play" size={16} color="#434D57" />
-							</View>
-							<Text style={styles.viewButtonText}>View</Text>
-						</TouchableOpacity>
+					<TouchableOpacity
+					onPress={() => router.push('/chooseCategory/others')}
+					style={styles.categoryCard}
+				>
+					<View style={styles.categoryTag}>
+						<Text style={styles.categoryTagText}>Others</Text>
 					</View>
+
+					<View style={styles.categoryImageContainer}>
+						<Image
+						source={require('@/assets/images/others.png')}
+						style={styles.categoryImage}
+						resizeMode="contain"
+						/>
+					</View>
+
+					<View style={styles.viewButton}>
+						<View style={styles.playIconContainer}>
+						<Ionicons name="play" size={16} color="#434D57" />
+						</View>
+						<Text style={styles.viewButtonText}>View</Text>
+					</View>
+					</TouchableOpacity>
+					
 				</ScrollView>
 				<View style={styles.pagination}>
 					<View style={[
@@ -386,7 +391,7 @@ const styles = StyleSheet.create({
 		backgroundColor: '#434D57',
 		paddingTop: 50,
 		paddingHorizontal: 20,
-		paddingBottom: 40,
+		paddingBottom: 10,
     	borderTopLeftRadius: 0, 
 		borderTopRightRadius: 0,
 		borderBottomLeftRadius: 40,

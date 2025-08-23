@@ -12,7 +12,7 @@ try {
 } catch {}
 
 export default function examTestScreen() {
-  const TOTAL_TIME = 120; // seconds (2 minutes)
+  const TOTAL_TIME = 240; // seconds (2 minutes)
   const TOTAL_QUESTIONS = 20;
   const PASS_PERCENT = 40;
   const TOTAL_TESTS = Math.ceil(knowledgeQuestions.length / 20);
@@ -117,7 +117,8 @@ export default function examTestScreen() {
   const closeSheetAndStart = () => {
     Animated.timing(sheetTranslateY, { toValue: 600, duration: 220, useNativeDriver: true }).start(() => {
       setShowSheet(false);
-      handleStart();
+      // Always regenerate the quiz to ensure fresh questions
+      handleStart(selectedTestIndex);
     });
   };
 
@@ -540,32 +541,49 @@ export default function examTestScreen() {
                   <Text style={styles.resultText}>Time: {TOTAL_TIME - timeLeft}s</Text>
                 </View>
                 <Pressable
-                  style={[styles.bottomButton, { opacity: hasPassed ? 1 : 0.5 }]}
+                  style={[
+                    styles.bottomButton, 
+                    { 
+                      backgroundColor: hasPassed ? '#434D57' : '#434D57',
+                      opacity: hasPassed ? 1 : 1 
+                    }
+                  ]}
                   onPress={() => {
-                    if (!hasPassed) return;
-                    const next = selectedTestIndex + 1;
-                    const totalTests = Math.ceil(knowledgeQuestions.length / 20);
-                    if (next >= totalTests) return;
-                    // unlock next and navigate
-                    const nextCount = Math.max(unlockedTests, next + 1);
-                    setUnlockedTests(nextCount);
-                    persistUnlocked(nextCount);
-                    setSelectedTestIndex(next);
-                    setShowSheet(false);
-                    setShowResults(false);
-                    setScore(0);
-                    setTimeLeft(TOTAL_TIME);
-                    // Start the next test using the target index to avoid stale state
-                    requestAnimationFrame(() => {
-                      handleStart(next);
-                      const CARD_W = 300;
-                      const GAP = 12;
-                      const PADDING = 20;
-                      const x = Math.max(0, next * (CARD_W + GAP) - PADDING);
-                      testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
-                    });
+                    if (hasPassed) {
+                      // User passed - go to next test
+                      const next = selectedTestIndex + 1;
+                      const totalTests = Math.ceil(knowledgeQuestions.length / 20);
+                      if (next >= totalTests) return;
+                      // unlock next and navigate
+                      const nextCount = Math.max(unlockedTests, next + 1);
+                      setUnlockedTests(nextCount);
+                      persistUnlocked(nextCount);
+                      setSelectedTestIndex(next);
+                      setShowSheet(false);
+                      setShowResults(false);
+                      setScore(0);
+                      setTimeLeft(TOTAL_TIME);
+                      // Start the next test using the target index to avoid stale state
+                      requestAnimationFrame(() => {
+                        handleStart(next);
+                        // Give more time for the test cards to re-render with updated states
+                        setTimeout(() => {
+                          const CARD_W = 300;
+                          const GAP = 12;
+                          const PADDING = 20;
+                          const x = Math.max(0, next * (CARD_W + GAP) - PADDING);
+                          testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
+                        }, 200); // Increased from 50ms to 200ms
+                      });
+                                         } else {
+                     // User failed - restart the same test
+                      setShowOutcomeModal(false);
+                      resetScrollToTop();
+                      // Directly restart the same test without going through the sheet
+                      handleStart(selectedTestIndex);
+                     }
                   }}
-                  disabled={!hasPassed}
+                  disabled={false}
                 >
                   <Text style={styles.bottomButtonText}>{hasPassed ? 'Next Test' : 'Try Again'}</Text>
                 </Pressable>
@@ -596,9 +614,9 @@ export default function examTestScreen() {
               </View>
               <Text style={styles.sheetInstructionTitle}>Instruction</Text>
               <View style={styles.instructionList}>
-                <Text style={styles.instructionItem}>• The quiz has a 2-minute time limit.</Text>
+                <Text style={styles.instructionItem}>• The quiz has a 4-minute time limit.</Text>
                 <Text style={styles.instructionItem}>• There are 20 objective questions.</Text>
-                <Text style={styles.instructionItem}>• You need 60% to pass.</Text>
+                <Text style={styles.instructionItem}>• You need 40% to pass.</Text>
                 <Text style={styles.instructionItem}>• Questions cover driving, vehicle laws, mechanics, pollution, accidents, and traffic signals.</Text>
               </View>
               <Pressable style={styles.sheetStartButton} onPress={() => closeSheetAndStart()}>
