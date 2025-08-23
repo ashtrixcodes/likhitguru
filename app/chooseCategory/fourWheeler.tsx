@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { knowledgeAnswerKeyLetters, knowledgeQuestions } from '../practiceMore/knowledge';
@@ -220,17 +220,31 @@ export default function FourWheelerScreen() {
     });
   };
 
+  const router = useRouter();
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: 'Four Wheeler',
-          headerTitleAlign: 'center',
-          headerStyle: { backgroundColor: '#434D57' },
-          headerTitleStyle: { color: '#fff', fontSize: 20 },
-          headerTintColor: '#fff',
-        }}
-      />
+       <Stack.Screen 
+                options={{
+                    title: "Four Wheeler Lekhit Test",
+                    headerTitleAlign: 'center',
+                    headerStyle: {
+                        backgroundColor: '#434D57',
+                    },
+                    headerTitleStyle: {
+                        fontSize: 18,
+                        color: '#FFFFFF',
+                    },
+                    headerTintColor: '#FFFFFF',
+                    headerLeft: () => (
+                        <Pressable 
+                            onPress={() => router.back()}
+                            style={styles.headerBackButton}
+                        >
+                            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                        </Pressable>
+                    ),
+                }}
+            />
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
         <ScrollView
           horizontal
@@ -434,4 +448,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
   },
+  headerBackButton: {
+    padding: 8,
+    marginLeft: 10,
+    borderRadius: 20,
+},
 });

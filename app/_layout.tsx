@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { HeaderOptions } from '@react-navigation/elements';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -23,8 +24,10 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         {/* Hide header for the slider stack and present transparently over current screen */}
         <Stack.Screen name="slider" options={{ headerShown: false, presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />
-        <Stack.Screen name="+not-found" />
       </Stack>
+
+
+      
       <StatusBar style="auto" />
     </ThemeProvider>
   );
