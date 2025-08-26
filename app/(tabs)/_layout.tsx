@@ -13,9 +13,6 @@ export default function TabLayout() {
             display: 'none'  // This hides the default tab bar
           }
         }}>
-        <Tabs.Screen name="index" />
-        <Tabs.Screen name="dailyQuiz" />
-        <Tabs.Screen name="profile" />
       </Tabs>
       <FooterNav />
     </View>

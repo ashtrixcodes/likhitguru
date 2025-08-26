@@ -4,16 +4,17 @@
     "slug": "lekhit",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "lekhit",
+    "icon": "./assets/images/nepal.png",
+    "scheme": "lekhit Guru",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
+
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/nepal.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
@@ -21,7 +22,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/nepal.png"
     },
     "plugins": [
       "expo-router",
@@ -29,9 +30,16 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/nepal.png",
-          "imageWidth": 200,
+          "imageWidth": 10,
           "resizeMode": "contain",
-          "backgroundColor": "#434D57"
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "This app needs access to photo library to select license photos",
+          "cameraPermission": "This app needs access to camera to capture license photos"
         }
       ]
     ],
