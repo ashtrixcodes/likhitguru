@@ -213,7 +213,7 @@ export default function TrafficFinesScreen() {
     <Stack.Screen 
       options={{
         title: "Traffic Fines Info",
-        headerTitleAlign: 'center',
+        headerTitleAlign: 'left',
         headerStyle: styles.headerStyle,
         headerTitleStyle: styles.headerTitleStyle,
         headerTintColor: '#FFFFFF',
@@ -222,7 +222,7 @@ export default function TrafficFinesScreen() {
             onPress={() => router.back()}
             style={styles.headerBackButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#000000" />
           </Pressable>
         ),
       }}
@@ -264,15 +264,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20, // Add bottom padding for better scrolling experience
   },
   headerStyle: {
-    backgroundColor: '#434D57',
+    backgroundColor: 'white',
   },
   headerTitleStyle: {
     fontSize: 20,
-    color: '#FFFFFF',
+    color: '#000000',
+    padding: 10,
   },
   headerBackButton: {
-    padding: 8,
-    marginLeft: 10,
+    padding: 10,
     borderRadius: 20,
   },
   card: {

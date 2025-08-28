@@ -1,17 +1,16 @@
 {
   "expo": {
-    "name": "lekhit",
+    "name": " ",
     "slug": "lekhit",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/nepal.png",
+    "icon": "./assets/images/splashnepal.png",
     "scheme": "lekhit Guru",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/nepal.png",
@@ -30,9 +29,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/nepal.png",
-          "imageWidth": 10,
+          "imageWidth": 100,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#000000"
         }
       ],
       [

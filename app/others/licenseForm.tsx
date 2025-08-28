@@ -2,9 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import type { WebView as WebViewType } from 'react-native-webview';
 import { WebView } from 'react-native-webview';
 
-// Configuration object for easy customization
+type IconType = keyof typeof DARK_MODE_CONFIG.icons;
+
 const DARK_MODE_CONFIG = {
   colors: {
     dark: {
@@ -86,42 +88,41 @@ export default function licenseFormScreen() {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const animatedValue = useRef(new Animated.Value(0)).current;
-  const webViewRef = useRef(null);
+  const webViewRef = useRef<WebViewType>(null);
 
   const toggleDarkMode = () => {
     const toValue = isDarkMode ? 0 : 1;
-    
+
     Animated.timing(animatedValue, {
       toValue,
       duration: DARK_MODE_CONFIG.toggle.animationDuration,
       useNativeDriver: false,
     }).start();
-    
+
     const newDarkMode = !isDarkMode;
     setIsDarkMode(newDarkMode);
 
     if (webViewRef.current) {
       const jsCode = generateDarkModeJS(newDarkMode);
-      webViewRef.current.postMessage(JSON.stringify({ 
-        type: 'toggleDarkMode', 
-        isDark: newDarkMode 
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'toggleDarkMode',
+        isDark: newDarkMode
       }));
       webViewRef.current.injectJavaScript(jsCode);
     }
   };
 
-  // Dynamic CSS generation based on configuration
-  const generateCSSRules = (selectors, styles) => {
+  const generateCSSRules = (selectors: string[], styles: Record<string, string>) => {
     return selectors.map(selector => `
       ${selector} {
-        ${Object.entries(styles).map(([prop, value]) => 
+        ${Object.entries(styles).map(([prop, value]) =>
           `${prop}: ${value} !important;`
         ).join(' ')}
       }
     `).join('');
   };
 
-  const generateDarkModeJS = (isDark) => {
+  const generateDarkModeJS = (isDark: boolean): string => {
     if (!isDark) {
       return `
         (function() {
@@ -146,7 +147,6 @@ export default function licenseFormScreen() {
     const colors = DARK_MODE_CONFIG.colors.dark;
     const { selectors, effects } = DARK_MODE_CONFIG.webview;
 
-    // Generate different rule sets
     const basicRules = generateCSSRules(selectors.basic, {
       'background-color': colors.background,
       'color': colors.text,
@@ -187,7 +187,6 @@ export default function licenseFormScreen() {
       }
     );
 
-    // Image effects
     const imageRules = `
       img {
         opacity: ${effects.images.opacity};
@@ -195,14 +194,13 @@ export default function licenseFormScreen() {
       }
     `;
 
-    // Override rules for inline styles
     const overrideRules = `
       [style*="background-color: white"], 
       [style*="background-color: #fff"],
       [style*="background-color: #ffffff"] {
         background-color: ${colors.background} !important;
       }
-      
+
       [style*="color: black"],
       [style*="color: #000"],
       [style*="color: #000000"] {
@@ -217,7 +215,7 @@ export default function licenseFormScreen() {
           if (existingStyle) {
             existingStyle.remove();
           }
-          
+
           const style = document.createElement('style');
           style.id = 'darkModeStyle';
           style.innerHTML = \`
@@ -230,14 +228,12 @@ export default function licenseFormScreen() {
             ${overrideRules}
           \`;
           document.head.appendChild(style);
-          
+
           ${effects.forceRerender ? `
             document.body.style.display = 'none';
             document.body.offsetHeight;
             document.body.style.display = 'block';
           ` : ''}
-          
-          console.log('Dark mode applied successfully');
         } catch (error) {
           console.error('Error applying dark mode:', error);
         }
@@ -246,7 +242,6 @@ export default function licenseFormScreen() {
     `;
   };
 
-  // Dynamic toggle positioning
   const toggleTranslateX = animatedValue.interpolate({
     inputRange: [0, 1],
     outputRange: [
@@ -255,27 +250,24 @@ export default function licenseFormScreen() {
     ],
   });
 
-  // Helper functions for dynamic styling
-  const getToggleBackgroundColor = () => 
+  const getToggleBackgroundColor = () =>
     isDarkMode ? DARK_MODE_CONFIG.toggle.backgroundColor.dark : DARK_MODE_CONFIG.toggle.backgroundColor.light;
 
-  const getIconColor = (iconType) => {
+  const getIconColor = (iconType: IconType) => {
     const icon = DARK_MODE_CONFIG.icons[iconType];
     const isActive = iconType === 'moon' ? isDarkMode : !isDarkMode;
     return isActive ? icon.colors.active : icon.colors.inactive;
   };
 
-  const getCircleColor = () => 
+  const getCircleColor = () =>
     isDarkMode ? DARK_MODE_CONFIG.colors.dark.background : DARK_MODE_CONFIG.colors.light.background;
 
-  const createIconStyle = (iconType) => {
+  const createIconStyle = (iconType: IconType): Record<string, number> => {
     const icon = DARK_MODE_CONFIG.icons[iconType];
     return {
       [icon.position]: icon.offset,
     };
   };
-
-  console.log({animatedValue, isDarkMode, toggleTranslateX});
 
   return (
     <>
@@ -293,132 +285,132 @@ export default function licenseFormScreen() {
           headerTintColor: '#FFFFFF',
           headerLeft: () => (
             <Pressable 
-              onPress={() => router.back()}
-              style={styles.headerBackButton}
-            >
-              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-            </Pressable>
-          ),
-          headerRight: () => (
-            <View style={styles.darkModeContainer}>
-              <Pressable onPress={toggleDarkMode} style={styles.toggleContainer}>
-                <Animated.View 
+            onPress={() => router.back()}
+            style={styles.headerBackButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </Pressable>
+        ),
+        headerRight: () => (
+          <View style={styles.darkModeContainer}>
+            <Pressable onPress={toggleDarkMode} style={styles.toggleContainer}>
+              <Animated.View
+                style={[
+                  styles.toggleBackground,
+                  {
+                    backgroundColor: getToggleBackgroundColor(),
+                    width: DARK_MODE_CONFIG.toggle.width,
+                    height: DARK_MODE_CONFIG.toggle.height,
+                    borderRadius: DARK_MODE_CONFIG.toggle.height / 2,
+                  }
+                ]}
+              >
+                {/* Moon Icon */}
+                <View style={[styles.iconContainer, createIconStyle('moon')]}>
+                  <Ionicons
+                    name={DARK_MODE_CONFIG.icons.moon.name as any}
+                    size={DARK_MODE_CONFIG.icons.moon.size}
+                    color={getIconColor('moon')}
+                  />
+                </View>
+
+                {/* Sun Icon */}
+                <View style={[styles.iconContainer, createIconStyle('sun')]}>
+                  <Ionicons
+                    name={DARK_MODE_CONFIG.icons.sun.name as any}
+                    size={DARK_MODE_CONFIG.icons.sun.size}
+                    color={getIconColor('sun')}
+                  />
+                </View>
+
+                {/* Moving Circle */}
+                <Animated.View
                   style={[
-                    styles.toggleBackground,
+                    styles.toggleCircle,
                     {
-                      backgroundColor: getToggleBackgroundColor(),
-                      width: DARK_MODE_CONFIG.toggle.width,
-                      height: DARK_MODE_CONFIG.toggle.height,
-                      borderRadius: DARK_MODE_CONFIG.toggle.height / 2,
+                      width: DARK_MODE_CONFIG.toggle.circleSize,
+                      height: DARK_MODE_CONFIG.toggle.circleSize,
+                      borderRadius: DARK_MODE_CONFIG.toggle.circleSize / 2,
+                      transform: [{ translateX: toggleTranslateX }],
+                      backgroundColor: getCircleColor()
                     }
                   ]}
-                >
-                  {/* Moon Icon */}
-                  <View style={[styles.iconContainer, createIconStyle('moon')]}>
-                    <Ionicons 
-                      name={DARK_MODE_CONFIG.icons.moon.name}
-                      size={DARK_MODE_CONFIG.icons.moon.size}
-                      color={getIconColor('moon')} 
-                    />
-                  </View>
-                  
-                  {/* Sun Icon */}
-                  <View style={[styles.iconContainer, createIconStyle('sun')]}>
-                    <Ionicons 
-                      name={DARK_MODE_CONFIG.icons.sun.name}
-                      size={DARK_MODE_CONFIG.icons.sun.size}
-                      color={getIconColor('sun')} 
-                    />
-                  </View>
-                  
-                  {/* Moving Circle */}
-                  <Animated.View 
-                    style={[
-                      styles.toggleCircle,
-                      {
-                        width: DARK_MODE_CONFIG.toggle.circleSize,
-                        height: DARK_MODE_CONFIG.toggle.circleSize,
-                        borderRadius: DARK_MODE_CONFIG.toggle.circleSize / 2,
-                        transform: [{ translateX: toggleTranslateX }],
-                        backgroundColor: getCircleColor()
-                      }
-                    ]}
-                  />
-                </Animated.View>
-              </Pressable>
-            </View>
-          ),
+                />
+              </Animated.View>
+            </Pressable>
+          </View>
+        ),
+      }}
+    />
+    <View style={styles.container}>
+      <WebView
+        ref={webViewRef}
+        source={{ uri: DARK_MODE_CONFIG.webview.url }}
+        style={styles.webview}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        startInLoadingState={true}
+        scalesPageToFit={true}
+        onLoadEnd={() => {
+          if (isDarkMode && webViewRef.current) {
+            webViewRef.current.injectJavaScript(generateDarkModeJS(true));
+          }
+        }}
+        onMessage={(event) => {
+          console.log('WebView message:', event.nativeEvent.data);
         }}
       />
-      <View style={styles.container}>
-        <WebView
-          ref={webViewRef}
-          source={{ uri: DARK_MODE_CONFIG.webview.url }}
-          style={styles.webview}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          startInLoadingState={true}
-          scalesPageToFit={true}
-          onLoadEnd={() => {
-            if (isDarkMode && webViewRef.current) {
-              webViewRef.current.injectJavaScript(generateDarkModeJS(true));
-            }
-          }}
-          onMessage={(event) => {
-            console.log('WebView message:', event.nativeEvent.data);
-          }}
-        />
-      </View>
-    </>
-  );
+    </View>
+  </>
+);
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+container: {
+  flex: 1,
+  backgroundColor: '#fff',
+},
+webview: {
+  flex: 1,
+},
+headerBackButton: {
+  padding: 8,
+  marginLeft: 10,
+  borderRadius: 20,
+},
+darkModeContainer: {
+  marginRight: 15,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+toggleContainer: {
+  padding: 5,
+},
+toggleBackground: {
+  justifyContent: 'center',
+  position: 'relative',
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+toggleCircle: {
+  position: 'absolute',
+  elevation: 3,
+  marginRight: 28,
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 2,
   },
-  webview: {
-    flex: 1,
-  },
-  headerBackButton: {
-    padding: 8,
-    marginLeft: 10,
-    borderRadius: 20,
-  },
-  darkModeContainer: {
-    marginRight: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toggleContainer: {
-    padding: 5,
-  },
-  toggleBackground: {
-    justifyContent: 'center',
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  toggleCircle: {
-    position: 'absolute',
-    elevation: 3,
-    marginRight: 28,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    zIndex: 2,
-  },
-  iconContainer: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
+  shadowOpacity: 0.25,
+  shadowRadius: 3.84,
+  zIndex: 2,
+},
+iconContainer: {
+  position: 'absolute',
+  width: 20,
+  height: 20,
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1,
+},
 });

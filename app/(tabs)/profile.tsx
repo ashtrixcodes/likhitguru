@@ -1,8 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
+import { Stack, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from "react";
+import { Pressable } from "react-native";
+
 import {
   Alert,
   Animated,
@@ -15,15 +19,7 @@ import {
 import ImageViewing from "react-native-image-viewing";
 
 /* -------------------- ShimmerBar -------------------- */
-function ShimmerBar({
-  width,
-  height,
-  style,
-}: {
-  width: number | string;
-  height: number;
-  style?: any;
-}) {
+function ShimmerBar({ width, height, style }: { width: number | string; height: number; style?: any }) {
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -42,18 +38,8 @@ function ShimmerBar({
   });
 
   return (
-    <View
-      style={[
-        { width, height, borderRadius: 6, backgroundColor: "#e5e7eb", overflow: "hidden" },
-        style,
-      ]}
-    >
-      <Animated.View
-        style={{
-          ...StyleSheet.absoluteFillObject,
-          transform: [{ translateX }],
-        }}
-      >
+    <View style={[{ width, height, borderRadius: 6, backgroundColor: "#e5e7eb", overflow: "hidden" }, style]}>
+      <Animated.View style={{ ...StyleSheet.absoluteFillObject, transform: [{ translateX }] }}>
         <LinearGradient
           colors={["transparent", "rgba(255,255,255,0.6)", "transparent"]}
           start={{ x: 0, y: 0 }}
@@ -67,6 +53,7 @@ function ShimmerBar({
 
 /* -------------------- ProfileScreen -------------------- */
 export default function ProfileScreen() {
+  const router = useRouter();
   const [licensePhoto, setLicensePhoto] = useState<{ uri: string } | null>(null);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,6 +67,25 @@ export default function ProfileScreen() {
       setIsLoading(false);
     })();
   }, []);
+
+  const renderHeader = () => (
+    <Stack.Screen 
+      options={{
+        title: "My License",
+        headerTitleAlign: 'left',
+        headerStyle: styles.headerStyle,
+        headerTintColor: '#000000',
+        headerLeft: () => (
+          <Pressable 
+            onPress={() => router.back()}
+            style={styles.headerBackButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </Pressable>
+        ),
+      }}
+    />
+  );
 
   const handleUploadPhoto = async () => {
     Alert.alert("Select Photo", "Choose an option", [
@@ -96,6 +102,8 @@ export default function ProfileScreen() {
       await FileSystem.copyAsync({ from: asset.uri, to: newPath });
       await AsyncStorage.setItem("licensePhotoUri", newPath);
       setLicensePhoto({ uri: newPath });
+
+      Alert.alert("Uploaded!", "Your License Image has been saved in this app.");
     } catch (error) {
       console.error("Error saving photo:", error);
     }
@@ -135,89 +143,131 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleRemovePhoto = async () => {
-    if (licensePhoto?.uri) {
-      try {
-        await FileSystem.deleteAsync(licensePhoto.uri, { idempotent: true });
-        await AsyncStorage.removeItem("licensePhotoUri");
-        setLicensePhoto(null);
-      } catch (error) {
-        console.error("Error removing photo:", error);
-      }
-    }
+  const handleRemovePhoto = () => {
+    Alert.alert(
+      "Remove Photo",
+      "Are you sure you want to remove the photo?",
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: async () => {
+            if (licensePhoto?.uri) {
+              try {
+                await FileSystem.deleteAsync(licensePhoto.uri, { idempotent: true });
+                await AsyncStorage.removeItem("licensePhotoUri");
+                setLicensePhoto(null);
+              } catch (error) {
+                console.error("Error removing photo:", error);
+              }
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.licenseText}>My License</Text>
+    <>
+      {renderHeader()}
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.licenseText}>My Driving License</Text>
 
-        {/* License Card */}
-        <View style={[styles.licenseCard, licensePhoto && styles.licenseCardWithImage]}>
-          {isLoading ? (
-            <SkeletonLicense />
-          ) : licensePhoto ? (
-            <TouchableOpacity
-              onPress={() => setIsImageViewerVisible(true)}
-              activeOpacity={0.9}
-              style={{ flex: 1 }}
-            >
-              <Image
-                source={{ uri: licensePhoto.uri }}
-                style={styles.fullCardImage}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          ) : (
-            <SkeletonLicense />
-          )}
-            {/* Camera button (overlay, always on top) */}
-            <TouchableOpacity
-              style={styles.cameraButton}
-              onPress={handleUploadPhoto}
-            >
-              <Image
-              source={require('@/assets/images/camera.png')}
-              style={styles.cameraIcon}
-              resizeMode="contain"
-              />
-            </TouchableOpacity>
+          <Image
+            source={require('@/assets/images/user.png')}
+            style={styles.profileImage}
+            resizeMode="contain"
+          />
+
+          {/* License Card */}
+          <View style={[styles.licenseCard, licensePhoto && styles.licenseCardWithImage]}>
+            {isLoading ? (
+              <SkeletonLicense />
+            ) : licensePhoto ? (
+              <View style={{ flex: 1 }}>
+                <TouchableOpacity
+                  onPress={() => setIsImageViewerVisible(true)}
+                  activeOpacity={0.9}
+                  style={{ flex: 1 }}
+                >
+                  <Image
+                    source={{ uri: licensePhoto.uri }}
+                    style={styles.fullCardImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+
+                {/* ⋮ Three-dot Menu Button */}
+                <TouchableOpacity
+                  style={styles.menuButton}
+                  onPress={() => {
+                    Alert.alert(
+                      "License Photo",
+                      "What would you like to do?",
+                      [
+                        {
+                          text: "Change Image",
+                          onPress: handleUploadPhoto,
+                        },
+                        {
+                          text: "Remove Photo",
+                          onPress: handleRemovePhoto,
+                          style: "destructive",
+                        },
+                        {
+                          text: "Cancel",
+                          style: "cancel",
+                        },
+                      ],
+                      { cancelable: true }
+                    );
+                  }}
+                >
+                  <Text style={styles.menuButtonText}>⋮</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <SkeletonLicense />
+            )}
+
+            {/* Show camera button only if no photo uploaded */}
+            {!licensePhoto && (
+              <TouchableOpacity
+                style={styles.cameraButton}
+                onPress={handleUploadPhoto}
+              >
+                <Image
+                  source={require('@/assets/images/camera.png')}
+                  style={styles.cameraIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            )}
           </View>
 
+          {/* Upload / Info */}
+          <Text style={styles.uploadText}>
+            {licensePhoto ? "Note: You may present this digital license during traffic stops, where legally permitted." : "Please upload your license photo"}
+          </Text>
+        </View>
 
-        {/* Upload / Info */}
-        <Text style={styles.uploadText}>
-          {licensePhoto ? "License photo uploaded!" : "Please upload your license photo"}
-        </Text>
-
+        {/* Fullscreen Image Viewer */}
         {licensePhoto && (
-          <View style={styles.photoInfo}>
-            <TouchableOpacity
-              style={styles.retakeButton}
-              onPress={handleUploadPhoto}
-            >
-              <Text style={styles.retakeButtonText}>Change Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.retakeButton, { backgroundColor: "#b91c1c" }]}
-              onPress={handleRemovePhoto}
-            >
-              <Text style={styles.retakeButtonText}>Remove Photo</Text>
-            </TouchableOpacity>
-          </View>
+          <ImageViewing
+            images={[{ uri: licensePhoto.uri }]}
+            imageIndex={0}
+            visible={isImageViewerVisible}
+            onRequestClose={() => setIsImageViewerVisible(false)}
+          />
         )}
       </View>
-
-      {/* Fullscreen viewer */}
-      {licensePhoto && (
-        <ImageViewing
-          images={[{ uri: licensePhoto.uri }]}
-          imageIndex={0}
-          visible={isImageViewerVisible}
-          onRequestClose={() => setIsImageViewerVisible(false)}
-        />
-      )}
-    </View>
+    </>
   );
 }
 
@@ -225,17 +275,12 @@ export default function ProfileScreen() {
 function SkeletonLicense() {
   return (
     <View style={{ flex: 1 }}>
-      {/* First Row */}
       <View style={styles.rowCenter}>
         <ShimmerBar width="70%" height={12} />
       </View>
-
-      {/* Second Row */}
       <View style={styles.rowCenter}>
         <ShimmerBar width="50%" height={10} />
       </View>
-
-      {/* Third Row */}
       <View style={styles.rowBetween}>
         <View style={{ flex: 1 }}>
           <ShimmerBar width="55%" height={8} style={{ marginBottom: 6 }} />
@@ -246,8 +291,6 @@ function SkeletonLicense() {
           <ShimmerBar width={60} height={70} style={{ borderRadius: 10, marginRight: -10 }} />
         </View>
       </View>
-
-      {/* Fourth Row */}
       <View style={styles.rowBetween}>
         <ShimmerBar width={80} height={18} />
         <ShimmerBar width={80} height={18} style={{ marginRight: -10 }} />
@@ -265,13 +308,24 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: "center",
-    paddingTop: 50,
+    paddingTop: 90,
     paddingHorizontal: 40,
+  },
+  headerStyle: {
+    backgroundColor: 'black',
+  },
+  headerBackButton: {
+    padding: 8,
+    marginLeft: 10,
+    borderRadius: 20,
   },
   licenseText: {
     fontSize: 16,
     color: "#666",
-    marginBottom: 40,
+  },
+  profileImage: {
+    height: "10%",
+    width: "10%",
   },
   licenseCard: {
     width: "100%",
@@ -288,14 +342,14 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     position: "relative",
-    overflow: "visible", // Changed from "hidden" to allow button to show
+    overflow: "visible",
   },
   licenseCardWithImage: {
-    padding: 0, // Remove padding when image is present
+    padding: 0,
   },
   fullCardImage: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 18, // Match the card's border radius minus border width
+    borderRadius: 18,
   },
   rowCenter: {
     alignItems: "center",
@@ -314,7 +368,7 @@ const styles = StyleSheet.create({
   },
   cameraButton: {
     position: "absolute",
-    bottom: -16,  // Slightly outside the card bottom edge
+    bottom: -16,
     alignSelf: "center",
     backgroundColor: "#374151",
     padding: 14,
@@ -334,6 +388,26 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     tintColor: "#fff",
+  },
+  menuButton: {
+    position: "absolute",
+    top: 12,
+    right: 10,
+    backgroundColor: "#000",
+    borderRadius: 18,
+    width: 25,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+    opacity: 0.6,
+  },
+  menuButtonText: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "bold",
+    lineHeight: 30,
+    marginTop: 2,
   },
   uploadText: {
     fontSize: 14,

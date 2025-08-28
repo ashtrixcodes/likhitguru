@@ -1,9 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+	ActivityIndicator,
+	Image,
+	RefreshControl,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TouchableOpacity,
+	View
+} from 'react-native';
+import { shareApp } from './shareapp'; // Import the share function
 
-function HomeHeader() {
+// HomeHeader component with props
+type HomeHeaderProps = {
+	onSharePress: () => void;
+  }; 
+
+function HomeHeader({ onSharePress }: HomeHeaderProps) {
 	const router = useRouter();
 
 	const getGreeting = () => {
@@ -24,16 +39,14 @@ function HomeHeader() {
 				</TouchableOpacity>
 				<View style={styles.userInfo}>
 					<Text style={styles.greeting}>{getGreeting()}</Text>
-					<Text style={styles.userName}>Prashant Khanal</Text>
+					<Text style={styles.userName}>Rada Ban</Text>
 				</View>
+
+				<TouchableOpacity style={styles.shareButton} onPress={onSharePress}>
+					<Ionicons name="share-social" size={20} color="#ffffff" />
+				</TouchableOpacity>
+
 			</View>
-			{/* <View style={styles.searchSection}>
-				<Text style={styles.searchTitle}>Search Category</Text>
-				<View style={styles.searchBar}>
-					<Ionicons name="search" size={20} color="#ffffff85" />
-					<Text style={styles.searchPlaceholder}>search here..</Text>
-				</View>
-			</View> */}
 		</>
 	);
 }
@@ -43,7 +56,6 @@ export default function HomeScreen() {
 	const [currentCategoryIndex, setCurrentCategoryIndex] = React.useState(1); // Start with BIKE (index 1)
 	const [refreshing, setRefreshing] = React.useState(false);
 	const router = useRouter();
-	// Removed animated scroll for sticky header;
 	const didTriggerLightPullRef = useRef(false);
 
 	useEffect(() => {
@@ -68,9 +80,10 @@ export default function HomeScreen() {
 		}, 800);
 	};
 
-	// Remove custom light-pull listener to avoid sticky effects
-
-	// No sticky or parallax animation
+	// Use the imported shareApp function
+	const handleShareApp = async () => {
+		await shareApp();
+	};
 
 	return (
 		<ScrollView
@@ -81,7 +94,7 @@ export default function HomeScreen() {
 			<View style={styles.header}> 
 				<View style={styles.headerBackground} />
 				<View style={styles.headerContent}>
-					<HomeHeader />
+					<HomeHeader onSharePress={handleShareApp} />
 				</View>
 			</View>
 			{refreshing && (
@@ -106,29 +119,6 @@ export default function HomeScreen() {
 					scrollEventThrottle={16}
 				>
 
-				<TouchableOpacity
-					onPress={() => router.push('/chooseCategory/twoWheeler')}
-					style={styles.categoryCard}
-				>
-				<View style={styles.categoryTag}>
-					<Text style={styles.categoryTagText}>Bike</Text>
-				</View>
-
-				<View style={styles.categoryImageContainer}>
-					<Image
-					source={require('@/assets/images/bike.png')}
-					style={styles.categoryImage}
-					resizeMode="contain"
-					/>
-				</View>
-
-				<View style={styles.viewButton}>
-					<View style={styles.playIconContainer}>
-					<Ionicons name="play" size={16} color="#434D57" />
-					</View>
-					<Text style={styles.viewButtonText}>View</Text>
-				</View>
-				</TouchableOpacity>
 
 				<TouchableOpacity
 					onPress={() => router.push('/chooseCategory/fourWheeler')}
@@ -153,6 +143,30 @@ export default function HomeScreen() {
 						<Text style={styles.viewButtonText}>View</Text>
 					</View>
 					</TouchableOpacity>
+
+				<TouchableOpacity
+					onPress={() => router.push('/chooseCategory/twoWheeler')}
+					style={styles.categoryCard}
+				>
+				<View style={styles.categoryTag}>
+					<Text style={styles.categoryTagText}>Bike</Text>
+				</View>
+
+				<View style={styles.categoryImageContainer}>
+					<Image
+					source={require('@/assets/images/bike.png')}
+					style={styles.categoryImage}
+					resizeMode="contain"
+					/>
+				</View>
+
+				<View style={styles.viewButton}>
+					<View style={styles.playIconContainer}>
+					<Ionicons name="play" size={16} color="#434D57" />
+					</View>
+					<Text style={styles.viewButtonText}>View</Text>
+				</View>
+				</TouchableOpacity>
 
 					<TouchableOpacity
 					onPress={() => router.push('/chooseCategory/others')}
@@ -383,10 +397,10 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: '#f5f5f5',
-	},
+},
 	scroll: {
 		flex: 1,
-	},
+},
 	header: {
 		backgroundColor: '#434D57',
 		paddingTop: 50,
@@ -403,38 +417,35 @@ const styles = StyleSheet.create({
 		elevation: 20,
 		position: 'relative', // For layering
 		zIndex: 1000,
-	
-	
-	},
+},
 	headerBackground: {
 		...StyleSheet.absoluteFillObject,
 		backgroundColor: '#434D57',
 		borderBottomLeftRadius: 40,
 		borderBottomRightRadius: 40,
-	},
+},
 	headerContent: {
 		position: 'relative',
 		zIndex: 1,
-	},
+},
 	headerTop: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
 		marginBottom: 20,
-	},
-	menuButton: {
-	marginTop: 20,
-    padding: 8,
-    backgroundColor: 'rgba(180, 180, 180, 0.6)', // Dark semi-transparent background
-    borderRadius: 30, // Keep it circular
-    width: 50,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    opacity: 0.9, // Slightly more opaque for better visibility
-    position: 'relative', // For layering
 },
-
+	menuButton: {
+		marginTop: 20,
+		padding: 8,
+		backgroundColor: 'rgba(180, 180, 180, 0.6)', // Dark semi-transparent background
+		borderRadius: 30, // Keep it circular
+		width: 50,
+		height: 40,
+		justifyContent: 'center',
+		alignItems: 'center',
+		opacity: 0.9, // Slightly more opaque for better visibility
+		position: 'relative', // For layering
+},
 // Hamburger lines styling
 	menuLine: {
 		height: 2,
@@ -459,14 +470,12 @@ const styles = StyleSheet.create({
 		marginLeft: 10,
 		marginRight: 0, // Adjusted for better spacing
 		marginTop: 10
-    
 },
 	greeting: {
 		color: '#fff',
 		fontSize: 12,
 		opacity: 0.4,
-		marginTop: 10,
-		
+		marginTop: 10,	
 },
 	userName: {
 		color: '#fff',
@@ -475,6 +484,8 @@ const styles = StyleSheet.create({
 },
 	notificationButton: {
 		padding: 8,
+		marginTop: 20,
+		
 		position: 'relative',
 },
 	notificationIcon: {
@@ -517,13 +528,12 @@ const styles = StyleSheet.create({
 		opacity: 1,
 		position: 'relative',
 		zIndex: 1,
-	},
+},
 	section: {
 		paddingHorizontal: 15,
 		//paddingVertical: 10,
-		marginTop: 20,
-		
-	},
+		marginTop: 20,	
+},
 	sectionTitle: {
 		fontSize: 16,
 		fontWeight: 'bold',
@@ -531,13 +541,13 @@ const styles = StyleSheet.create({
 		color: '#333',
 		marginBottom: 10,
     	marginLeft:15,
-	},
+},
 	categoryScroll: {
 		marginBottom: 5,
-	},
+},
 	categoryScrollContent: {
 		paddingHorizontal: 30,
-	},
+},
 	categoryCard: {
 		backgroundColor: '#fff',
 		borderRadius: 25,
@@ -551,7 +561,7 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0.2,
 		shadowRadius: 0,
 		elevation: 8,
-	},
+},
 	categoryTag: {
 		backgroundColor: '#434D57',
 		paddingHorizontal: 18,
@@ -559,24 +569,24 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		alignSelf: 'flex-start',
 		//marginBottom: 0,
-	},
+},
 	categoryTagText: {
 		color: '#fff',
 		fontSize: 10,
 		
-	},
+},
 	categoryImageContainer: {
 		width: 180,
 		height: 150,
 		marginBottom: 15,
 		justifyContent: 'center',
 		alignItems: 'center',
-	},
+},
 	categoryImage: {
 		width: '100%',
 		height: '100%',
 		
-	},
+},
 	viewButton: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -584,110 +594,109 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 10,
 		paddingVertical: 15,
 		gap: 0, // Adjust this value to change spacing
-	},
+},
 	playIconContainer: {
 		width: 32,
 		height: 32,
 		alignItems: 'center',
 		justifyContent: 'center',
 		marginRight: -1, // Adjust this value to change spacing
-	},
+},
 	viewButtonText: {
 		color: '#434D57',
 		fontSize: 16,
 		height: 20,
 		//marginBottom: 0,
-	},
+},
 	pagination: {
 		flexDirection: 'row',
 		justifyContent: 'center',
 		gap: 5,
 		marginTop: 10,
-	},
+},
 	paginationDot: {
 		width: 5,
 		height: 8,
 		borderRadius: 5,
 		backgroundColor: '#ddd',
-	},
+},
 	paginationDotActive: {
 		backgroundColor: '#FF6B35',
 		width: 20,
 		borderRadius: 5,
-	},
+},
 	quizList: {
 		gap: 12,
-	},
+},
 	quizItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'nowrap',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  quizIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 15,
-  },
-  quizIconImage: {
-    width: 25,
-    height: 25,
-    resizeMode: 'contain',
-  },
-  quizContent: {
-    flex: 1,
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		flexWrap: 'nowrap',
+		alignItems: 'center',
+		backgroundColor: '#fff',
+		padding: 15,
+		borderRadius: 15,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 3,
+},
+	quizIcon: {
+		width: 50,
+		height: 50,
+		borderRadius: 25,
+		backgroundColor: '#f0f0f0',
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginRight: 15,
+},
+	quizIconImage: {
+		width: 25,
+		height: 25,
+		resizeMode: 'contain',
+},
+	quizContent: {
+		flex: 1,
+		
+},
+	quizHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 5,
+},
+	quizTitle: {
+		fontSize: 16,
+		color: '#333',
+		marginRight: 8,   // replace gap if needed
+},
+	quizSubtitle: {
+		fontSize: 12,
+		color: '#66666675',
+		
+},
 	
-	
-  },
-  quizHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  quizTitle: {
-    fontSize: 16,
-    color: '#333',
-    marginRight: 8,   // replace gap if needed
-  },
-  quizSubtitle: {
-    fontSize: 12,
-    color: '#66666675',
-	
-  },
-  
 	practiceText: {
 		color: '#434D57',
-	},
+},
 	practiceGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
-		gap: 14,
-	},
+		gap: 5,
+},
 	practiceCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    //paddingVertical: 0,
-    width: '22%',        // <= this makes 4 cards fit in a single row
-    paddingTop: 15,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-	},
+		backgroundColor: '#FFFFFF',
+		borderRadius: 15,
+		//paddingVertical: 0,
+		width: '23.8%',        // <= this makes 4 cards fit in a single row
+		paddingTop: 15,
+		alignItems: 'center',
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 3,
+},
 	practiceIcon: {
 		width: 40,
 		height: 40,
@@ -696,30 +705,41 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		marginBottom: 10,
-	},
+},
 	practiceIconImage: {
 		width: 30,
 		height: 30,
-	},
+},
 	trophyIcon: {
 		width: 20,
 		height: 20,
-	},
+},
 	practiceCardText: {
 		fontSize: 12,
 		color: '#333',
 		textAlign: 'center',
-    lineHeight: 16,
-    marginBottom: 10,
-	},
+		lineHeight: 16,
+		marginBottom: 10,
+},
 	bottomSpacing: {
 		height: 100,
-	},
+},
 	refreshContainer: {
 		paddingVertical: 8,
 		marginTop: 14,
 		marginBottom: 6,
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
+},
+	shareButton: {
+		marginTop: 20,
+		padding: 8,
+		//backgroundColor: 'rgba(180, 180, 180, 0.6)',
+		borderRadius: 30,
+		width: 50,             // Same as menuButton
+		height: 40,            // Same as menuButton
+		justifyContent: 'center',
+		alignItems: 'center',
+		opacity: 0.9,
+},
 });
