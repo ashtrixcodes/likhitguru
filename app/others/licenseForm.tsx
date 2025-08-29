@@ -277,10 +277,11 @@ export default function licenseFormScreen() {
           headerTitleAlign: 'center',
           headerStyle: {
             backgroundColor: DARK_MODE_CONFIG.colors.light.header,
+            //backgroundColor: '#ffffff',
           },
           headerTitleStyle: {
             fontSize: 20,
-            color: '#FFFFFF',
+            color: '#fff',
           },
           headerTintColor: '#FFFFFF',
           headerLeft: () => (
@@ -288,7 +289,7 @@ export default function licenseFormScreen() {
             onPress={() => router.back()}
             style={styles.headerBackButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#fff" />
           </Pressable>
         ),
         headerRight: () => (

@@ -14,9 +14,14 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/nepal.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#434d57"
       },
       "edgeToEdgeEnabled": true
+    },
+    "splash": {
+      "image": "./assets/images/nepal.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#434d57"
     },
     "web": {
       "bundler": "metro",
@@ -29,9 +34,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/nepal.png",
-          "imageWidth": 100,
+          "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#000000"
+          "backgroundColor": "#434d57"
         }
       ],
       [
