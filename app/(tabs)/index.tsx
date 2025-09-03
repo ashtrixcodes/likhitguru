@@ -517,6 +517,19 @@ export default function HomeScreen() {
 						<Text style={styles.practiceCardText}>Traffic Fines    Info</Text>
 					</TouchableOpacity>
 
+					<TouchableOpacity 
+							style={styles.practiceCard}
+							onPress={() => router.push('/others/nagdhungaPass')}>
+						<View style={styles.practiceIcon}>
+							<Image 
+								source={require('@/assets/images/tunnel.png')} 
+								style={styles.practiceIconImage}
+								resizeMode="contain"
+							/>
+						</View>
+						<Text style={styles.practiceCardText}>Nagdhunga Charges</Text>
+					</TouchableOpacity>
+
 					<TouchableOpacity
 						style={styles.practiceCard}
 						onPress={() => router.push('/others/moreInfo')}>
