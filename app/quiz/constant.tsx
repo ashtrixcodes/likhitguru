@@ -73,3 +73,7 @@ export const quizEyeTest = [
     { image: require('../../assets/images/eyeTestImg/15.png'), correctAnswer: '15', options: ['16', '15', '18'] },
     { image: require('../../assets/images/eyeTestImg/26.png'), correctAnswer: '26', options: ['26', '25', '28'] },
 ];
+
+export default function QuizConstantRoute() {
+  return null;
+}

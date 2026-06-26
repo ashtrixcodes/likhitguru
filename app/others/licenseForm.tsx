@@ -5,6 +5,9 @@ import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import type { WebView as WebViewType } from 'react-native-webview';
 import { WebView } from 'react-native-webview';
 
+import LoadingDots from '@/components/LoadingDots';
+import { useTheme } from '@/context/ThemeContext';
+
 type IconType = keyof typeof DARK_MODE_CONFIG.icons;
 
 const DARK_MODE_CONFIG = {
@@ -84,9 +87,11 @@ const DARK_MODE_CONFIG = {
   }
 };
 
-export default function licenseFormScreen() {
+export default function LicenseFormScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const animatedValue = useRef(new Animated.Value(0)).current;
   const webViewRef = useRef<WebViewType>(null);
 
@@ -276,8 +281,7 @@ export default function licenseFormScreen() {
           title: "License Form",
           headerTitleAlign: 'center',
           headerStyle: {
-            backgroundColor: DARK_MODE_CONFIG.colors.light.header,
-            //backgroundColor: '#ffffff',
+            backgroundColor: theme.isDark ? theme.colors.header : DARK_MODE_CONFIG.colors.light.header,
           },
           headerTitleStyle: {
             fontSize: 20,
@@ -344,6 +348,11 @@ export default function licenseFormScreen() {
       }}
     />
     <View style={styles.container}>
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <LoadingDots size={12} />
+        </View>
+      )}
       <WebView
         ref={webViewRef}
         source={{ uri: DARK_MODE_CONFIG.webview.url }}
@@ -352,10 +361,17 @@ export default function licenseFormScreen() {
         domStorageEnabled={true}
         startInLoadingState={true}
         scalesPageToFit={true}
+        onLoadStart={() => {
+          setIsLoading(true);
+        }}
         onLoadEnd={() => {
+          setIsLoading(false);
           if (isDarkMode && webViewRef.current) {
             webViewRef.current.injectJavaScript(generateDarkModeJS(true));
           }
+        }}
+        onError={() => {
+          setIsLoading(false);
         }}
         onMessage={(event) => {
           console.log('WebView message:', event.nativeEvent.data);
@@ -373,6 +389,17 @@ container: {
 },
 webview: {
   flex: 1,
+},
+loadingOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: '#434D57',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 1000,
 },
 headerBackButton: {
   padding: 8,

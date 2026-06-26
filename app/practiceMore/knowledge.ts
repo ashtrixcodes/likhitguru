@@ -156,4 +156,8 @@ export const knowledgeAnswerKeyLetters: ('a'|'b'|'c'|'d')[] = [
   'd','c','a','a','c','d','b','b','b','d'
 ];
 
+export default function KnowledgeRoute() {
+  return null;
+}
+
 

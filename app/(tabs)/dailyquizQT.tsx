@@ -87,7 +87,7 @@ export type dailyquizQT = {
       options: ['Vehicle moving downward', 'Vehicle moving upward', "Side shoudn't be given", 'Whosoever can, should go ahead'] 
     },
     { 
-      question: 'Which vehicle doesn`t move on road?', 
+      question: 'Which vehicle does not move on road?', 
       correctAnswer: 'All of the above',
       options: ['Ship', 'plane', 'Helicopter', 'All of the above'] 
     },
@@ -162,7 +162,7 @@ export type dailyquizQT = {
       options: ['To drive on the permitted road only', 'To get permission to drive on the road which is not stated on the regular permit', 'To get permission to drive along the local road', 'To drive time and again'] 
     },
     { 
-      question: 'What shouldn`t be done before you get driving license?', 
+      question: 'What should not be done before you get driving license?', 
       correctAnswer: 'Not to drive the vehicle',
       options: ['Not to drive the vehicle', 'Not to sit in the vehicle', 'Not to buy vehicle', 'None of the above'] 
     },
@@ -174,7 +174,7 @@ export type dailyquizQT = {
     { 
       question: 'How should one behave to the traffic police when she or he stops the vehicle showing your fault?', 
       correctAnswer: 'To realize your mistake politely.',
-      options: ["To insist that you haven`t done anything wrong", 'To run away from the traffic police.', 'To realize your mistake politely.', "To make other drivers your withness insisting that you haven't done anything wrong"] 
+      options: ["To insist that you haven`t done anything wrong", 'To run away from the traffic police.', 'To realize your mistake politely.', "To make other drivers your withness insisting that you haven`t done anything wrong"] 
     },
     { 
       question: 'How much fuel should be better to put in the vehicle?', 
@@ -654,6 +654,10 @@ export type dailyquizQT = {
     { 
       question: 'When are the side lights turned on?', 
       correctAnswer: 'Both a & b',
-      options: ['While changing lane.', 'While overtaking.', 'While parking the vehicle.', 'Both a & b'] 
+      options: ['While changing lane.', 'While overtaking.', 'While parking the vehicle.', 'Both a & b']
     }
   ];
+
+export default function DailyquizQTRoute() {
+  return null;
+}

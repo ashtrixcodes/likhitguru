@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { Animated, Easing, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '@/context/ThemeContext';
+import type { AppTheme } from '@/constants/theme';
 
 interface TrafficViolation {
   id: string;
@@ -12,6 +14,8 @@ interface TrafficViolation {
 }
 
 const TrafficViolationCard = ({ violation }: { violation: TrafficViolation }) => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [isExpanded, setIsExpanded] = useState(false);
   const animatedHeight = useRef(new Animated.Value(0)).current;
   const animatedOpacity = useRef(new Animated.Value(0)).current;
@@ -87,7 +91,7 @@ const TrafficViolationCard = ({ violation }: { violation: TrafficViolation }) =>
             )}
             {isExpanded && (
               <Text style={styles.fineAmount}>
-                fine amount: {violation.fineAmount}
+                fine amount: <Text style={styles.fineAmountValue}>{violation.fineAmount}</Text>
               </Text>
             )}
           </View>
@@ -106,7 +110,7 @@ const TrafficViolationCard = ({ violation }: { violation: TrafficViolation }) =>
             <Ionicons 
               name="chevron-down"
               size={24} 
-              color="#666" 
+              color={theme.isDark ? "#FFF" : "#666"} 
             />
           </Animated.View>
         </View>
@@ -128,6 +132,8 @@ const TrafficViolationCard = ({ violation }: { violation: TrafficViolation }) =>
 
 export default function TrafficFinesScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const trafficViolations: TrafficViolation[] = [
     {
@@ -214,15 +220,20 @@ export default function TrafficFinesScreen() {
       options={{
         title: "Traffic Fines Info",
         headerTitleAlign: 'left',
-        headerStyle: styles.headerStyle,
-        headerTitleStyle: styles.headerTitleStyle,
-        headerTintColor: '#FFFFFF',
+        headerStyle: {
+          backgroundColor: theme.isDark ? theme.colors.card : '#ffffff',
+        },
+        headerTitleStyle: {
+          fontSize: 20,
+          color: theme.isDark ? '#FFF' : '#000000',
+        },
+        headerTintColor: theme.isDark ? '#FFF' : '#000000',
         headerLeft: () => (
           <Pressable 
             onPress={() => router.back()}
             style={styles.headerBackButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#000000" />
+            <Ionicons name="arrow-back" size={24} color={theme.isDark ? "#FFF" : "#000000"} />
           </Pressable>
         ),
       }}
@@ -250,10 +261,12 @@ export default function TrafficFinesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: AppTheme) {
+  const { colors, glass, isDark } = theme;
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -264,11 +277,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20, // Add bottom padding for better scrolling experience
   },
   headerStyle: {
-    backgroundColor: 'white',
+    backgroundColor: isDark ? colors.card : 'white',
   },
   headerTitleStyle: {
     fontSize: 20,
-    color: '#000000',
+    color: colors.text,
     padding: 10,
   },
   headerBackButton: {
@@ -276,7 +289,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: isDark ? glass.backgroundColor : '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
@@ -288,6 +301,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    borderWidth: isDark ? 1 : 0,
+    borderColor: isDark ? glass.borderColor : 'transparent',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -310,16 +325,20 @@ const styles = StyleSheet.create({
   violationType: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   fineAmount: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 4,
+  },
+  fineAmountValue: {
+    fontWeight: '700',
+    color: isDark ? '#4CAF50' : '#2E7D32', // Green highlighting for fine amount
   },
   tapHintText: {
     fontSize: 12,
-    color: '#999',
+    color: isDark ? '#B0B0B0' : '#999',
     marginTop: 2,
     fontStyle: 'italic',
   },
@@ -341,13 +360,14 @@ const styles = StyleSheet.create({
     width: 2,
     height: 2,
     borderRadius: 1.5,
-    backgroundColor: '#C0C0C0',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : '#C0C0C0',
     marginHorizontal: 1.5,
   },
   noteText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     lineHeight: 20,
     marginLeft: 10,
   },
 });
+}

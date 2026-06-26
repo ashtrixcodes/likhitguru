@@ -1,9 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { knowledgeAnswerKeyLetters, knowledgeQuestions } from '../practiceMore/knowledge';
 import { actRegulationAnswerKeyIndices, actRegulationQuestions, techAndMechanicalAnswerKeyIndices, techAndMechanicalQuestions, trafficSignalKnowledgeAnswerKeyIndices, trafficSignalKnowledgeQuestions, vehiclePollutionAnswerKeyIndices, vehiclePollutionQuestions } from './constant';
+
+import { themedHeaderOptions } from '@/constants/screenHelpers';
+import type { AppTheme } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function TwoWheelerScreen() {
   // Resolve constants each render so we don't freeze empty values
@@ -14,7 +18,7 @@ export default function TwoWheelerScreen() {
   let POLLUTION_QUESTIONS: any[] = Array.isArray(vehiclePollutionQuestions) ? (vehiclePollutionQuestions as any[]) : [];
   let POLLUTION_ANSWER_KEYS: number[] = Array.isArray(vehiclePollutionAnswerKeyIndices) ? (vehiclePollutionAnswerKeyIndices as number[]) : [];
   let DRIVE_QUESTIONS: any[] = Array.isArray(knowledgeQuestions) ? (knowledgeQuestions as any[]) : [];
-  const letterToIndex = (l: string): number => ({ a: 0, b: 1, c: 2, d: 3 } as const)[String(l).toLowerCase() as 'a'|'b'|'c'|'d'] ?? 0;
+  const letterToIndex = (l: string): number => ({ a: 0, b: 1, c: 2, d: 3 } as const)[String(l).toLowerCase() as 'a' | 'b' | 'c' | 'd'] ?? 0;
   let DRIVE_ANSWER_KEYS: number[] = Array.isArray(knowledgeAnswerKeyLetters) ? (knowledgeAnswerKeyLetters as any[]).map(letterToIndex) : [];
   // Accidental awareness (Section 5)
   let ACC_QUESTIONS: any[] = [];
@@ -56,7 +60,7 @@ export default function TwoWheelerScreen() {
       } else if (Array.isArray(mod?.accidentalAwarenessAnswerKeyLetters)) {
         ACC_ANSWER_LETTERS = mod.accidentalAwarenessAnswerKeyLetters;
       }
-    } catch {}
+    } catch { }
   }
   // Fallback dynamic import for driving knowledge if needed
   if (DRIVE_QUESTIONS.length === 0 || DRIVE_ANSWER_KEYS.length === 0) {
@@ -69,7 +73,7 @@ export default function TwoWheelerScreen() {
       if (DRIVE_ANSWER_KEYS.length === 0 && Array.isArray(mod2?.knowledgeAnswerKeyLetters)) {
         DRIVE_ANSWER_KEYS = mod2.knowledgeAnswerKeyLetters.map((l: string) => letterToIndex(l));
       }
-    } catch {}
+    } catch { }
   }
   // Ensure accidental awareness is resolved even if others were already loaded
   if (ACC_QUESTIONS.length === 0 || (ACC_ANSWER_KEYS.length === 0 && ACC_ANSWER_LETTERS.length === 0)) {
@@ -85,7 +89,7 @@ export default function TwoWheelerScreen() {
       if (ACC_ANSWER_KEYS.length === 0 && Array.isArray(mod3?.accidentalAwarenessAnswerKeyLetters)) {
         ACC_ANSWER_LETTERS = mod3.accidentalAwarenessAnswerKeyLetters;
       }
-    } catch {}
+    } catch { }
   }
   // Resolve signals if needed
   if (SIGNAL_QUESTIONS.length === 0 || SIGNAL_ANSWER_KEYS.length === 0) {
@@ -98,7 +102,7 @@ export default function TwoWheelerScreen() {
       if (SIGNAL_ANSWER_KEYS.length === 0 && Array.isArray(mod4?.trafficSignalKnowledgeAnswerKeyIndices)) {
         SIGNAL_ANSWER_KEYS = mod4.trafficSignalKnowledgeAnswerKeyIndices;
       }
-    } catch {}
+    } catch { }
   }
   // Convert accidental awareness letters to indices if provided
   if (ACC_ANSWER_KEYS.length === 0 && ACC_ANSWER_LETTERS.length > 0) {
@@ -110,7 +114,7 @@ export default function TwoWheelerScreen() {
     const allCount = QUESTIONS.length;
     const techCount = TECH_QUESTIONS.length;
     const accCount = ACC_QUESTIONS.length;
-    
+
     // Create sections array and shuffle it randomly
     const sectionsArray = [
       {
@@ -119,6 +123,7 @@ export default function TwoWheelerScreen() {
         start: 0,
         end: allCount,
         originalIndex: 0,
+        icon: 'document-text-outline',
       },
       {
         title: 'Section 2',
@@ -126,6 +131,7 @@ export default function TwoWheelerScreen() {
         start: 0,
         end: techCount,
         originalIndex: 1,
+        icon: 'build-outline',
       },
       {
         title: 'Section 3',
@@ -133,6 +139,7 @@ export default function TwoWheelerScreen() {
         start: 0,
         end: POLLUTION_QUESTIONS.length,
         originalIndex: 2,
+        icon: 'leaf-outline',
       },
       {
         title: 'Section 4',
@@ -140,6 +147,7 @@ export default function TwoWheelerScreen() {
         start: 0,
         end: DRIVE_QUESTIONS.length,
         originalIndex: 3,
+        icon: 'car-outline',
       },
       {
         title: 'Section 5',
@@ -147,6 +155,7 @@ export default function TwoWheelerScreen() {
         start: 0,
         end: accCount,
         originalIndex: 4,
+        icon: 'medkit-outline',
       },
       {
         title: 'Section 6',
@@ -154,6 +163,7 @@ export default function TwoWheelerScreen() {
         start: 0,
         end: SIGNAL_QUESTIONS.length,
         originalIndex: 5,
+        icon: 'alert-circle-outline',
       },
     ];
 
@@ -171,6 +181,9 @@ export default function TwoWheelerScreen() {
     }));
   }, [QUESTIONS, TECH_QUESTIONS, POLLUTION_QUESTIONS, DRIVE_QUESTIONS, ACC_QUESTIONS, SIGNAL_QUESTIONS]);
 
+  const router = useRouter();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [activeSection, setActiveSection] = useState(0);
   const [revealedSet, setRevealedSet] = useState<Set<number>>(new Set());
   const answerAnimMapRef = useRef<Map<number, Animated.Value>>(new Map());
@@ -185,11 +198,11 @@ export default function TwoWheelerScreen() {
     let dataQ: any[] = [];
     let dataA: number[] = [];
     let baseId = 0;
-    
+
     // Get the original index of the active section to determine which data to load
     const activeSectionData = sections[activeSection];
     const originalIndex = activeSectionData?.originalIndex ?? 0;
-    
+
     if (originalIndex === 0) {
       dataQ = QUESTIONS;
       dataA = ANSWER_KEYS;
@@ -230,80 +243,50 @@ export default function TwoWheelerScreen() {
   }, [activeSection, sections, QUESTIONS, ANSWER_KEYS, TECH_QUESTIONS, TECH_ANSWER_KEYS, POLLUTION_QUESTIONS, POLLUTION_ANSWER_KEYS, DRIVE_QUESTIONS, DRIVE_ANSWER_KEYS, ACC_QUESTIONS, ACC_ANSWER_KEYS, SIGNAL_QUESTIONS, SIGNAL_ANSWER_KEYS]);
 
   const toggleReveal = (id: number) => {
-    const anim = getAnimForId(id);
-    const willShow = !revealedSet.has(id);
-    Animated.timing(anim, {
-      toValue: willShow ? 1 : 0,
-      duration: willShow ? 450 : 180,
-      delay: willShow ? 10 : 0,
-      easing: willShow ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setRevealedSet(prev => {
       const next = new Set(prev);
-      if (willShow) next.add(id); else next.delete(id);
+      if (!prev.has(id)) next.add(id); else next.delete(id);
       return next;
     });
   };
-
-  const router = useRouter();
   return (
     <>
-       <Stack.Screen 
-                options={{
-                    title: "Two Wheeler Lekhit Test",
-                    headerTitleAlign: 'center',
-                    headerStyle: {
-                        backgroundColor: '#434D57',
-                    },
-                    headerTitleStyle: {
-                        fontSize: 18,
-                        color: '#FFFFFF',
-                    },
-                    headerTintColor: '#FFFFFF',
-                    headerLeft: () => (
-                        <Pressable 
-                            onPress={() => router.back()}
-                            style={styles.headerBackButton}
-                        >
-                            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-                        </Pressable>
-                    ),
-                }}
-            />
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sectionTabs}
-        >
-          {sections.map((s, idx) => (
-            <Pressable
-              key={idx}
-              style={[styles.sectionCard, idx === activeSection && styles.sectionCardActive]}
-              onPress={() => setActiveSection(idx)}
-            >
-              <View style={styles.sectionRow}>
-                <View style={styles.sectionIcon}><Ionicons name="document-text-outline" size={22} color="#434D57" /></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sectionTitle}>{s.title}</Text>
-                  <Text style={styles.sectionSubtitle}>{s.subtitle}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#9AA0A6" />
-              </View>
+      <Stack.Screen
+        options={{
+          title: "2-Wheeler Exam",
+          ...themedHeaderOptions(theme),
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} style={styles.headerBackButton}>
+              <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
             </Pressable>
-          ))}
+          ),
+        }}
+      />
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sectionTabs}>
+          {sections.map((sec, idx) => {
+            const isActive = idx === activeSection;
+            return (
+              <Pressable key={idx} style={[styles.sectionCard, isActive && styles.sectionCardActive]} onPress={() => setActiveSection(idx)}>
+                <View style={styles.sectionRow}>
+                  <View style={styles.sectionIcon}><Ionicons name={sec.icon as any} size={20} color={isActive ? theme.colors.text : theme.colors.textSecondary} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.sectionTitle, { color: isActive ? theme.colors.text : theme.colors.textSecondary }]}>{sec.title}</Text>
+                    <Text style={styles.sectionSubtitle}>{sec.subtitle}</Text>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          })}
         </ScrollView>
 
         {questionsForActive.map((item) => {
           const show = revealedSet.has(item.id);
-          const anim = getAnimForId(item.id);
-          const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] });
-          const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
-          const letter = ['a','b','c','d'][item.correctIndex];
+          const letter = ['a', 'b', 'c', 'd'][item.correctIndex];
           return (
-            <View key={item.id}>
-              <View style={styles.card}>
+            <View key={item.id} style={{ zIndex: show ? 2 : 1 }}>
+              <View style={[styles.card, { zIndex: 10 }]}>
                 <Text style={styles.questionText}>{item.q}</Text>
                 <View style={styles.dashed} />
                 <View style={styles.optionGrid}>
@@ -327,17 +310,23 @@ export default function TwoWheelerScreen() {
                   </View>
                 </Pressable>
               </View>
-              <Animated.View style={[styles.answerPill, { opacity, transform: [{ translateY }] }]} pointerEvents="none">
-                {show && <Text style={styles.answerPillText}>{letter}. {stripPrefix(item.opts[item.correctIndex])}</Text>}
-              </Animated.View>
+              {show && (
+                <View style={{ overflow: 'hidden', zIndex: 1 }}>
+                  <View style={styles.answerPill} pointerEvents="none">
+                    <Text numberOfLines={2} ellipsizeMode="tail" style={styles.answerPillText}>
+                      {letter}. {stripPrefix(item.opts[item.correctIndex])}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           );
         })}
 
         {questionsForActive.length === 0 && (
           <View style={{ padding: 16, alignItems: 'center' }}>
-            <Text style={{ color: '#666' }}>Questions will be added soon.</Text>
-    </View>
+            <Text style={{ color: theme.colors.textSecondary }}>Questions will be added soon.</Text>
+          </View>
         )}
       </ScrollView>
     </>
@@ -348,135 +337,140 @@ function stripPrefix(text: string): string {
   return String(text).replace(/^\s*\(?[a-dA-D]\)?[.)]?\s*/, '').trim();
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  sectionTabs: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 6,
-  },
-  sectionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
-    marginLeft: 8,  
-    borderWidth: 1,
-    borderColor: '#EEE',
-    width: 260,
-  },
-  sectionCardActive: {
-    borderColor: '#434D57',
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sectionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F0F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '700',
-    marginTop: 12,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: '#666',
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    position: 'relative',
-    zIndex: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  questionText: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 12,
-  },
-  dashed: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#D9D9D9',
-    borderStyle: 'dashed',
-    marginBottom: 12,
-  },
-  optionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  optionCell: {
-    width: '48%',
-    marginBottom: 10,
-  },
-  optionText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  optionCorrect: {
-    color: '#2E7D32',
-    fontWeight: '700',
-  },
-  revealRow: {
-    marginTop: 6,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  revealText: {
-    color: '#FF6B35',
-    fontSize: 15,
-    marginRight: 4,
-    textTransform: 'capitalize',
-  },
-  answerPill: {
-    marginTop: -12,
-    marginHorizontal: 24,
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    zIndex: 1,
-  },
-  answerPillText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    paddingTop: 4,
-  },
-  revealTouch: {
-    alignSelf: 'stretch',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  headerBackButton: {
-    padding: 8,
-    marginLeft: 10,
-    borderRadius: 20,
-},
-});
+function createStyles(theme: AppTheme) {
+  const { colors, glass, isDark } = theme;
+
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    sectionTabs: {
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 6,
+    },
+    sectionCard: {
+      backgroundColor: isDark ? glass.backgroundColor : colors.card,
+      borderRadius: isDark ? glass.borderRadius : 16,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      marginRight: 8,
+      marginLeft: 8,
+      borderWidth: isDark ? glass.borderWidth : 1,
+      borderColor: isDark ? glass.borderColor : colors.cardBorder,
+      width: 260,
+    },
+    sectionCardActive: {
+      borderColor: isDark ? colors.accent : '#434D57',
+    },
+    sectionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    sectionIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      marginTop: 12,
+    },
+    sectionSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    card: {
+      backgroundColor: isDark ? glass.backgroundColor : colors.card,
+      borderRadius: isDark ? glass.borderRadius : 16,
+      padding: 16,
+      marginHorizontal: 16,
+      marginTop: 6,
+      borderWidth: isDark ? glass.borderWidth : 1,
+      borderColor: isDark ? glass.borderColor : colors.cardBorder,
+      position: 'relative',
+      zIndex: 10,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: isDark ? 8 : 6,
+      elevation: isDark ? 4 : 3,
+    },
+    questionText: {
+      fontSize: 16,
+      color: colors.text,
+      marginBottom: 12,
+    },
+    dashed: {
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : '#D9D9D9',
+      borderStyle: 'dashed',
+      marginBottom: 12,
+    },
+    optionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    optionCell: {
+      width: '48%',
+      marginBottom: 10,
+    },
+    optionText: {
+      fontSize: 14,
+      color: colors.text,
+    },
+    optionCorrect: {
+      color: '#4CAF50',
+      fontWeight: '700',
+    },
+    revealRow: {
+      marginTop: 6,
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    revealText: {
+      color: colors.accent,
+      fontSize: 15,
+      marginRight: 4,
+      textTransform: 'capitalize',
+    },
+    answerPill: {
+      marginHorizontal: 25,
+      backgroundColor: isDark ? 'rgba(76, 175, 80, 0.15)' : '#4CAF50',
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderBottomLeftRadius: 16,
+      borderBottomRightRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: isDark ? 1 : 0,
+      borderTopWidth: 0,
+      borderColor: isDark ? 'rgba(76, 175, 80, 0.3)' : 'transparent',
+    },
+    answerPillText: {
+      color: isDark ? '#81C784' : '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+    revealTouch: {
+      alignSelf: 'stretch',
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+    },
+    headerBackButton: {
+      padding: 8,
+      marginLeft: 10,
+      borderRadius: 20,
+    },
+  });
+}

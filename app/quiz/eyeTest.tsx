@@ -1,11 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTheme } from '@/context/ThemeContext';
+import { themedHeaderOptions } from '@/constants/screenHelpers';
+import type { AppTheme } from '@/constants/theme';
+import { Animated, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { quizEyeTest } from './constant'; // Import the quiz data
 // Quiz data structure with correct answers
 
 export default function SignTest() {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const router = useRouter();
     const [gameState, setGameState] = useState<'idle' | 'playing' | 'finished'>('idle');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -15,6 +20,9 @@ export default function SignTest() {
     const [showResult, setShowResult] = useState(false);
     const [currentQuiz, setCurrentQuiz] = useState<any[]>([]);
     const [attempts, setAttempts] = useState(0);
+    const [showModal, setShowModal] = useState(false);
+    const [modalData, setModalData] = useState<{ title: string; score: number; timeTaken: number; isTimeUp: boolean }>({ title: '', score: 0, timeTaken: 0, isTimeUp: false });
+    const modalScaleAnim = useRef(new Animated.Value(0)).current;
     
     // Animation refs
     const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -28,7 +36,7 @@ export default function SignTest() {
 
     // Timer countdown logic
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: ReturnType<typeof setInterval>;
         if (gameState === 'playing' && timeLeft > 0) {
             interval = setInterval(() => {
                 setTimeLeft((prev: number) => {
@@ -124,23 +132,32 @@ export default function SignTest() {
         }).start();
     };
 
+    // Show custom result modal
+    const showResultModal = (title: string, finalScore: number, timeTaken: number, isTimeUp: boolean) => {
+        setModalData({ title, score: finalScore, timeTaken, isTimeUp });
+        setShowModal(true);
+        modalScaleAnim.setValue(0);
+        Animated.spring(modalScaleAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            friction: 6,
+            tension: 80,
+        }).start();
+    };
+
+    const dismissModal = () => {
+        Animated.timing(modalScaleAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+        }).start(() => setShowModal(false));
+    };
+
     // Handle time up
     const handleTimeUp = () => {
         setGameState('finished');
         liquidProgressAnim.stopAnimation();
-        //liquidProgressAnim.setValue(1);
-        Alert.alert(
-            "Time's Up!",
-            `Your score: ${score}/20\nTime taken: ${60 - timeLeft} seconds`,
-            [
-                {
-                    text: "Okay",
-                    onPress: () => {
-                        //resetGame();
-                    }
-                }
-            ]
-        );
+        showResultModal("Time's Up!", score, 60 - timeLeft, true);
     };
 
     // Handle answer selection
@@ -181,19 +198,7 @@ export default function SignTest() {
                 // Quiz completed
                 setGameState('finished');
                 liquidProgressAnim.stopAnimation();
-               // liquidProgressAnim.setValue(1);
-                Alert.alert(
-                    "Eye Test Completed!",
-                    `Congratulations! Your score: ${isCorrect ? score + 1 : score}/20\nTime taken: ${60 - timeLeft} seconds`,
-                    [
-                        {
-                            text: "Okay",
-                            onPress: () => {
-                                //resetGame();
-                            }
-                        }
-                    ]
-                );
+                showResultModal('Eye Test Completed!', isCorrect ? score + 1 : score, 60 - timeLeft, false);
             }
         }, 800);
     };
@@ -248,15 +253,7 @@ export default function SignTest() {
             <Stack.Screen 
                 options={{
                     title: "Eye Test",
-                    headerTitleAlign: 'center',
-                    headerStyle: {
-                        backgroundColor: '#434D57',
-                    },
-                    headerTitleStyle: {
-                        fontSize: 20,
-                        color: '#FFFFFF',
-                    },
-                    headerTintColor: '#FFFFFF',
+                    ...themedHeaderOptions(theme),
                     headerLeft: () => (
                         <Pressable 
                             onPress={() => router.back()}
@@ -408,11 +405,83 @@ export default function SignTest() {
                     </View>
                 )}
             </View>
+
+            {/* Custom Result Modal */}
+            <Modal
+                visible={showModal}
+                transparent
+                animationType="fade"
+                onRequestClose={dismissModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <Animated.View style={[styles.modalContainer, { transform: [{ scale: modalScaleAnim }] }]}>
+                        {/* Icon */}
+                        <View style={[styles.modalIconCircle, modalData.isTimeUp ? styles.modalIconTimeUp : styles.modalIconComplete]}>
+                            <Ionicons
+                                name={modalData.isTimeUp ? 'alarm-outline' : 'eye-outline'}
+                                size={36}
+                                color={modalData.isTimeUp ? '#FF6B35' : '#4CAF50'}
+                            />
+                        </View>
+
+                        {/* Title */}
+                        <Text style={styles.modalTitle}>{modalData.title}</Text>
+
+                        {/* Score */}
+                        <View style={styles.modalScoreRow}>
+                            <Text style={[
+                                styles.modalScoreValue,
+                                { color: modalData.score >= 14 ? '#4CAF50' : modalData.score >= 10 ? '#FF9800' : '#F44336' }
+                            ]}>
+                                {modalData.score}
+                            </Text>
+                            <Text style={styles.modalScoreTotal}>/20</Text>
+                        </View>
+                        <Text style={styles.modalScoreLabel}>
+                            {modalData.score >= 14 ? 'Great job! 🎉' : modalData.score >= 10 ? 'Good effort! 💪' : 'Keep practicing! 📚'}
+                        </Text>
+
+                        {/* Stats */}
+                        <View style={styles.modalStatsRow}>
+                            <View style={styles.modalStatItem}>
+                                <Ionicons name="time-outline" size={18} color={theme.colors.textSecondary} />
+                                <Text style={styles.modalStatValue}>{modalData.timeTaken}s</Text>
+                                <Text style={styles.modalStatLabel}>Time</Text>
+                            </View>
+                            <View style={styles.modalStatDivider} />
+                            <View style={styles.modalStatItem}>
+                                <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF50" />
+                                <Text style={styles.modalStatValue}>{modalData.score}</Text>
+                                <Text style={styles.modalStatLabel}>Correct</Text>
+                            </View>
+                            <View style={styles.modalStatDivider} />
+                            <View style={styles.modalStatItem}>
+                                <Ionicons name="close-circle-outline" size={18} color="#F44336" />
+                                <Text style={styles.modalStatValue}>{20 - modalData.score}</Text>
+                                <Text style={styles.modalStatLabel}>Wrong</Text>
+                            </View>
+                        </View>
+
+                        {/* Buttons */}
+                        <View style={styles.modalButtonRow}>
+                            <Pressable style={styles.modalButtonSecondary} onPress={dismissModal}>
+                                <Text style={styles.modalButtonSecondaryText}>Close</Text>
+                            </Pressable>
+                            <Pressable style={styles.modalButtonPrimary} onPress={() => { dismissModal(); resetGame(); }}>
+                                <Ionicons name="refresh-outline" size={18} color="#fff" />
+                                <Text style={styles.modalButtonPrimaryText}>Play Again</Text>
+                            </Pressable>
+                        </View>
+                    </Animated.View>
+                </View>
+            </Modal>
         </>
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: AppTheme) {
+  const { colors, glass, isDark } = theme;
+  return StyleSheet.create({
     buttonContainer: {
         overflow: 'hidden',
         borderRadius: 20,
@@ -443,7 +512,7 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-        backgroundColor: '#F5F5F5',
+        backgroundColor: colors.background,
         paddingHorizontal: 20,
         paddingTop: 20,
     },
@@ -451,7 +520,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? glass.backgroundColor : colors.card,
         padding: 15,
         borderRadius: 12,
         marginBottom: 15,
@@ -459,7 +528,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 3,
+        elevation: isDark ? 0 : 3,
     },
     timerLeft: {
         flexDirection: 'row',
@@ -484,13 +553,13 @@ const styles = StyleSheet.create({
     timerLabel: {
         fontFamily: 'Raleway-Bold',
         fontSize: 16,
-        color: '#333',
+        color: colors.text,
         marginBottom: 2,
     },
     timerSubtext: {
         fontFamily: 'Raleway-Medium',
         fontSize: 14,
-        color: '#999',
+        color: colors.textTertiary,
     },
     startButton: {
         backgroundColor: '#666',
@@ -510,7 +579,7 @@ const styles = StyleSheet.create({
     scoreContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? glass.backgroundColor : colors.card,
         padding: 15,
         borderRadius: 12,
         marginBottom: 15,
@@ -518,21 +587,21 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 3,
+        elevation: isDark ? 0 : 3,
     },
     scoreText: {
         fontFamily: 'Raleway-Bold',
         fontSize: 16,
-        color: '#333',
+        color: colors.text,
     },
     questionCounter: {
         fontFamily: 'Raleway-Medium',
         fontSize: 14,
-        color: '#666',
+        color: colors.textSecondary,
     },
     questionSection: {
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? glass.backgroundColor : colors.card,
         borderRadius: 12,
         padding: 30,
         marginBottom: 30,
@@ -540,19 +609,19 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 3,
+        elevation: isDark ? 0 : 3,
     },
     questionTitle: {
         fontFamily: 'Raleway-Bold',
         fontSize: 20,
-        color: '#333',
+        color: colors.text,
         marginBottom: 8,
         textAlign: 'center',
     },
     questionSubtitle: {
         fontFamily: 'Raleway-Medium',
         fontSize: 14,
-        color: '#999',
+        color: colors.textTertiary,
         marginBottom: 30,
         textAlign: 'center',
     },
@@ -582,37 +651,38 @@ const styles = StyleSheet.create({
         backgroundColor: '#FF6B35',
     },
     optionsContainer: {
-        gap: 12,
+        gap: 10,
         paddingBottom: 30,
     },
     optionButton: {
-        backgroundColor: '#434D57',
-        padding: 18,
+        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#434D57',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
         borderRadius: 12,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        justifyContent: 'center',
+        borderWidth: isDark ? 1 : 0,
+        borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
     },
     correctAnswer: {
-        backgroundColor: '#4CAF50',
+        backgroundColor: isDark ? 'rgba(76, 175, 80, 0.25)' : '#4CAF50',
+        borderColor: isDark ? 'rgba(76, 175, 80, 0.5)' : 'transparent',
     },
     incorrectAnswer: {
-        backgroundColor: '#F44336',
+        backgroundColor: isDark ? 'rgba(244, 67, 54, 0.25)' : '#F44336',
+        borderColor: isDark ? 'rgba(244, 67, 54, 0.5)' : 'transparent',
     },
     optionText: {
         color: '#fff',
         fontFamily: 'Raleway-Medium',
-        fontSize: 16,
+        fontSize: 15,
         textAlign: 'center',
     },
     gameOverContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? glass.backgroundColor : colors.card,
         borderRadius: 12,
         padding: 30,
         marginBottom: 30,
@@ -620,12 +690,12 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 3,
+        elevation: isDark ? 0 : 3,
     },
     gameOverTitle: {
         fontFamily: 'Raleway-Bold',
         fontSize: 24,
-        color: '#333',
+        color: colors.text,
         marginBottom: 20,
         textAlign: 'center',
     },
@@ -639,7 +709,7 @@ const styles = StyleSheet.create({
     gameOverTime: {
         fontFamily: 'Raleway-Medium',
         fontSize: 16,
-        color: '#666',
+        color: colors.textSecondary,
         marginBottom: 30,
         textAlign: 'center',
     },
@@ -658,7 +728,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? glass.backgroundColor : colors.card,
         borderRadius: 12,
         padding: 30,
         marginBottom: 30,
@@ -666,19 +736,19 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 3,
+        elevation: isDark ? 0 : 3,
     },
     instructionsTitle: {
         fontFamily: 'Raleway-Bold',
         fontSize: 24,
-        color: '#333',
+        color: colors.text,
         marginBottom: 20,
         textAlign: 'center',
     },
     instructionsText: {
         fontFamily: 'Raleway-Medium',
         fontSize: 16,
-        color: '#666',
+        color: colors.textSecondary,
         lineHeight: 24,
         textAlign: 'center',
     },
@@ -687,4 +757,135 @@ const styles = StyleSheet.create({
         marginLeft: 10,
         borderRadius: 20,
     },
+    // Modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 30,
+    },
+    modalContainer: {
+        width: '100%',
+        backgroundColor: isDark ? 'rgba(30, 35, 45, 0.95)' : '#FFFFFF',
+        borderRadius: 24,
+        paddingVertical: 32,
+        paddingHorizontal: 24,
+        alignItems: 'center',
+        borderWidth: isDark ? 1 : 0,
+        borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.3,
+        shadowRadius: 24,
+        elevation: isDark ? 0 : 10,
+    },
+    modalIconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    modalIconTimeUp: {
+        backgroundColor: isDark ? 'rgba(255, 107, 53, 0.15)' : 'rgba(255, 107, 53, 0.1)',
+    },
+    modalIconComplete: {
+        backgroundColor: isDark ? 'rgba(76, 175, 80, 0.15)' : 'rgba(76, 175, 80, 0.1)',
+    },
+    modalTitle: {
+        fontFamily: 'Raleway-Bold',
+        fontSize: 22,
+        color: colors.text,
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    modalScoreRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        marginBottom: 4,
+    },
+    modalScoreValue: {
+        fontFamily: 'Raleway-Bold',
+        fontSize: 48,
+    },
+    modalScoreTotal: {
+        fontFamily: 'Raleway-Medium',
+        fontSize: 24,
+        color: colors.textSecondary,
+    },
+    modalScoreLabel: {
+        fontFamily: 'Raleway-Medium',
+        fontSize: 16,
+        color: colors.textSecondary,
+        marginBottom: 24,
+    },
+    modalStatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA',
+        borderRadius: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        width: '100%',
+        marginBottom: 24,
+    },
+    modalStatItem: {
+        flex: 1,
+        alignItems: 'center',
+        gap: 4,
+    },
+    modalStatValue: {
+        fontFamily: 'Raleway-Bold',
+        fontSize: 18,
+        color: colors.text,
+    },
+    modalStatLabel: {
+        fontFamily: 'Raleway-Medium',
+        fontSize: 12,
+        color: colors.textSecondary,
+    },
+    modalStatDivider: {
+        width: 1,
+        height: 36,
+        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E0E0E0',
+    },
+    modalButtonRow: {
+        flexDirection: 'row',
+        gap: 12,
+        width: '100%',
+    },
+    modalButtonSecondary: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F0F0F0',
+        borderWidth: isDark ? 1 : 0,
+        borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+    },
+    modalButtonSecondaryText: {
+        fontFamily: 'Raleway-Bold',
+        fontSize: 15,
+        color: colors.text,
+    },
+    modalButtonPrimary: {
+        flex: 1,
+        flexDirection: 'row',
+        paddingVertical: 14,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FF6B35',
+        gap: 6,
+    },
+    modalButtonPrimaryText: {
+        fontFamily: 'Raleway-Bold',
+        fontSize: 15,
+        color: '#FFFFFF',
+    },
 });
+}

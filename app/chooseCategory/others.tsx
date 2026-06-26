@@ -1,9 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View, LayoutAnimation } from 'react-native';
 import { knowledgeAnswerKeyLetters, knowledgeQuestions } from '../practiceMore/knowledge';
 import { actRegulationAnswerKeyIndices, actRegulationQuestions, techAndMechanicalAnswerKeyIndices, techAndMechanicalQuestions, trafficSignalKnowledgeAnswerKeyIndices, trafficSignalKnowledgeQuestions, vehiclePollutionAnswerKeyIndices, vehiclePollutionQuestions } from './constant';
+
+import { useTheme } from '@/context/ThemeContext';
+import { themedHeaderOptions } from '@/constants/screenHelpers';
+import type { AppTheme } from '@/constants/theme';
 
 const ITEMS_PER_PAGE = 20; // Items per page
 const SKELETON_COUNT = 5;
@@ -41,7 +45,7 @@ interface SectionHeaderProps {
 
 // Throttle utility
 function throttle<T extends (...args: any[]) => void>(func: T, delay: number): T {
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let lastExecTime = 0;
   
   return ((...args: Parameters<T>) => {
@@ -63,6 +67,8 @@ function throttle<T extends (...args: any[]) => void>(func: T, delay: number): T
 // Memoized skeleton component
 const QuestionSkeleton = memo(() => {
   const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     const shimmer = () => {
@@ -121,9 +127,12 @@ const QuestionCard = memo(({
   onToggleReveal, 
   anim 
 }: QuestionCardProps) => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   // Pre-calculate interpolated values to avoid recreation
   const animatedStyles = useMemo(() => ({
-    translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }),
+    pillTranslateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-52, 0] }),
+    spacerHeight: anim.interpolate({ inputRange: [0, 1], outputRange: [0, 52] }),
     opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] })
   }), [anim]);
 
@@ -145,8 +154,8 @@ const QuestionCard = memo(({
   }, [item.id, onToggleReveal]);
 
   return (
-    <View>
-      <View style={styles.card}>
+    <View style={{ zIndex: show ? 2 : 1 }}>
+      <View style={[styles.card, { zIndex: 10 }]}>
         <View style={styles.questionHeader}>
           <Text style={styles.sectionTag}>{item.section}</Text>
         </View>
@@ -176,18 +185,15 @@ const QuestionCard = memo(({
         </Pressable>
       </View>
       
-      <Animated.View 
-        style={[
-          styles.answerPill, 
-          { 
-            opacity: animatedStyles.opacity, 
-            transform: [{ translateY: animatedStyles.translateY }] 
-          }
-        ]} 
-        pointerEvents="none"
-      >
-        {show && <Text style={styles.answerPillText}>{staticValues.correctAnswerText}</Text>}
-      </Animated.View>
+      {show && (
+        <View style={{ overflow: 'hidden', zIndex: 1 }}>
+          <View style={styles.answerPill} pointerEvents="none">
+            <Text numberOfLines={2} ellipsizeMode="tail" style={styles.answerPillText}>
+              {staticValues.letter}. {staticValues.strippedOptions[item.correctIndex]}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }, (prevProps, nextProps) => {
@@ -203,6 +209,8 @@ const PaginationControls = memo(({
   onPageChange,
   isLoading 
 }: PaginationControlsProps) => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const canGoPrevious = currentPage > 1 && !isLoading;
   const canGoNext = currentPage < totalPages && !isLoading;
 
@@ -264,31 +272,39 @@ const SectionHeader = memo(({
   totalQuestions, 
   currentPage, 
   totalPages 
-}: SectionHeaderProps) => (
-  <View style={styles.sectionCard}>
-    <View style={styles.sectionRow}>
-      <View style={styles.sectionIcon}>
-        <Ionicons name="document-text-outline" size={22} color="#434D57" />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.sectionTitle}>All Questions</Text>
-        <Text style={styles.sectionSubtitle}>
-          Complete collection of all driving test questions ({totalQuestions} total)
-        </Text>
-        <Text style={styles.loadingInfo}>
-          Page {currentPage} of {totalPages} • {ITEMS_PER_PAGE} questions per page
-        </Text>
+}: SectionHeaderProps) => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  if (totalQuestions === 0) return null;
+
+  return (
+    <View style={styles.sectionCard}>
+      <View style={styles.sectionRow}>
+        <View style={styles.sectionIcon}>
+          <Ionicons name="document-text-outline" size={22} color="#434D57" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.sectionTitle}>All Questions</Text>
+          <Text style={styles.sectionSubtitle}>
+            Complete collection of all driving test questions ({totalQuestions} total)
+          </Text>
+          <Text style={styles.loadingInfo}>
+            Page {currentPage} of {totalPages} • {ITEMS_PER_PAGE} questions per page
+          </Text>
+        </View>
       </View>
     </View>
-  </View>
-));
+  );
+});
 
 export default function OthersScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   
   // Pre-process all questions once and memoize
   const allQuestions = useMemo((): Question[] => {
-    // Your existing question loading logic here (I'll keep it as is for brevity)
     let QUESTIONS: any[] = Array.isArray(actRegulationQuestions) ? actRegulationQuestions : [];
     let ANSWER_KEYS: number[] = Array.isArray(actRegulationAnswerKeyIndices) ? actRegulationAnswerKeyIndices : [];
     let TECH_QUESTIONS: any[] = Array.isArray(techAndMechanicalQuestions) ? techAndMechanicalQuestions : [];
@@ -302,21 +318,6 @@ export default function OthersScreen() {
     const letterToIndex = (l: string): number => ({ a: 0, b: 1, c: 2, d: 3 } as const)[String(l).toLowerCase() as 'a'|'b'|'c'|'d'] ?? 0;
     let DRIVE_ANSWER_KEYS: number[] = Array.isArray(knowledgeAnswerKeyLetters) ? knowledgeAnswerKeyLetters.map(letterToIndex) : [];
     
-    // Your existing fallback logic...
-    if (QUESTIONS.length === 0 || TECH_QUESTIONS.length === 0) {
-      try {
-        const mod = require('./constant');
-        if (QUESTIONS.length === 0 && Array.isArray(mod?.actRegulationQuestions)) {
-          QUESTIONS = mod.actRegulationQuestions;
-        }
-        if (ANSWER_KEYS.length === 0 && Array.isArray(mod?.actRegulationAnswerKeyIndices)) {
-          ANSWER_KEYS = mod.actRegulationAnswerKeyIndices;
-        }
-        // ... rest of your fallback logic
-      } catch {}
-    }
-
-    // Combine questions
     const combinedQuestions: Question[] = [];
     let currentId = 0;
 
@@ -371,23 +372,14 @@ export default function OthersScreen() {
 
   // Optimized toggle reveal with immediate state update
   const toggleReveal = useCallback((id: number) => {
-    const anim = getAnimForId(id);
-    const willShow = !revealedSet.has(id);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     
     // Update state immediately for instant UI feedback
     setRevealedSet(prev => {
       const next = new Set(prev);
-      if (willShow) next.add(id); else next.delete(id);
+      if (!prev.has(id)) next.add(id); else next.delete(id);
       return next;
     });
-    
-    // Then run animation
-    Animated.timing(anim, {
-      toValue: willShow ? 1 : 0,
-      duration: willShow ? 300 : 150, // Reduced duration for faster response
-      easing: willShow ? Easing.out(Easing.ease) : Easing.in(Easing.ease),
-      useNativeDriver: true,
-    }).start();
   }, [revealedSet, getAnimForId]);
 
   // Page change handler
@@ -441,22 +433,14 @@ export default function OthersScreen() {
     <>
       <Stack.Screen 
         options={{
-          title: "Others - All Questions",
-          headerTitleAlign: 'center',
-          headerStyle: {
-            backgroundColor: '#434D57',
-          },
-          headerTitleStyle: {
-            fontSize: 18,
-            color: '#FFFFFF',
-          },
-          headerTintColor: '#FFFFFF',
+          title: "Other Exam Test",
+          ...themedHeaderOptions(theme),
           headerLeft: () => (
             <Pressable 
               onPress={() => router.back()}
               style={styles.headerBackButton}
             >
-              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
             </Pressable>
           ),
         }}
@@ -502,267 +486,270 @@ export default function OthersScreen() {
     </>
   );
 }
+function createStyles(theme: AppTheme) {
+  const { colors, glass, isDark } = theme;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  scrollContent: {
-    paddingBottom: 32,
-  },
-  sectionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#434D57',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sectionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F0F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    color: '#333',
-    fontWeight: '700',
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  loadingInfo: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    position: 'relative',
-    zIndex: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  questionHeader: {
-    marginBottom: 8,
-  },
-  sectionTag: {
-    fontSize: 11,
-    color: '#434D57',
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    fontWeight: '600',
-  },
-  questionText: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 12,
-    lineHeight: 22,
-  },
-  dashed: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#D9D9D9',
-    borderStyle: 'dashed',
-    marginBottom: 12,
-  },
-  optionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  optionCell: {
-    width: '48%',
-    marginBottom: 10,
-  },
-  optionText: {
-    fontSize: 14,
-    color: '#333',
-    lineHeight: 20,
-  },
-  optionCorrect: {
-    color: '#2E7D32',
-    fontWeight: '700',
-  },
-  revealRow: {
-    marginTop: 6,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  revealText: {
-    color: '#FF6B35',
-    fontSize: 15,
-    marginRight: 4,
-    textTransform: 'capitalize',
-    fontWeight: '600',
-  },
-  answerPill: {
-    marginTop: -12,
-    marginHorizontal: 24,
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    zIndex: 1,
-  },
-  answerPillText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    paddingHorizontal: 16,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  revealTouch: {
-    alignSelf: 'stretch',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  headerBackButton: {
-    padding: 8,
-    marginLeft: 10,
-    borderRadius: 20,
-  },
-  // Pagination styles
-  paginationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  paginationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 6,
-  },
-  paginationButtonDisabled: {
-    backgroundColor: '#F5F5F5',
-    borderColor: '#E0E0E0',
-  },
-  paginationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#434D57',
-  },
-  paginationTextDisabled: {
-    color: '#CCC',
-  },
-  pageInfo: {
-    alignItems: 'center',
-  },
-  pageInfoText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  pageInfoSubtext: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  // Empty state
-  emptyState: {
-    alignItems: 'center',
-    padding: 32,
-    marginTop: 32,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 4,
-  },
-  // Skeleton styles
-  skeletonTag: {
-    width: 120,
-    height: 16,
-    backgroundColor: '#E5E5E5',
-    borderRadius: 8,
-  },
-  skeletonQuestion: {
-    width: '100%',
-    height: 20,
-    backgroundColor: '#E5E5E5',
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  skeletonQuestionSmall: {
-    width: '75%',
-    height: 20,
-    backgroundColor: '#E5E5E5',
-    borderRadius: 4,
-    marginBottom: 12,
-  },
-  skeletonOption: {
-    width: '90%',
-    height: 16,
-    backgroundColor: '#E5E5E5',
-    borderRadius: 4,
-    marginVertical: 2,
-  },
-  skeletonReveal: {
-    width: 80,
-    height: 14,
-    backgroundColor: '#E5E5E5',
-    borderRadius: 4,
-  },
-});
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      paddingBottom: 32,
+    },
+    sectionCard: {
+      backgroundColor: isDark ? glass.backgroundColor : colors.card,
+      borderRadius: isDark ? glass.borderRadius : 16,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginHorizontal: 16,
+      marginTop: 16,
+      marginBottom: 8,
+      borderWidth: isDark ? glass.borderWidth : 1,
+      borderColor: isDark ? glass.borderColor : '#434D57',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: isDark ? 8 : 6,
+      elevation: isDark ? 4 : 3,
+    },
+    sectionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    sectionIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F0F0F0',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      color: colors.text,
+      fontWeight: '700',
+    },
+    sectionSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    loadingInfo: {
+      fontSize: 12,
+      color: colors.textTertiary,
+      marginTop: 4,
+      fontStyle: 'italic',
+    },
+    card: {
+      backgroundColor: isDark ? glass.backgroundColor : colors.card,
+      borderRadius: isDark ? glass.borderRadius : 16,
+      padding: 16,
+      marginHorizontal: 16,
+      marginTop: 6,
+      borderWidth: isDark ? glass.borderWidth : 1,
+      borderColor: isDark ? glass.borderColor : colors.cardBorder,
+      position: 'relative',
+      zIndex: 10,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: isDark ? 8 : 6,
+      elevation: isDark ? 4 : 3,
+    },
+    questionHeader: {
+      marginBottom: 8,
+    },
+    sectionTag: {
+      fontSize: 11,
+      color: isDark ? colors.text : '#434D57',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F0F0F0',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 8,
+      alignSelf: 'flex-start',
+      fontWeight: '600',
+    },
+    questionText: {
+      fontSize: 16,
+      color: colors.text,
+      marginBottom: 12,
+      lineHeight: 22,
+    },
+    dashed: {
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : '#D9D9D9',
+      borderStyle: 'dashed',
+      marginBottom: 12,
+    },
+    optionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    optionCell: {
+      width: '48%',
+      marginBottom: 10,
+    },
+    optionText: {
+      fontSize: 14,
+      color: colors.text,
+      lineHeight: 20,
+    },
+    optionCorrect: {
+      color: '#4CAF50',
+      fontWeight: '700',
+    },
+    revealRow: {
+      marginTop: 6,
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    revealText: {
+      color: colors.accent,
+      fontSize: 15,
+      marginRight: 4,
+      textTransform: 'capitalize',
+      fontWeight: '600',
+    },
+    answerPill: {
+      marginHorizontal: 25,
+      backgroundColor: isDark ? 'rgba(76, 175, 80, 0.15)' : '#4CAF50',
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderBottomLeftRadius: 16,
+      borderBottomRightRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: isDark ? 1 : 0,
+      borderTopWidth: 0,
+      borderColor: isDark ? 'rgba(76, 175, 80, 0.3)' : 'transparent',
+    },
+    answerPillText: {
+      color: isDark ? '#81C784' : '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+    revealTouch: {
+      alignSelf: 'stretch',
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+    },
+    headerBackButton: {
+      padding: 8,
+      marginLeft: 10,
+      borderRadius: 20,
+    },
+    // Pagination styles
+    paginationContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: isDark ? 'transparent' : '#fff',
+      marginHorizontal: 16,
+      marginTop: 16,
+      marginBottom: 8,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#E5E7EB',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: isDark ? 8 : 6,
+      elevation: isDark ? 4 : 3,
+    },
+    paginationButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F8F9FA',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#E5E7EB',
+      gap: 6,
+    },
+    paginationButtonDisabled: {
+      backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F5F5F5',
+      borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#E0E0E0',
+    },
+    paginationText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: isDark ? colors.text : '#434D57',
+    },
+    paginationTextDisabled: {
+      color: isDark ? colors.textTertiary : '#CCC',
+    },
+    pageInfo: {
+      alignItems: 'center',
+    },
+    pageInfoText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    pageInfoSubtext: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    // Empty state
+    emptyState: {
+      alignItems: 'center',
+      padding: 32,
+      marginTop: 32,
+    },
+    emptyStateText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.textSecondary,
+      marginTop: 16,
+    },
+    emptyStateSubtext: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      marginTop: 4,
+    },
+    // Skeleton styles
+    skeletonTag: {
+      width: 120,
+      height: 16,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
+      borderRadius: 8,
+    },
+    skeletonQuestion: {
+      width: '100%',
+      height: 20,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
+      borderRadius: 4,
+      marginBottom: 8,
+    },
+    skeletonQuestionSmall: {
+      width: '75%',
+      height: 20,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
+      borderRadius: 4,
+      marginBottom: 12,
+    },
+    skeletonOption: {
+      width: '90%',
+      height: 16,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
+      borderRadius: 4,
+      marginVertical: 2,
+    },
+    skeletonReveal: {
+      width: 80,
+      height: 14,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
+      borderRadius: 4,
+    },
+  });
+}

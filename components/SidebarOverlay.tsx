@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Animated,
     Easing,
@@ -12,9 +12,12 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+
+import { useTheme } from '@/context/ThemeContext';
+import type { AppTheme } from '@/constants/theme';
 import { useSidebar } from './SidebarContext';
 
-interface CategoryItem {
+interface CategoryItemData {
   id: string;
   name: string;
   icon: string;
@@ -31,7 +34,9 @@ interface SubItem {
 
 export default function SidebarOverlay() {
   const { sidebarVisible, setSidebarVisible } = useSidebar();
-  
+  const { theme } = useTheme();
+  const s = useMemo(() => createStyles(theme), [theme]);
+
   const onClose = () => setSidebarVisible(false);
   const router = useRouter();
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
@@ -40,7 +45,7 @@ export default function SidebarOverlay() {
   const contentOpacity = useRef(new Animated.Value(0)).current;
 
   // Define all categories and their sub-items
-  const categories: CategoryItem[] = [
+  const categories: CategoryItemData[] = [
     {
       id: 'lekhit-exam',
       name: 'Lekhit Exam',
@@ -97,8 +102,8 @@ export default function SidebarOverlay() {
   ];
 
   const toggleCategory = (categoryId: string) => {
-    setExpandedCategories(prev => 
-      prev.includes(categoryId) 
+    setExpandedCategories(prev =>
+      prev.includes(categoryId)
         ? prev.filter(id => id !== categoryId)
         : [...prev, categoryId]
     );
@@ -111,7 +116,6 @@ export default function SidebarOverlay() {
 
   useEffect(() => {
     if (sidebarVisible) {
-      // Opening animation - all elements animate together
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
@@ -128,13 +132,12 @@ export default function SidebarOverlay() {
         Animated.timing(contentOpacity, {
           toValue: 1,
           duration: 350,
-          delay: 100, // Slight delay for content to appear smoothly
+          delay: 100,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]).start();
     } else {
-      // Closing animation - reverse order for smooth close
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: -300,
@@ -160,38 +163,38 @@ export default function SidebarOverlay() {
 
   if (!sidebarVisible) return null;
 
-  const CategoryItem = ({ category }: { category: CategoryItem }) => (
-    <View style={styles.categoryContainer}>
+  const CategoryItemComponent = ({ category }: { category: CategoryItemData }) => (
+    <View style={s.categoryContainer}>
       <TouchableOpacity
-        style={styles.categoryHeader}
+        style={s.categoryHeader}
         onPress={() => category.subItems ? toggleCategory(category.id) : handleItemPress(category.route)}
       >
-        <View style={styles.categoryIconContainer}>
-          <Ionicons name={category.icon as any} size={24} color="#6B7280" />
+        <View style={s.categoryIconContainer}>
+          <Ionicons name={category.icon as any} size={24} color={theme.colors.sidebarTextSecondary} />
         </View>
-        <Text style={styles.categoryLabel}>{category.name}</Text>
+        <Text style={s.categoryLabel}>{category.name}</Text>
         {category.subItems && (
           <Ionicons
             name={expandedCategories.includes(category.id) ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color="#6B7280"
-            style={styles.expandIcon}
+            color={theme.colors.sidebarTextSecondary}
+            style={s.expandIcon}
           />
         )}
       </TouchableOpacity>
 
       {category.subItems && expandedCategories.includes(category.id) && (
-        <View style={styles.subItemsContainer}>
+        <View style={s.subItemsContainer}>
           {category.subItems.map((subItem) => (
             <TouchableOpacity
               key={subItem.id}
-              style={styles.subItem}
+              style={s.subItem}
               onPress={() => handleItemPress(subItem.route)}
             >
-              <View style={styles.subItemIconContainer}>
-                <Ionicons name={subItem.icon as any} size={20} color="#6B7280" />
+              <View style={s.subItemIconContainer}>
+                <Ionicons name={subItem.icon as any} size={20} color={theme.colors.sidebarTextSecondary} />
               </View>
-              <Text style={styles.subItemLabel}>{subItem.name}</Text>
+              <Text style={s.subItemLabel}>{subItem.name}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -200,11 +203,11 @@ export default function SidebarOverlay() {
   );
 
   return (
-    <View style={styles.sidebarOverlay}>
+    <View style={s.sidebarOverlay}>
       {/* Animated backdrop */}
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.sidebarBackdrop, 
+          s.sidebarBackdrop,
           { opacity: backdropOpacity }
         ]}
       >
@@ -212,184 +215,170 @@ export default function SidebarOverlay() {
       </Animated.View>
 
       {/* Animated sidebar */}
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.sidebarDrawer,
+          s.sidebarDrawer,
           {
             transform: [{ translateX: slideAnim }],
           },
         ]}
       >
-        <Animated.View style={[styles.sidebarContent, { opacity: contentOpacity }]}>
-          <View style={styles.sidebarHeader}>
-            <View style={styles.avatarContainer}>
-              <Image source={require('@/assets/images/profile.png')} style={styles.avatar} />
-              <View style={styles.userIconOverlay}>
-                <Image 
-                  source={require('@/assets/images/user_icon.png')} 
-                  style={styles.userIconImage}
-                  resizeMode="contain"
-                />
-              </View>
+        <Animated.View style={[s.sidebarContent, { opacity: contentOpacity }]}>
+          <View style={s.sidebarHeader}>
+            <View style={s.avatarContainer}>
+              <Image source={require('@/assets/images/profile.png')} style={s.avatar} />
             </View>
             <View>
-              <Text style={styles.sidebarName}>Quick View</Text>
-              <Text style={styles.sidebarSubtitle}>Navigate to any section</Text>
+              <Text style={s.sidebarName}>Quick View</Text>
+              <Text style={s.sidebarSubtitle}>Navigate to any section</Text>
             </View>
           </View>
 
-          <ScrollView style={styles.categoriesContainer} showsVerticalScrollIndicator={false}>
+          <ScrollView style={s.categoriesContainer} showsVerticalScrollIndicator={false}>
             {categories.map((category) => (
-              <CategoryItem key={category.id} category={category} />
+              <CategoryItemComponent key={category.id} category={category} />
             ))}
           </ScrollView>
 
-          <View style={styles.footerSpace} />
-          <Text style={styles.copy}>© Lekhit Guru 2025</Text>
+          <View style={s.footerSpace} />
+          <Text style={s.copy}>© Lekhit Guru 2025</Text>
         </Animated.View>
       </Animated.View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  sidebarOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    zIndex: 9999, // Very high z-index to ensure it's above everything including footer
-  },
-  sidebarDrawer: {
-    width: 300,
-    backgroundColor: '#fff',
-    paddingTop: 40,
-    paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 10,
-    overflow: 'hidden',
-    zIndex: 9999, // Ensure it's above the backdrop
-  },
-  sidebarContent: {
-    flex: 1,
-  },
-  sidebarHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginBottom: 32,
-    paddingVertical: 8,
-  },
-  sidebarName: {
-    fontSize: 18,
-    color: '#111827',
-    fontWeight: '600',
-    lineHeight: 24,
-    marginTop: 10,
-    marginLeft: 10,
-  },
-  sidebarSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-    marginLeft: 10,
-    lineHeight: 18,
-  },
-  sidebarBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Slightly darker for better overlay
-    zIndex: 9998, // Just below the sidebar content
-  },
-  categoriesContainer: {
-    flex: 1,
-  },
-  categoryContainer: {
-    marginBottom: 8,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    backgroundColor: '#f9fafb',
-  },
-  categoryIconContainer: {
-    width: 24,
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  categoryLabel: {
-    flex: 1,
-    fontSize: 16,
-    color: '#111827',
-    fontWeight: '600',
-  },
-  expandIcon: {
-    marginLeft: 'auto',
-  },
-  subItemsContainer: {
-    marginLeft: 20,
-    marginTop: 8,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-    paddingVertical: 8,
-  },
-  subItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  subItemIconContainer: {
-    width: 20,
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  subItemLabel: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  footerSpace: {
-    marginTop: 20,
-    height: 60,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginTop: 8,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  userIconOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 40,
-    height: 54,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userIconImage: {
-    width: 50,
-    height: 50,
-  },
-  copy: {
-    textAlign: 'center',
-    color: '#9CA3AF',
-    fontSize: 12,
-    paddingVertical: 12,
-  },
-});
+function createStyles(theme: AppTheme) {
+  const { colors, isDark } = theme;
+
+  return StyleSheet.create({
+    sidebarOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      flexDirection: 'row',
+      zIndex: 9999,
+    },
+    sidebarDrawer: {
+      width: 300,
+      backgroundColor: colors.sidebarBackground,
+      paddingTop: 60,
+      paddingHorizontal: 20,
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 10,
+      overflow: 'hidden',
+      zIndex: 9999,
+      ...(isDark && {
+        borderRightWidth: 1,
+        borderRightColor: colors.border,
+      }),
+    },
+    sidebarContent: {
+      flex: 1,
+    },
+    sidebarHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
+      marginBottom: 32,
+      paddingVertical: 8,
+    },
+    sidebarName: {
+      fontSize: 18,
+      color: colors.sidebarText,
+      fontWeight: '600',
+      lineHeight: 24,
+      marginLeft: 10,
+    },
+    sidebarSubtitle: {
+      fontSize: 14,
+      color: colors.sidebarTextSecondary,
+      marginTop: 2,
+      marginLeft: 10,
+      lineHeight: 18,
+    },
+    sidebarBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: colors.modalOverlay,
+      zIndex: 9998,
+    },
+    categoriesContainer: {
+      flex: 1,
+    },
+    categoryContainer: {
+      marginBottom: 8,
+    },
+    categoryHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 15,
+      paddingHorizontal: 15,
+      borderRadius: 8,
+      backgroundColor: colors.sidebarCategoryBg,
+    },
+    categoryIconContainer: {
+      width: 24,
+      alignItems: 'center',
+      marginRight: 15,
+    },
+    categoryLabel: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.sidebarText,
+      fontWeight: '600',
+    },
+    expandIcon: {
+      marginLeft: 'auto',
+    },
+    subItemsContainer: {
+      marginLeft: 20,
+      marginTop: 8,
+      backgroundColor: colors.sidebarSubItemBg,
+      borderRadius: 8,
+      paddingVertical: 8,
+    },
+    subItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+    },
+    subItemIconContainer: {
+      width: 20,
+      alignItems: 'center',
+      marginRight: 15,
+    },
+    subItemLabel: {
+      fontSize: 14,
+      color: isDark ? colors.sidebarTextSecondary : '#374151',
+      fontWeight: '500',
+    },
+    footerSpace: {
+      marginTop: 20,
+      height: 60,
+    },
+    avatarContainer: {
+      position: 'relative',
+    },
+    avatar: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+    },
+    copy: {
+      textAlign: 'center',
+      color: colors.textTertiary,
+      fontSize: 12,
+      paddingVertical: 12,
+    },
+  });
+}

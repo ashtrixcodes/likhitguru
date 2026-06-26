@@ -1,0 +1,121 @@
+
+> lekhit@1.0.0 lint
+> expo lint
+
+
+/Users/prashantkhanal/lekhitGuru-4/app/(tabs)/dailyQuiz.tsx
+  25:38  warning  'SCREEN_HEIGHT' is assigned a value but never used                                                                                           @typescript-eslint/no-unused-vars
+  45:10  warning  'originalIndices' is assigned a value but never used                                                                                         @typescript-eslint/no-unused-vars
+  82:6   warning  React Hook useEffect has missing dependencies: 'fadeAnim', 'scaleAnim', and 'slideAnim'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  94:6   warning  React Hook useEffect has a missing dependency: 'progressAnim'. Either include it or remove the dependency array                              react-hooks/exhaustive-deps
+
+/Users/prashantkhanal/lekhitGuru-4/app/(tabs)/dailyquizQT.tsx
+  8:16  warning  'dailyquizQT' is already defined  @typescript-eslint/no-redeclare
+
+/Users/prashantkhanal/lekhitGuru-4/app/(tabs)/profile.tsx
+   8:27  warning  '/Users/prashantkhanal/lekhitGuru-4/node_modules/react-native/index.js' imported multiple times  import/no-duplicates
+  18:8   warning  '/Users/prashantkhanal/lekhitGuru-4/node_modules/react-native/index.js' imported multiple times  import/no-duplicates
+
+/Users/prashantkhanal/lekhitGuru-4/app/(tabs)/shareapp.tsx
+  221:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/prashantkhanal/lekhitGuru-4/app/chooseCategory/fourWheeler.tsx
+  14:7   warning  The 'QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 125) change on every render. To fix this, wrap the initialization of 'QUESTIONS' in its own useMemo() Hook                          react-hooks/exhaustive-deps
+  14:7   warning  The 'QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'QUESTIONS' in its own useMemo() Hook                          react-hooks/exhaustive-deps
+  15:7   warning  The 'ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'ANSWER_KEYS' in its own useMemo() Hook                      react-hooks/exhaustive-deps
+  16:7   warning  The 'TECH_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 125) change on every render. To fix this, wrap the initialization of 'TECH_QUESTIONS' in its own useMemo() Hook                react-hooks/exhaustive-deps
+  16:7   warning  The 'TECH_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'TECH_QUESTIONS' in its own useMemo() Hook                react-hooks/exhaustive-deps
+  17:7   warning  The 'TECH_ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'TECH_ANSWER_KEYS' in its own useMemo() Hook            react-hooks/exhaustive-deps
+  18:7   warning  The 'POLLUTION_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 125) change on every render. To fix this, wrap the initialization of 'POLLUTION_QUESTIONS' in its own useMemo() Hook      react-hooks/exhaustive-deps
+  18:7   warning  The 'POLLUTION_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'POLLUTION_QUESTIONS' in its own useMemo() Hook      react-hooks/exhaustive-deps
+  19:7   warning  The 'POLLUTION_ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'POLLUTION_ANSWER_KEYS' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  20:7   warning  The 'DRIVE_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 125) change on every render. To fix this, wrap the initialization of 'DRIVE_QUESTIONS' in its own useMemo() Hook              react-hooks/exhaustive-deps
+  20:7   warning  The 'DRIVE_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'DRIVE_QUESTIONS' in its own useMemo() Hook              react-hooks/exhaustive-deps
+  22:7   warning  The 'DRIVE_ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'DRIVE_ANSWER_KEYS' in its own useMemo() Hook          react-hooks/exhaustive-deps
+  24:7   warning  The 'ACC_QUESTIONS' array makes the dependencies of useMemo Hook (at line 125) change on every render. To fix this, wrap the initialization of 'ACC_QUESTIONS' in its own useMemo() Hook                             react-hooks/exhaustive-deps
+  24:7   warning  The 'ACC_QUESTIONS' array makes the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'ACC_QUESTIONS' in its own useMemo() Hook                             react-hooks/exhaustive-deps
+  25:7   warning  The 'ACC_ANSWER_KEYS' array makes the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'ACC_ANSWER_KEYS' in its own useMemo() Hook                         react-hooks/exhaustive-deps
+  28:7   warning  The 'SIGNAL_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 125) change on every render. To fix this, wrap the initialization of 'SIGNAL_QUESTIONS' in its own useMemo() Hook            react-hooks/exhaustive-deps
+  28:7   warning  The 'SIGNAL_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'SIGNAL_QUESTIONS' in its own useMemo() Hook            react-hooks/exhaustive-deps
+  29:7   warning  The 'SIGNAL_ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 151) change on every render. To fix this, wrap the initialization of 'SIGNAL_ANSWER_KEYS' in its own useMemo() Hook        react-hooks/exhaustive-deps
+  32:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+  33:19  warning  A `require()` style import is forbidden                                                                                                                                                                              @typescript-eslint/no-require-imports
+  68:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+  69:20  warning  A `require()` style import is forbidden                                                                                                                                                                              @typescript-eslint/no-require-imports
+  81:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+  82:20  warning  A `require()` style import is forbidden                                                                                                                                                                              @typescript-eslint/no-require-imports
+  97:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+  98:20  warning  A `require()` style import is forbidden                                                                                                                                                                              @typescript-eslint/no-require-imports
+
+/Users/prashantkhanal/lekhitGuru-4/app/chooseCategory/others.tsx
+   68:26  error    Component definition is missing display name                                                                react/display-name
+  124:22  error    Component definition is missing display name                                                                react/display-name
+  208:28  error    Component definition is missing display name                                                                react/display-name
+  264:26  error    Component definition is missing display name                                                                react/display-name
+  273:23  error    Component definition is missing display name                                                                react/display-name
+  416:24  warning  React Hook useCallback received a function whose dependencies are unknown. Pass an inline function instead  react-hooks/exhaustive-deps
+
+/Users/prashantkhanal/lekhitGuru-4/app/chooseCategory/twoWheeler.tsx
+  14:7   warning  The 'QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 182) change on every render. To fix this, wrap the initialization of 'QUESTIONS' in its own useMemo() Hook                          react-hooks/exhaustive-deps
+  14:7   warning  The 'QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'QUESTIONS' in its own useMemo() Hook                          react-hooks/exhaustive-deps
+  15:7   warning  The 'ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'ANSWER_KEYS' in its own useMemo() Hook                      react-hooks/exhaustive-deps
+  16:7   warning  The 'TECH_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 182) change on every render. To fix this, wrap the initialization of 'TECH_QUESTIONS' in its own useMemo() Hook                react-hooks/exhaustive-deps
+  16:7   warning  The 'TECH_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'TECH_QUESTIONS' in its own useMemo() Hook                react-hooks/exhaustive-deps
+  17:7   warning  The 'TECH_ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'TECH_ANSWER_KEYS' in its own useMemo() Hook            react-hooks/exhaustive-deps
+  18:7   warning  The 'POLLUTION_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 182) change on every render. To fix this, wrap the initialization of 'POLLUTION_QUESTIONS' in its own useMemo() Hook      react-hooks/exhaustive-deps
+  18:7   warning  The 'POLLUTION_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'POLLUTION_QUESTIONS' in its own useMemo() Hook      react-hooks/exhaustive-deps
+  19:7   warning  The 'POLLUTION_ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'POLLUTION_ANSWER_KEYS' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  20:7   warning  The 'DRIVE_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 182) change on every render. To fix this, wrap the initialization of 'DRIVE_QUESTIONS' in its own useMemo() Hook              react-hooks/exhaustive-deps
+  20:7   warning  The 'DRIVE_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'DRIVE_QUESTIONS' in its own useMemo() Hook              react-hooks/exhaustive-deps
+  22:7   warning  The 'DRIVE_ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'DRIVE_ANSWER_KEYS' in its own useMemo() Hook          react-hooks/exhaustive-deps
+  24:7   warning  The 'ACC_QUESTIONS' array makes the dependencies of useMemo Hook (at line 182) change on every render. To fix this, wrap the initialization of 'ACC_QUESTIONS' in its own useMemo() Hook                             react-hooks/exhaustive-deps
+  24:7   warning  The 'ACC_QUESTIONS' array makes the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'ACC_QUESTIONS' in its own useMemo() Hook                             react-hooks/exhaustive-deps
+  25:7   warning  The 'ACC_ANSWER_KEYS' array makes the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'ACC_ANSWER_KEYS' in its own useMemo() Hook                         react-hooks/exhaustive-deps
+  28:7   warning  The 'SIGNAL_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 182) change on every render. To fix this, wrap the initialization of 'SIGNAL_QUESTIONS' in its own useMemo() Hook            react-hooks/exhaustive-deps
+  28:7   warning  The 'SIGNAL_QUESTIONS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'SIGNAL_QUESTIONS' in its own useMemo() Hook            react-hooks/exhaustive-deps
+  29:7   warning  The 'SIGNAL_ANSWER_KEYS' conditional could make the dependencies of useMemo Hook (at line 243) change on every render. To fix this, wrap the initialization of 'SIGNAL_ANSWER_KEYS' in its own useMemo() Hook        react-hooks/exhaustive-deps
+  32:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+  33:19  warning  A `require()` style import is forbidden                                                                                                                                                                              @typescript-eslint/no-require-imports
+  68:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+  69:20  warning  A `require()` style import is forbidden                                                                                                                                                                              @typescript-eslint/no-require-imports
+  81:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+  82:20  warning  A `require()` style import is forbidden                                                                                                                                                                              @typescript-eslint/no-require-imports
+  97:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+  98:20  warning  A `require()` style import is forbidden                                                                                                                                                                              @typescript-eslint/no-require-imports
+
+/Users/prashantkhanal/lekhitGuru-4/app/others/moreInfo.tsx
+  79:50  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/prashantkhanal/lekhitGuru-4/app/others/nagdhungaPass.tsx
+  17:9  warning  'width' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/prashantkhanal/lekhitGuru-4/app/practiceMore/examTest.tsx
+   13:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+   14:17  warning  A `require()` style import is forbidden                                                                                                 @typescript-eslint/no-require-imports
+   23:9   warning  'TOTAL_TESTS' is assigned a value but never used                                                                                        @typescript-eslint/no-unused-vars
+   47:34  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead                                                                             @typescript-eslint/array-type
+  149:6   warning  React Hook useEffect has missing dependencies: 'handleTimeUp' and 'pulseAnimation'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  233:6   warning  React Hook useEffect has a missing dependency: 'selectedTestIndex'. Either include it or remove the dependency array                    react-hooks/exhaustive-deps
+  268:8   warning  React Hook useCallback has a missing dependency: 'persistAllProgress'. Either include it or remove the dependency array                 react-hooks/exhaustive-deps
+  333:9   warning  'resetGame' is assigned a value but never used                                                                                          @typescript-eslint/no-unused-vars
+
+/Users/prashantkhanal/lekhitGuru-4/app/quiz/eyeTest.tsx
+  22:12  warning  'attempts' is assigned a value but never used                                                                                           @typescript-eslint/no-unused-vars
+  53:8   warning  React Hook useEffect has missing dependencies: 'handleTimeUp' and 'pulseAnimation'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/prashantkhanal/lekhitGuru-4/app/quiz/signTest.tsx
+  23:12  warning  'attempts' is assigned a value but never used                                                                                           @typescript-eslint/no-unused-vars
+  54:8   warning  React Hook useEffect has missing dependencies: 'handleTimeUp' and 'pulseAnimation'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/prashantkhanal/lekhitGuru-4/app/slider/sideview.tsx
+  92:6  warning  React Hook useEffect has a missing dependency: 'anim'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/prashantkhanal/lekhitGuru-4/components/LoadingDots.tsx
+  52:6  warning  React Hook useEffect has missing dependencies: 'anim1', 'anim2', and 'anim3'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/prashantkhanal/lekhitGuru-4/components/SidebarOverlay.tsx
+  162:6  warning  React Hook useEffect has missing dependencies: 'backdropOpacity', 'contentOpacity', and 'slideAnim'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 83 problems (6 errors, 77 warnings)
+  0 errors and 11 warnings potentially fixable with the `--fix` option.
+

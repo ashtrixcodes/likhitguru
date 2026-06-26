@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useTheme } from '@/context/ThemeContext';
+import type { AppTheme } from '@/constants/theme';
 import {
     Dimensions,
     Image,
@@ -58,8 +60,10 @@ const vehicleCharges: VehicleCharge[] = [
   }
 ];
 
-export default function nagdhungaPassScreen() {
+export default function NagdhungaPassScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [expandedCards, setExpandedCards] = useState<string[]>(['car-van']); // Car/Van expanded by default
 
   const toggleCard = (cardId: string) => {
@@ -89,7 +93,7 @@ export default function nagdhungaPassScreen() {
           <Ionicons 
             name={isExpanded ? "chevron-up" : "chevron-down"} 
             size={24} 
-            color="#666" 
+            color={theme.isDark ? '#FFF' : '#666'} 
           />
         </View>
         
@@ -123,19 +127,19 @@ export default function nagdhungaPassScreen() {
           title: "Nagdhunga Charges",
           headerTitleAlign: 'center',
           headerStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.isDark ? theme.colors.card : '#ffffff',
           },
           headerTitleStyle: {
             fontSize: 20,
-            color: '#000000',
+            color: theme.isDark ? '#FFF' : '#000000',
           },
-          headerTintColor: '#FFFFFF',
+          headerTintColor: theme.isDark ? '#FFF' : '#000000',
           headerLeft: () => (
             <Pressable 
               onPress={() => router.back()}
               style={styles.headerBackButton}
             >
-              <Ionicons name="arrow-back" size={24} color="#000000" />
+              <Ionicons name="arrow-back" size={24} color={theme.isDark ? '#FFF' : '#000000'} />
             </Pressable>
           ),
         }}
@@ -173,10 +177,12 @@ export default function nagdhungaPassScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: AppTheme) {
+  const { colors, glass, isDark } = theme;
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background,
   },
   headerBackButton: {
     padding: 8,
@@ -186,12 +192,14 @@ const styles = StyleSheet.create({
   noticeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e3f2fd',
+    backgroundColor: isDark ? glass.backgroundColor : '#e3f2fd',
     margin: 20,
     padding: 20,
     borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#2196F3',
+    borderWidth: isDark ? 1 : 0,
+    borderColor: isDark ? glass.borderColor : 'transparent',
   },
   governmentIcon: {
     width: 40,
@@ -204,12 +212,12 @@ const styles = StyleSheet.create({
   noticeTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1976D2',
+    color: isDark ? '#64B5F6' : '#1976D2',
     marginBottom: 4,
   },
   noticeSubtitle: {
     fontSize: 14,
-    color: '#424242',
+    color: isDark ? '#E0E0E0' : '#424242',
     lineHeight: 20,
   },
   scrollView: {
@@ -219,7 +227,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   vehicleCard: {
-    backgroundColor: '#fff',
+    backgroundColor: isDark ? glass.backgroundColor : '#fff',
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 16,
@@ -232,6 +240,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    borderWidth: isDark ? 1 : 0,
+    borderColor: isDark ? glass.borderColor : 'transparent',
   },
   vehicleHeader: {
     flexDirection: 'row',
@@ -250,12 +260,12 @@ const styles = StyleSheet.create({
   vehicleName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
     marginBottom: 4,
   },
   vehicleDescription: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   chargesContainer: {
@@ -265,11 +275,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f8f9fa',
     padding: 15,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e0e0e0',
   },
   chargeHeader: {
     flexDirection: 'row',
@@ -278,31 +288,32 @@ const styles = StyleSheet.create({
   },
   chargeLabel: {
     fontSize: 14,
-    color: '#555',
+    color: colors.textSecondary,
     marginLeft: 10,
     fontWeight: '500',
   },
   chargeAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1976D2',
+    color: isDark ? '#64B5F6' : '#1976D2',
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: isDark ? glass.backgroundColor : '#fff',
     marginHorizontal: 20,
     marginTop: 10,
     padding: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: isDark ? glass.borderColor : '#e0e0e0',
   },
   infoText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginLeft: 12,
     flex: 1,
     lineHeight: 20,
   },
 });
+}

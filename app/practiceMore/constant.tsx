@@ -78,3 +78,7 @@ export const numberSign: { key: string; label: string; src: any }[] = [
   { key: '96', label: '96', src: require('../../assets/images/eyeTestImg/96.png') },
   { key: '97', label: '97', src: require('../../assets/images/eyeTestImg/97.png') },
 ];
+
+export default function PracticeMoreConstantRoute() {
+  return null;
+}
