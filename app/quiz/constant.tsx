@@ -51,6 +51,59 @@ export const quizData = [
     { image: require('../../assets/images/signTestImg/oneWayTraffic.png'), correctAnswer: 'One Way Traffic', options: ['One Way Traffic', 'Two Way', 'No Entry'] },
 ];
 
+export const nepaliQuizData = [
+    { image: require('../../assets/images/signTestImg/stopLookGo.png'), correctAnswer: 'रोक र हेर अनि मात्र अघि बढ', options: ['रोक र हेर अनि मात्र अघि बढ', 'सिधा अघि बढ', 'दायाँ मोड'] },
+    { image: require('../../assets/images/signTestImg/vechileWidthLimit.png'), correctAnswer: 'सवारी साधनको चौडाइ सीमा', options: ['सवारी साधनको चौडाइ सीमा', 'प्रवेश निषेध', 'गति सीमा'] },
+    { image: require('../../assets/images/signTestImg/vechileWeightLimit.png'), correctAnswer: 'सवारी साधनको तौल सीमा', options: ['सवारी साधनको तौल सीमा', 'उचाइ सीमा', 'गति सीमा'] },
+    { image: require('../../assets/images/signTestImg/twoWayRoadStraightAhead.png'), correctAnswer: 'अगाडि दुईतर्फि सडक', options: ['अगाडि दुईतर्फि सडक', 'एकतर्फि सडक', 'टी-दोबाटो'] },
+    { image: require('../../assets/images/signTestImg/turnLeftByGoingAhead.png'), correctAnswer: 'अगाडि गएर बायाँ मोड', options: ['अगाडि गएर बायाँ मोड', 'दायाँ मोड', 'सिधा अघि बढ'] },
+    { image: require('../../assets/images/signTestImg/traffic.png'), correctAnswer: 'अगाडि ट्राफिक बत्ती', options: ['अगाडि ट्राफिक बत्ती', 'विद्यालय क्षेत्र', 'अस्पताल'] },
+    { image: require('../../assets/images/signTestImg/schoolZone.png'), correctAnswer: 'विद्यालय क्षेत्र', options: ['विद्यालय क्षेत्र', 'अस्पताल क्षेत्र', 'पार्किङ क्षेत्र'] },
+    { image: require('../../assets/images/signTestImg/rockFallingPlaace.png'), correctAnswer: 'पहिरो वा ढुङ्गा खस्ने ठाउँ', options: ['पहिरो वा ढुङ्गा खस्ने ठाउँ', 'खतरनाक क्षेत्र', 'निर्माण कार्य'] },
+    { image: require('../../assets/images/signTestImg/noOvertake.png'), correctAnswer: 'ओभरटेक गर्न निषेध', options: ['ओभरटेक गर्न निषेध', 'गति सीमा', 'प्रवेश निषेध'] },
+    { image: require('../../assets/images/signTestImg/noEntry.png'), correctAnswer: 'प्रवेश निषेध', options: ['प्रवेश निषेध', 'रोक', 'बाटो छोड'] },
+    { image: require('../../assets/images/signTestImg/narrowRoad.png'), correctAnswer: 'अगाडि साँघुरो सडक', options: ['अगाडि साँघुरो सडक', 'फराकिलो सडक', 'अगाडि पुल'] },
+    { image: require('../../assets/images/signTestImg/goFromAnyway.png'), correctAnswer: 'कुनै पनि तर्फबाट अघि बढ', options: ['कुनै पनि तर्फबाट अघि बढ', 'रोक', 'पर्खनुहोस्'] },
+    { image: require('../../assets/images/signTestImg/frontHeightLimit.png'), correctAnswer: 'सवारी उचाइ सीमा', options: ['सवारी उचाइ सीमा', 'तौल सीमा', 'गति सीमा'] },
+    { image: require('../../assets/images/signTestImg/dualTurningFirstLeft.png'), correctAnswer: 'दोहोरो घुम्ती पहिलो बायाँ', options: ['दोहोरो घुम्ती पहिलो बायाँ', 'दायाँ मोड', 'सिधा अघि बढ'] },
+    { image: require('../../assets/images/signTestImg/dangerous.png'), correctAnswer: 'खतरनाक क्षेत्र', options: ['खतरनाक क्षेत्र', 'सुरक्षित क्षेत्र', 'निर्माण कार्य'] },
+    { image: require('../../assets/images/signTestImg/vechileHeightLimit.png'), correctAnswer: 'सवारी उचाइ सीमा', options: ['सवारी उचाइ सीमा', 'तौल सीमा', 'चौडाइ सीमा'] },
+    { image: require('../../assets/images/signTestImg/upwardWayOfHill.png'), correctAnswer: 'उकालो बाटो', options: ['उकालो बाटो', 'ओरालो बाटो', 'समथर बाटो'] },
+    { image: require('../../assets/images/signTestImg/twoWayRoadAhead.png'), correctAnswer: 'अगाडि दुईतर्फी बाटो', options: ['अगाडि दुईतर्फी बाटो', 'एकतर्फी बाटो', 'बन्द बाटो'] },
+    { image: require('../../assets/images/signTestImg/turnRight.png'), correctAnswer: 'दायाँ मोड', options: ['दायाँ मोड', 'बायाँ मोड', 'सिधा अघि बढ'] },
+    { image: require('../../assets/images/signTestImg/turnFullRight.png'), correctAnswer: 'तीव्र दायाँ मोड', options: ['तीव्र दायाँ मोड', 'बायाँ मोड', 'यु-टर्न'] },
+    { image: require('../../assets/images/signTestImg/tJunction.png'), correctAnswer: 'टी-दोबाटो', options: ['टी-दोबाटो', 'वाई-दोबाटो', 'चौबाटो'] },
+    { image: require('../../assets/images/signTestImg/takeToLeftSide.png'), correctAnswer: 'बायाँ तर्फबाट जानुहोस्', options: ['बायाँ तर्फबाट जानुहोस्', 'दायाँ तर्फबाट जानुहोस्', 'बिचबाट जानुहोस्'] },
+    { image: require('../../assets/images/signTestImg/riverSide.png'), correctAnswer: 'नदी वा किनारको बाटो', options: ['नदी वा किनारको बाटो', 'अगाडि पुल', 'पानी पार गर्ने ठाउँ'] },
+    { image: require('../../assets/images/signTestImg/noUturn.png'), correctAnswer: 'यु-टर्न गर्न निषेध', options: ['यु-टर्न गर्न निषेध', 'यु-टर्न गर्न पाइने', 'बायाँ मोड'] },
+    { image: require('../../assets/images/signTestImg/noTruck.png'), correctAnswer: 'ट्रक प्रवेश निषेध', options: ['ट्रक प्रवेश निषेध', 'ट्रक क्षेत्र', 'हेभी सवारी'] },
+    { image: require('../../assets/images/signTestImg/noStoppage.png'), correctAnswer: 'सवारी रोक्न निषेध', options: ['सवारी रोक्न निषेध', 'पार्किङ खुल्ला', 'यहाँ रोक्नुहोस्'] },
+    { image: require('../../assets/images/signTestImg/noRightTurn.png'), correctAnswer: 'दायाँ मोड्न निषेध', options: ['दायाँ मोड्न निषेध', 'दायाँ मोड', 'सिधा अघि बढ'] },
+    { image: require('../../assets/images/signTestImg/noParking.png'), correctAnswer: 'पार्किङ निषेध', options: ['पार्किङ निषेध', 'पार्किङ खुल्ला', 'लोडिङ क्षेत्र'] },
+    { image: require('../../assets/images/signTestImg/noLeftTurn.png'), correctAnswer: 'बायाँ मोड्न निषेध', options: ['बायाँ मोड्न निषेध', 'बायाँ मोड', 'सिधा अघि बढ'] },
+    { image: require('../../assets/images/signTestImg/noHorn.png'), correctAnswer: 'हर्न बजाउन निषेध', options: ['हर्न बजाउन निषेध', 'हर्न बजाउन पाइने', 'शान्त क्षेत्र'] },
+    { image: require('../../assets/images/signTestImg/maxSpeedLimit.png'), correctAnswer: 'अधिकतम गति सीमा', options: ['अधिकतम गति सीमा', 'न्यूनतम गति', 'गति क्षेत्र'] },
+    { image: require('../../assets/images/signTestImg/GoTempporary.png'), correctAnswer: 'अस्थायी रूपमा अघि बढ', options: ['अस्थायी रूपमा अघि बढ', 'रोक', 'पर्खनुहोस्'] },
+    { image: require('../../assets/images/signTestImg/goStraightOnly.png'), correctAnswer: 'सिधा मात्र अघि बढ', options: ['सिधा मात्र अघि बढ', 'बायाँ मोड', 'दायाँ मोड'] },
+    { image: require('../../assets/images/signTestImg/dangerousDipRoad.png'), correctAnswer: 'खतरनाक खाल्डो बाटो', options: ['खतरनाक खाल्डो बाटो', 'उबडखाबड बाटो', 'समथर बाटो'] },
+    { image: require('../../assets/images/signTestImg/circularRoad.png'), correctAnswer: 'घुमाउरो चौबाटो (रोटरीतर्फ)', options: ['घुमाउरो चौबाटो (रोटरीतर्फ)', 'सिधा बाटो', 'मोडिएको बाटो'] },
+    { image: require('../../assets/images/signTestImg/turnLeft.png'), correctAnswer: 'बायाँ मोड', options: ['बायाँ मोड', 'दायाँ मोड', 'सिधा अघि बढ'] },
+    { image: require('../../assets/images/signTestImg/speedLimitEnd.png'), correctAnswer: 'गति सीमा समाप्त', options: ['गति सीमा समाप्त', 'गति क्षेत्र', 'गति सीमा'] },
+    { image: require('../../assets/images/signTestImg/SharpTurn(TemporaryPath).png'), correctAnswer: 'तीव्र मोड (अस्थायी बाटो)', options: ['तीव्र मोड (अस्थायी बाटो)', 'मोडिएको बाटो', 'सिधा बाटो'] },
+    { image: require('../../assets/images/signTestImg/narrowBridge.png'), correctAnswer: 'साँघुरो पुल', options: ['साँघुरो पुल', 'फराकिलो पुल', 'सुरङ्ग बाटो'] },
+    { image: require('../../assets/images/signTestImg/naarrowRoadRightSide.png'), correctAnswer: 'दायाँतर्फ साँघुरो सडक', options: ['दायाँतर्फ साँघुरो सडक', 'फराकिलो सडक', 'एकतर्फी बाटो'] },
+    { image: require('../../assets/images/signTestImg/mainRoadBeforeCrossroad.png'), correctAnswer: 'चौबाटो अगाडि मुख्य सडक', options: ['चौबाटो अगाडि मुख्य सडक', 'सहायक सडक', 'राजमार्ग'] },
+    { image: require('../../assets/images/signTestImg/tJunction(RightLeftTurn).png'), correctAnswer: 'टी-दोबाटो (दायाँ/बायाँ मोड)', options: ['टी-दोबाटो (दायाँ/बायाँ मोड)', 'वाई-दोबाटो', 'चौबाटो'] },
+    { image: require('../../assets/images/signTestImg/sharpTurnToLeft.png'), correctAnswer: 'तीव्र बायाँ मोड', options: ['तीव्र बायाँ मोड', 'मोडिएको बाटो', 'सिधा बाटो'] },
+    { image: require('../../assets/images/signTestImg/vechileMayComeLefttSide.png'), correctAnswer: 'बायाँ तर्फबाट सवारी आउन सक्ने', options: ['बायाँ तर्फबाट सवारी आउन सक्ने', 'दायाँ तर्फ', 'बिचमा'] },
+    { image: require('../../assets/images/signTestImg/vechileMayComeRightSide.png'), correctAnswer: 'दायाँ तर्फबाट सवारी आउन सक्ने', options: ['दायाँ तर्फबाट सवारी आउन सक्ने', 'बायाँ तर्फ', 'बिचमा'] },
+    { image: require('../../assets/images/signTestImg/yJunction.png'), correctAnswer: 'वाई-दोबाटो', options: ['वाई-दोबाटो', 'टी-दोबाटो', 'चौबाटो'] },
+    { image: require('../../assets/images/signTestImg/noOxenCart.png'), correctAnswer: 'गाढा/गाडा निषेध', options: ['गाढा/गाडा निषेध', 'जनावर पार गर्ने', 'फार्म क्षेत्र'] },
+    { image: require('../../assets/images/signTestImg/vechileLimitLength.png'), correctAnswer: 'सवारी साधनको लम्बाइ सीमा', options: ['सवारी साधनको लम्बाइ सीमा', 'उचाइ सीमा', 'तौल सीमा'] },
+    { image: require('../../assets/images/signTestImg/stopAndGo.png'), correctAnswer: 'रोक र जानुहोस्', options: ['रोक र जानुहोस्', 'रोक', 'जानुहोस्'] },
+    { image: require('../../assets/images/signTestImg/oneWayTraffic.png'), correctAnswer: 'एकतर्फी यातायात', options: ['एकतर्फी यातायात', 'दुईतर्फी', 'प्रवेश निषेध'] },
+];
+
 export const quizEyeTest = [
     { image: require('../../assets/images/eyeTestImg/74.png'), correctAnswer: '74', options: ['71', '74', '79'] },
     { image: require('../../assets/images/eyeTestImg/5.png'), correctAnswer: '5', options: ['2', '5', '6'] },
@@ -75,5 +128,5 @@ export const quizEyeTest = [
 ];
 
 export default function QuizConstantRoute() {
-  return null;
+    return null;
 }

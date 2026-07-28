@@ -1,12 +1,19 @@
 import { themedHeaderOptions } from '@/constants/screenHelpers';
 import type { AppTheme } from '@/constants/theme';
-import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { useTheme, ThemeBackground } from '@/context/ThemeContext';
+import { useRewardedAd } from '@/utils/mobileAds';
+import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Stack, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
-import { knowledgeAnswerKeyLetters, knowledgeQuestions } from './knowledge';
+import * as nepaliKnowledge from './bikeKnowledge';
+import * as englishKnowledge from './knowledge';
+
+const rewardedAdUnitId = 'ca-app-pub-9520863212221697/6426303936';
+
 let SecureStore: any;
 try {
   // Lazy import to avoid type errors if module types are missing during lint
@@ -14,9 +21,18 @@ try {
   SecureStore = require('expo-secure-store');
 } catch { }
 
+function toNepaliNumber(num: number | string): string {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return String(num).replace(/[0-9]/g, (d) => nepaliDigits[parseInt(d, 10)]);
+}
+
 export default function ExamTestScreen() {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { isNepali } = useLanguage();
+  const activeKnowledge = isNepali ? nepaliKnowledge : englishKnowledge;
+  const knowledgeQuestions = activeKnowledge.knowledgeQuestions;
+
+  const styles = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
   const TOTAL_TIME = 240; // seconds (2 minutes)
   const TOTAL_QUESTIONS = 20;
   const PASS_PERCENT = 40;
@@ -35,6 +51,80 @@ export default function ExamTestScreen() {
   const [answers, setAnswers] = useState<(string | null)[]>([]);
   const [showSheet, setShowSheet] = useState(true);
   const [showGoTop, setShowGoTop] = useState(false);
+  const [isReviewUnlocked, setIsReviewUnlocked] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'review' | 'restart' | 'back' | null>(null);
+
+  // Hook for AdMob Rewarded Ad
+  const { isLoaded, isClosed, show, reward, load } = useRewardedAd(rewardedAdUnitId, {
+    requestNonPersonalizedAdsOnly: true,
+  });
+
+  // Proactively load the ad when the screen mounts
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleNextTest = () => {
+    const next = selectedTestIndex + 1;
+    const totalTests = Math.ceil(knowledgeQuestions.length / 20);
+    if (next >= totalTests) return;
+    const nextCount = Math.max(unlockedTests, next + 1);
+    setUnlockedTests(nextCount);
+    persistUnlocked(nextCount);
+    setSelectedTestIndex(next);
+    setShowSheet(false);
+    setShowResults(false);
+    setScore(0);
+    setTimeLeft(TOTAL_TIME);
+    requestAnimationFrame(() => {
+      handleStart(next);
+      setTimeout(() => {
+        const CARD_W = 300;
+        const GAP = 12;
+        const PADDING = 20;
+        const x = Math.max(0, next * (CARD_W + GAP) - PADDING);
+        testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
+      }, 200);
+    });
+  };
+
+  const handleBackPress = () => {
+    if (gameState === 'finished' && !isReviewUnlocked) {
+      if (isLoaded) {
+        setPendingAction('back');
+        show();
+      } else {
+        router.back();
+      }
+    } else {
+      router.back();
+    }
+  };
+
+  // Handle reward and unlock reviews
+  useEffect(() => {
+    if (isClosed && reward) {
+      setIsReviewUnlocked(true);
+      if (pendingAction === 'review') {
+        setShowOutcomeModal(false);
+      } else if (pendingAction === 'restart') {
+        setShowOutcomeModal(false);
+        if (hasPassed) {
+          handleNextTest();
+        } else {
+          resetScrollToTop();
+          handleStart(selectedTestIndex);
+        }
+      } else if (pendingAction === 'back') {
+        router.back();
+      }
+      setPendingAction(null);
+    } else if (isClosed) {
+      // User closed early - reload ad, don't unlock/go back
+      setPendingAction(null);
+      load();
+    }
+  }, [isClosed, reward, pendingAction, load, selectedTestIndex, hasPassed]);
 
   // Animations (reused from quiz screens)
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -177,7 +267,7 @@ export default function ExamTestScreen() {
     });
   };
 
-  const handleStart = (testIndex?: number) => {
+  function handleStart(testIndex?: number) {
     const effectiveIndex = typeof testIndex === 'number' ? testIndex : selectedTestIndex;
     resetScrollToTop();
     const baseSet = getTestSlice(effectiveIndex);
@@ -185,8 +275,9 @@ export default function ExamTestScreen() {
     const startIndex = effectiveIndex * 20;
     const quiz = baseSet.map((q, idx) => {
       const globalIndex = startIndex + idx; // 0-based across all questions
-      const letter = knowledgeAnswerKeyLetters[globalIndex] ?? 'a';
-      const correctFromLetter = ({ a: 0, b: 1, c: 2, d: 3 } as const)[letter];
+      const letter = activeKnowledge.knowledgeAnswerKeyLetters[globalIndex] ?? 'a';
+      const letterLower = String(letter).toLowerCase() as 'a' | 'b' | 'c' | 'd';
+      const correctFromLetter = ({ a: 0, b: 1, c: 2, d: 3 } as const)[letterLower] ?? 0;
       const correctAnswerOriginal = q.options[correctFromLetter];
       const options = [...q.options];
       return { ...q, options, correctAnswer: correctAnswerOriginal };
@@ -194,6 +285,7 @@ export default function ExamTestScreen() {
 
     setCurrentQuiz(quiz);
     setScore(0);
+    setIsReviewUnlocked(false);
     setTimeLeft(TOTAL_TIME);
     setGameState('playing');
     setShowResults(false);
@@ -338,16 +430,21 @@ export default function ExamTestScreen() {
     setCurrentQuiz([]);
     setAnswers([]);
     setShowSheet(true);
+    sheetTranslateY.setValue(0);
     liquidProgressAnim.setValue(0);
     Animated.spring(buttonWidthAnim, { toValue: 100, useNativeDriver: false, friction: 8 }).start();
   };
 
   return (
-    <>
+    <ThemeBackground>
       <Stack.Screen
         options={{
-          title: "Exam Test",
+          title: isNepali ? unicodeToAakriti("लिखित परीक्षा अभ्यास") : "Exam Test",
           ...themedHeaderOptions(theme),
+          headerTitleStyle: {
+            fontFamily: isNepali ? 'AakritiBold' : undefined,
+            fontSize: isNepali ? 22 : undefined,
+          },
           headerRight: () => (
             <View style={styles.headerTimerCapsule}>
               <Image source={require('../../assets/images/stopwatch.png')} style={styles.headerTimerIcon} />
@@ -357,7 +454,7 @@ export default function ExamTestScreen() {
           ),
           headerLeft: () => (
             <Pressable
-              onPress={() => router.back()}
+              onPress={handleBackPress}
               style={styles.headerBackButton}
             >
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -397,15 +494,30 @@ export default function ExamTestScreen() {
                   style={[styles.testCard, isActive && styles.testCardActive, isLocked && styles.testCardLocked]}
                   onPress={() => {
                     if (i >= unlockedTests) {
-                      Alert.alert('Locked', 'Complete the previous test to unlock this level.');
+                      Alert.alert(
+                        isNepali ? 'अनलक गरिएको छैन' : 'Locked',
+                        isNepali ? 'यो स्तर अनलक गर्न अघिल्लो परीक्षा पूरा गर्नुहोस्।' : 'Complete the previous test to unlock this level.'
+                      );
                       return;
                     }
-                    // Selecting another test should only switch the visible question set
-                    if (selectedTestIndex !== i) {
-                      setSelectedTestIndex(i);
-                      setShowSheet(false);
-                      handleStart(i);
-                    }
+                    // Select the test, reset quiz state, show the start sheet, and reset sheet translation
+                    setSelectedTestIndex(i);
+                    setGameState('idle');
+                    setCurrentQuiz([]);
+                    setAnswers([]);
+                    setShowResults(false);
+                    setShowSheet(true);
+                    sheetTranslateY.setValue(0);
+                    resetScrollToTop();
+
+                    // Slide the selected card to the left for better visibility
+                    const CARD_W = 300;
+                    const GAP = 12;
+                    const PADDING = 20;
+                    const x = Math.max(0, i * (CARD_W + GAP) - PADDING);
+                    setTimeout(() => {
+                      testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
+                    }, 50);
                   }}
                 >
                   <View style={styles.testCardRow}>
@@ -413,17 +525,19 @@ export default function ExamTestScreen() {
                       <Image source={require('../../assets/images/exam.png')} style={styles.testIcon} resizeMode="contain" />
                     </View>
                     <View style={styles.testCardTextArea}>
-                      <Text style={styles.testTitle}>Test {i + 1}</Text>
+                      <Text style={styles.testTitle}>
+                        {isNepali ? unicodeToAakriti(`परीक्षा सेट ${toNepaliNumber(i + 1)}`) : `Test ${i + 1}`}
+                      </Text>
                       <Text style={styles.testSubtitle}>
                         {i === 0
-                          ? 'Complete this test in time to unlock test 2'
+                          ? (isNepali ? unicodeToAakriti(`परीक्षा ${toNepaliNumber(2)} अनलक गर्न यो परीक्षा पूरा गर्नुहोस्`) : 'Complete this test in time to unlock test 2')
                           : isLocked
-                            ? 'Complete previous test to unlock'
-                            : 'You are ready to start'}
+                            ? (isNepali ? unicodeToAakriti('अनलक गर्न अघिल्लो परीक्षा पूरा गर्नुहोस्') : 'Complete previous test to unlock')
+                            : (isNepali ? unicodeToAakriti('तपाईं सुरु गर्न तयार हुनुहुन्छ') : 'You are ready to start')}
                       </Text>
                     </View>
                     <View style={[styles.testArrowCircle, isActive && styles.testArrowCircleActive]}>
-                      <Ionicons name="chevron-forward" size={16} color={isActive ? '#fff' : '#9AA0A6'} />
+                      <Ionicons name="chevron-forward" size={16} color={isActive ? (theme.isDark ? '#111827' : '#fff') : '#9AA0A6'} />
                     </View>
                     {isLocked && <Ionicons name="lock-closed" size={14} color="#9AA0A6" style={styles.testLockBadge} />}
                     {!isLocked && isCleared && <Ionicons name="checkmark-circle" size={16} color="#2E7D32" style={{ marginLeft: 6 }} />}
@@ -435,7 +549,63 @@ export default function ExamTestScreen() {
 
           {/* Timer row removed - using header timer after sheet dismiss */}
 
-          {/* Score and Counter hidden in this flow */}
+          {/* Progress Dashboard - shown only in lobby (idle state) */}
+          {gameState === 'idle' && (
+            <View style={styles.dashboardContainer}>
+              <Text style={styles.dashboardTitle}>
+                {isNepali ? unicodeToAakriti("तपाईंको प्रगति") : "Your Progress"}
+              </Text>
+
+              <View style={styles.dashboardGrid}>
+                {/* Completed Card */}
+                <View style={styles.dashboardCard}>
+                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" style={styles.dashboardCardIcon} />
+                  <Text style={styles.dashboardCardLabel}>
+                    {isNepali ? unicodeToAakriti("पूरा सेट") : "Completed Sets"}
+                  </Text>
+                  <Text style={styles.dashboardCardValue}>
+                    {isNepali ? unicodeToAakriti(`${toNepaliNumber(clearedTests.length)}÷${toNepaliNumber(TOTAL_TESTS)}`) : `${clearedTests.length}/${TOTAL_TESTS}`}
+                  </Text>
+                </View>
+
+                {/* Unlocked Card */}
+                <View style={styles.dashboardCard}>
+                  <Ionicons name="lock-open" size={20} color="#FF6B35" style={styles.dashboardCardIcon} />
+                  <Text style={styles.dashboardCardLabel}>
+                    {isNepali ? unicodeToAakriti("अनलक सेट") : "Unlocked Sets"}
+                  </Text>
+                  <Text style={styles.dashboardCardValue}>
+                    {isNepali ? unicodeToAakriti(`${toNepaliNumber(unlockedTests)}÷${toNepaliNumber(TOTAL_TESTS)}`) : `${unlockedTests}/${TOTAL_TESTS}`}
+                  </Text>
+                </View>
+
+                {/* Progress Card */}
+                <View style={styles.dashboardCard}>
+                  <Ionicons name="trending-up" size={20} color="#2196F3" style={styles.dashboardCardIcon} />
+                  <Text style={styles.dashboardCardLabel}>
+                    {isNepali ? unicodeToAakriti("सफलता दर") : "Success Rate"}
+                  </Text>
+                  <Text style={styles.dashboardCardValue}>
+                    {isNepali
+                      ? unicodeToAakriti(`${toNepaliNumber(Math.round((clearedTests.length / TOTAL_TESTS) * 100))}%`)
+                      : `${Math.round((clearedTests.length / TOTAL_TESTS) * 100)}%`}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Progress track line */}
+              <View style={styles.dashboardProgressWrapper}>
+                <View style={styles.dashboardProgressBarTrack}>
+                  <View
+                    style={[
+                      styles.dashboardProgressBarFill,
+                      { width: `${Math.max(5, (clearedTests.length / TOTAL_TESTS) * 100)}%` }
+                    ]}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Questions List */}
           {gameState !== 'idle' && currentQuiz.length > 0 && (
@@ -453,15 +623,15 @@ export default function ExamTestScreen() {
                     <Image source={require('../../assets/images/nepal.png')} style={styles.flagIcon} resizeMode="contain" />
                   </View>
                   <View style={styles.questionBubble}>
-                    <Text style={styles.questionTitle}>{q.question}</Text>
+                    <Text style={styles.questionTitle}>{isNepali ? unicodeToAakriti(q.question) : q.question}</Text>
                   </View>
                 </View>
                 <View style={styles.optionsContainer}>
                   {q.options.map((opt: string, idx: number) => {
-                    const letters = ['A', 'B', 'C', 'D'];
+                    const letters = isNepali ? ['क', 'ख', 'ग', 'घ'] : ['A', 'B', 'C', 'D'];
                     const userAns = answers[qIndex];
-                    // Display text without (a)/(b)/(c)/(d) prefixes
-                    const displayText = String(opt).replace(/^\s*\(?[a-dA-D]\)?[.)]?\s*/, '').trim();
+                    // Display text without (a)/(b)/(c)/(d) or (क)/(ख)/(ग)/(घ) prefixes
+                    const displayText = String(opt).replace(/^\s*\(?[a-dA-Dक-घ]\)?[.)]?\s*/, '').trim();
                     // Base styles
                     let rowStyle: any = styles.optionRow;
                     let letterStyle: any = styles.optionLetter;
@@ -469,7 +639,8 @@ export default function ExamTestScreen() {
                     let optionTextStyle: any = styles.optionTextRow;
                     let checkActive = false;
 
-                    if (showResults) {
+                    const shouldShowReview = showResults && isReviewUnlocked;
+                    if (shouldShowReview) {
                       if (userAns === q.correctAnswer) {
                         if (opt === userAns) {
                           rowStyle = [rowStyle, styles.optionRowCorrect];
@@ -507,8 +678,8 @@ export default function ExamTestScreen() {
                         onPress={() => handleOptionSelect(qIndex, opt)}
                         disabled={showResults}
                       >
-                        <View style={letterStyle}><Text style={letterTextStyle}>{letters[idx]}</Text></View>
-                        <Text style={optionTextStyle}>{displayText}</Text>
+                        <View style={letterStyle}><Text style={letterTextStyle}>{isNepali ? unicodeToAakriti(letters[idx]) : letters[idx]}</Text></View>
+                        <Text style={optionTextStyle}>{isNepali ? unicodeToAakriti(displayText) : displayText}</Text>
                         <View style={[styles.optionCheck, checkActive && styles.optionCheckActive]}>
                           {checkActive && <Ionicons name="checkmark" size={14} color="#fff" />}
                         </View>
@@ -532,7 +703,9 @@ export default function ExamTestScreen() {
                 onPress={calculateAndShowResults}
                 disabled={answers.filter((a) => a !== null).length !== currentQuiz.length}
               >
-                <Text style={styles.bottomButtonText}>View Score</Text>
+                <Text style={styles.bottomButtonText}>
+                  {isNepali ? unicodeToAakriti('नतिजा हेर्नुहोस्') : 'View Score'}
+                </Text>
               </Pressable>
             ) : (
               <View style={styles.resultBar}>
@@ -555,43 +728,33 @@ export default function ExamTestScreen() {
                     }
                   ]}
                   onPress={() => {
-                    if (hasPassed) {
-                      // User passed - go to next test
-                      const next = selectedTestIndex + 1;
-                      const totalTests = Math.ceil(knowledgeQuestions.length / 20);
-                      if (next >= totalTests) return;
-                      // unlock next and navigate
-                      const nextCount = Math.max(unlockedTests, next + 1);
-                      setUnlockedTests(nextCount);
-                      persistUnlocked(nextCount);
-                      setSelectedTestIndex(next);
-                      setShowSheet(false);
-                      setShowResults(false);
-                      setScore(0);
-                      setTimeLeft(TOTAL_TIME);
-                      // Start the next test using the target index to avoid stale state
-                      requestAnimationFrame(() => {
-                        handleStart(next);
-                        // Give more time for the test cards to re-render with updated states
-                        setTimeout(() => {
-                          const CARD_W = 300;
-                          const GAP = 12;
-                          const PADDING = 20;
-                          const x = Math.max(0, next * (CARD_W + GAP) - PADDING);
-                          testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
-                        }, 200); // Increased from 50ms to 200ms
-                      });
+                    if (isReviewUnlocked) {
+                      if (hasPassed) {
+                        handleNextTest();
+                      } else {
+                        setShowOutcomeModal(false);
+                        resetScrollToTop();
+                        handleStart(selectedTestIndex);
+                      }
                     } else {
-                      // User failed - restart the same test
-                      setShowOutcomeModal(false);
-                      resetScrollToTop();
-                      // Directly restart the same test without going through the sheet
-                      handleStart(selectedTestIndex);
+                      if (isLoaded) {
+                        setPendingAction('restart');
+                        show();
+                      } else {
+                        // Fallback directly
+                        setShowOutcomeModal(false);
+                        resetScrollToTop();
+                        handleStart(selectedTestIndex);
+                      }
                     }
                   }}
                   disabled={false}
                 >
-                  <Text style={[styles.resultActionText, { color: theme.isDark ? '#8AB4F8' : '#1A73E8' }]}>{hasPassed ? 'Next Test' : 'Try Again'}</Text>
+                  <Text style={[styles.resultActionText, { color: theme.isDark ? '#8AB4F8' : '#1A73E8' }]}>
+                    {hasPassed
+                      ? (isNepali ? unicodeToAakriti('अगिल्लो परीक्षा') : 'Next Test')
+                      : (isNepali ? unicodeToAakriti('पुनः प्रयास गर्नुहोस्') : 'Try Again')}
+                  </Text>
                   {hasPassed && <Ionicons name="arrow-forward" size={18} color={theme.isDark ? '#8AB4F8' : '#1A73E8'} style={{ marginLeft: 6 }} />}
                 </Pressable>
               </View>
@@ -612,22 +775,47 @@ export default function ExamTestScreen() {
               }}
             >
               <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>Get ready?</Text>
-              <Text style={styles.sheetSubtitle}>#test series {selectedTestIndex + 1}</Text>
+              <Text style={styles.sheetTitle}>
+                {isNepali ? unicodeToAakriti('तयार हुनुहुन्छ') : 'Get ready?'}
+              </Text>
+              <Text style={styles.sheetSubtitle}>
+                {isNepali ? unicodeToAakriti(`परीक्षा सेट ${toNepaliNumber(selectedTestIndex + 1)}`) : `#test series ${selectedTestIndex + 1}`}
+              </Text>
               <View style={styles.sheetStatsRow}>
-                <View style={styles.sheetStatBox}><Text style={styles.sheetStatLabel}>Questions</Text><Text style={styles.sheetStatValue}>20</Text></View>
-                <View style={styles.sheetStatBox}><Text style={styles.sheetStatLabel}>Choices</Text><Text style={styles.sheetStatValue}>4</Text></View>
-                <View style={styles.sheetStatBox}><Text style={styles.sheetStatLabel}>Marks</Text><Text style={styles.sheetStatValue}>1</Text></View>
+                <View style={styles.sheetStatBox}>
+                  <Text style={styles.sheetStatLabel}>{isNepali ? unicodeToAakriti('प्रश्नहरू') : 'Questions'}</Text>
+                  <Text style={styles.sheetStatValue}>{isNepali ? unicodeToAakriti('२०') : '20'}</Text>
+                </View>
+                <View style={styles.sheetStatBox}>
+                  <Text style={styles.sheetStatLabel}>{isNepali ? unicodeToAakriti('विकल्पहरू') : 'Choices'}</Text>
+                  <Text style={styles.sheetStatValue}>{isNepali ? unicodeToAakriti('४') : '4'}</Text>
+                </View>
+                <View style={styles.sheetStatBox}>
+                  <Text style={styles.sheetStatLabel}>{isNepali ? unicodeToAakriti('अङ्क') : 'Marks'}</Text>
+                  <Text style={styles.sheetStatValue}>{isNepali ? unicodeToAakriti('१') : '1'}</Text>
+                </View>
               </View>
-              <Text style={styles.sheetInstructionTitle}>Instruction</Text>
+              <Text style={styles.sheetInstructionTitle}>
+                {isNepali ? unicodeToAakriti('निर्देशनहरू') : 'Instruction'}
+              </Text>
               <View style={styles.instructionList}>
-                <Text style={styles.instructionItem}>• The quiz has a 4-minute time limit.</Text>
-                <Text style={styles.instructionItem}>• There are 20 objective questions.</Text>
-                <Text style={styles.instructionItem}>• You need 40% to pass.</Text>
-                <Text style={styles.instructionItem}>• Questions cover driving, vehicle laws, mechanics, pollution, accidents, and traffic signals.</Text>
+                <Text style={styles.instructionItem}>
+                  {isNepali ? unicodeToAakriti('• परीक्षाको समय सीमा ४ मिनेटको हुनेछ।') : '• The quiz has a 4-minute time limit.'}
+                </Text>
+                <Text style={styles.instructionItem}>
+                  {isNepali ? unicodeToAakriti('• कुल २० वटा वस्तुगत प्रश्नहरू रहनेछन्।') : '• There are 20 objective questions.'}
+                </Text>
+                <Text style={styles.instructionItem}>
+                  {isNepali ? unicodeToAakriti('• उत्तीर्ण हुन न्यूनतम ४०% अङ्क ल्याउनुपर्नेछ।') : '• You need 40% to pass.'}
+                </Text>
+                <Text style={styles.instructionItem}>
+                  {isNepali ? unicodeToAakriti('• प्रश्नहरू सवारी सञ्चालन, ऐन-नियम, मेकानिक्स र ट्राफिक सङ्केतमा आधारित छन्।') : '• Questions cover driving, vehicle laws, mechanics, pollution, accidents, and traffic signals.'}
+                </Text>
               </View>
               <Pressable style={styles.sheetStartButton} onPress={() => closeSheetAndStart()}>
-                <Text style={styles.sheetStartButtonText}>Start</Text>
+                <Text style={styles.sheetStartButtonText}>
+                  {isNepali ? unicodeToAakriti('सुरु गर्नुहोस्') : 'Start'}
+                </Text>
               </Pressable>
             </Animated.View>
           </Animated.View>
@@ -637,40 +825,107 @@ export default function ExamTestScreen() {
         {showOutcomeModal && (
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
+              {/* Close button */}
+              <Pressable
+                style={styles.modalCloseButton}
+                onPress={() => setShowOutcomeModal(false)}
+                hitSlop={10}
+              >
+                <Ionicons name="close" size={22} color={theme.colors.textSecondary} />
+              </Pressable>
               <View style={[styles.modalIconContainer, { backgroundColor: hasPassed ? 'rgba(76, 175, 80, 0.15)' : 'rgba(244, 67, 54, 0.15)' }]}>
                 <Ionicons name={hasPassed ? 'checkmark-circle' : 'close-circle'} size={56} color={hasPassed ? '#4CAF50' : '#F44336'} />
               </View>
 
               <Text style={styles.modalTitle}>
-                {hasPassed ? 'Congratulations!' : 'Keep Practicing'}
+                {hasPassed
+                  ? (isNepali ? unicodeToAakriti('बधाई छ!') : 'Congratulations!')
+                  : (isNepali ? unicodeToAakriti('अझै अभ्यास गर्नुहोस्') : 'Keep Practicing')}
               </Text>
 
               <Text style={styles.modalSubtitle}>
-                {hasPassed ? 'You have successfully passed the exam.' : 'You scored below the passing requirement.'}
+                {hasPassed
+                  ? (isNepali ? unicodeToAakriti('तपाईंले सफलतापूर्वक लिखित परीक्षा उत्तीर्ण गर्नुभयो।') : 'You have successfully passed the exam.')
+                  : (isNepali ? unicodeToAakriti('तपाईंको प्राप्ताङ्क उत्तीर्ण अङ्कभन्दा कम छ।') : 'You scored below the passing requirement.')}
               </Text>
 
               <View style={styles.modalScoreCard}>
                 <View style={styles.modalScoreItem}>
-                  <Text style={styles.modalScoreLabel}>Score</Text>
+                  <Text style={styles.modalScoreLabel}>{isNepali ? unicodeToAakriti('प्राप्ताङ्क') : 'Score'}</Text>
                   <Text style={[styles.modalScoreValue, { color: hasPassed ? '#4CAF50' : '#F44336' }]}>
-                    {score}/{currentQuiz.length || TOTAL_QUESTIONS}
+                    {isNepali ? `${toNepaliNumber(score)}/${toNepaliNumber(currentQuiz.length || TOTAL_QUESTIONS)}` : `${score}/${currentQuiz.length || TOTAL_QUESTIONS}`}
                   </Text>
                 </View>
                 <View style={styles.modalScoreDivider} />
                 <View style={styles.modalScoreItem}>
-                  <Text style={styles.modalScoreLabel}>Time</Text>
+                  <Text style={styles.modalScoreLabel}>{isNepali ? unicodeToAakriti('समय') : 'Time'}</Text>
                   <Text style={styles.modalScoreValue}>
-                    {TOTAL_TIME - timeLeft}s
+                    {isNepali ? `${toNepaliNumber(TOTAL_TIME - timeLeft)} से.` : `${TOTAL_TIME - timeLeft}s`}
                   </Text>
                 </View>
               </View>
 
-              <Pressable
-                style={[styles.modalButton, { backgroundColor: hasPassed ? '#4CAF50' : '#F44336' }]}
-                onPress={() => setShowOutcomeModal(false)}
-              >
-                <Text style={styles.modalButtonText}>Review Answers</Text>
-              </Pressable>
+              <View style={{ flexDirection: 'row', gap: 12, width: '100%', marginTop: 20 }}>
+                {/* Play Again / Next Test Button */}
+                <Pressable
+                  style={[styles.modalButton, { flex: 1, backgroundColor: '#7f8c8d' }]}
+                  onPress={() => {
+                    if (isReviewUnlocked) {
+                      if (hasPassed) {
+                        handleNextTest();
+                      } else {
+                        setShowOutcomeModal(false);
+                        resetScrollToTop();
+                        handleStart(selectedTestIndex);
+                      }
+                    } else {
+                      if (isLoaded) {
+                        setPendingAction('restart');
+                        show();
+                      } else {
+                        // Fallback directly
+                        setShowOutcomeModal(false);
+                        resetScrollToTop();
+                        handleStart(selectedTestIndex);
+                      }
+                    }
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>
+                    {hasPassed
+                      ? (isNepali ? unicodeToAakriti('अर्को परीक्षा') : 'Next Test')
+                      : (isNepali ? unicodeToAakriti('पुनः खेल्नुहोस्') : 'Play Again')}
+                  </Text>
+                </Pressable>
+
+                {/* View Result Button */}
+                <Pressable
+                  style={[
+                    styles.modalButton,
+                    {
+                      flex: 1.5,
+                      backgroundColor: hasPassed ? '#4CAF50' : '#F44336',
+                    }
+                  ]}
+                  onPress={() => {
+                    if (isReviewUnlocked) {
+                      setShowOutcomeModal(false);
+                    } else {
+                      if (isLoaded) {
+                        setPendingAction('review');
+                        show();
+                      } else {
+                        setIsReviewUnlocked(true);
+                        setShowOutcomeModal(false);
+                      }
+                    }
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>
+                    {isNepali ? unicodeToAakriti('नतिजा हेर्नुहोस्') : 'View Result'}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         )}
@@ -688,12 +943,15 @@ export default function ExamTestScreen() {
           </Pressable>
         )}
       </View>
-    </>
+    </ThemeBackground>
   );
 }
 
-function createStyles(theme: AppTheme) {
+function createStyles(theme: AppTheme, isNepali: boolean = false) {
   const { colors, glass, isDark } = theme;
+  const fontNormal = isNepali ? 'Aakriti' : undefined;
+  const fontBold = isNepali ? 'AakritiBold' : undefined;
+
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -715,7 +973,7 @@ function createStyles(theme: AppTheme) {
       marginRight: 12,
       marginTop: 20,
       borderWidth: 1,
-      borderColor: '#eee',
+      borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#eee',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.08,
@@ -729,7 +987,8 @@ function createStyles(theme: AppTheme) {
       paddingHorizontal: 14,
     },
     testCardActive: {
-      borderColor: '#434D57',
+      borderColor: isDark ? '#4ade80' : '#434D57',
+      borderWidth: 2,
       elevation: isDark ? 0 : 3,
     },
     testCardLocked: {
@@ -750,22 +1009,24 @@ function createStyles(theme: AppTheme) {
     },
     testCardTextArea: { flex: 1 },
     testTitle: {
-      fontSize: 16,
+      fontSize: isNepali ? 18 : 16,
       color: colors.text,
+      fontFamily: fontBold,
     },
     testSubtitle: {
-      fontSize: 12,
+      fontSize: isNepali ? 14 : 12,
       color: '#777',
+      fontFamily: fontNormal,
     },
     testArrowCircle: {
       width: 26,
       height: 26,
       borderRadius: 13,
-      backgroundColor: '#EEF1F5',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#EEF1F5',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    testArrowCircleActive: { backgroundColor: '#434D57' },
+    testArrowCircleActive: { backgroundColor: isDark ? '#4ade80' : '#434D57' },
     testLockBadge: { marginLeft: 8 },
     testPill: {
       backgroundColor: isDark ? glass.backgroundColor : colors.card,
@@ -891,11 +1152,6 @@ function createStyles(theme: AppTheme) {
       padding: 16,
       gap: 12,
       marginHorizontal: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 6,
-      elevation: isDark ? 0 : 2,
     },
     questionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     flagBadge: {
@@ -917,17 +1173,17 @@ function createStyles(theme: AppTheme) {
       borderColor: isDark ? glass.borderColor : colors.cardBorder,
     },
     questionTitle: {
-      fontSize: 18,
-      color: colors.text,
+      fontSize: isNepali ? 20 : 18,
+      color: isDark ? colors.text : '#434D57',
+      fontFamily: fontBold,
     },
     optionsContainer: {
       gap: 10,
     },
     dottedSeparator: {
       marginTop: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: '#E5E7EB',
-      borderStyle: 'dashed',
+      height: 1,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB',
     },
     optionRow: {
       flexDirection: 'row',
@@ -965,11 +1221,13 @@ function createStyles(theme: AppTheme) {
     optionLetterSelected: { backgroundColor: '#2E3740', borderColor: '#2E3740' },
     optionLetterCorrect: { backgroundColor: '#2E7D32', borderColor: '#2E7D32' },
     optionLetterIncorrect: { backgroundColor: isDark ? 'rgba(244, 67, 54, 0.6)' : '#C62828', borderColor: isDark ? 'rgba(244, 67, 54, 0.8)' : '#C62828' },
-    optionLetterText: { color: '#64748B', fontWeight: '700' },
-    optionLetterTextOnDark: { color: '#FFFFFF', fontWeight: '700' },
+    optionLetterText: { color: '#64748B', fontWeight: '700', fontFamily: fontBold, fontSize: isNepali ? 16 : 14 },
+    optionLetterTextOnDark: { color: '#FFFFFF', fontWeight: '700', fontFamily: fontBold, fontSize: isNepali ? 16 : 14 },
     optionTextRow: {
       flex: 1,
-      color: colors.text,
+      color: isDark ? colors.text : '#434D57',
+      fontFamily: fontNormal,
+      fontSize: isNepali ? 19 : 14,
     },
     optionCheck: {
       width: 24,
@@ -1041,7 +1299,7 @@ function createStyles(theme: AppTheme) {
       borderRadius: 10,
       alignItems: 'center',
     },
-    bottomButtonText: { color: '#fff', fontSize: 16 },
+    bottomButtonText: { color: '#fff', fontSize: isNepali ? 18 : 16, fontFamily: fontBold },
     resultBar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1066,6 +1324,7 @@ function createStyles(theme: AppTheme) {
       fontSize: 13,
       fontWeight: '600',
       color: colors.text,
+      fontFamily: fontNormal,
     },
     resultActionButton: {
       flexDirection: 'row',
@@ -1077,6 +1336,7 @@ function createStyles(theme: AppTheme) {
     resultActionText: {
       fontSize: 14,
       fontWeight: '600',
+      fontFamily: fontBold,
     },
     headerTimerCapsule: {
       flexDirection: 'row',
@@ -1093,8 +1353,76 @@ function createStyles(theme: AppTheme) {
     headerTimerIcon: { width: 20, height: 16 },
     headerTimerDivider: { width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.8)', marginHorizontal: 6 },
     headerTimerText: { color: '#fff', fontSize: 12, paddingLeft: 2, paddingRight: 2 },
+    dashboardContainer: {
+      backgroundColor: isDark ? glass.backgroundColor : '#FFFFFF',
+      marginHorizontal: 20,
+      marginTop: 20,
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: isDark ? glass.borderColor : '#E5E7EB',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0 : 0.05,
+      shadowRadius: 10,
+      elevation: 2,
+    },
+    dashboardTitle: {
+      fontSize: isNepali ? 20 : 16,
+      color: colors.text,
+      fontFamily: fontBold,
+      marginBottom: 14,
+    },
+    dashboardGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    dashboardCard: {
+      flex: 1,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB',
+      borderRadius: 12,
+      padding: 10,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6',
+    },
+    dashboardCardIcon: {
+      marginBottom: 6,
+    },
+    dashboardCardLabel: {
+      fontSize: isNepali ? 13 : 11,
+      color: colors.textSecondary,
+      fontFamily: fontNormal,
+      textAlign: 'center',
+      marginBottom: 4,
+    },
+    dashboardCardValue: {
+      fontSize: isNepali ? 20 : 16,
+      color: colors.text,
+      fontFamily: fontBold,
+    },
+    dashboardProgressWrapper: {
+      marginTop: 16,
+    },
+    dashboardProgressBarTrack: {
+      height: 6,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6',
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    dashboardProgressBarFill: {
+      height: '100%',
+      backgroundColor: '#2E7D32',
+      borderRadius: 3,
+    },
     sheetOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      position: 'absolute',
+      top: 130,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'transparent',
       justifyContent: 'flex-end',
     },
     modalOverlay: {
@@ -1118,6 +1446,18 @@ function createStyles(theme: AppTheme) {
       shadowRadius: 20,
       elevation: isDark ? 0 : 10,
     },
+    modalCloseButton: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F3F4F6',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10,
+    },
     modalIconContainer: {
       width: 80,
       height: 80,
@@ -1127,17 +1467,19 @@ function createStyles(theme: AppTheme) {
       marginBottom: 16,
     },
     modalTitle: {
-      fontSize: 24,
+      fontSize: isNepali ? 26 : 24,
       fontWeight: '800',
       color: colors.text,
       marginBottom: 8,
+      fontFamily: fontBold,
     },
     modalSubtitle: {
-      fontSize: 14,
+      fontSize: isNepali ? 16 : 14,
       color: colors.textSecondary,
       textAlign: 'center',
       marginBottom: 24,
-      lineHeight: 20,
+      lineHeight: isNepali ? 22 : 20,
+      fontFamily: fontNormal,
     },
     modalScoreCard: {
       flexDirection: 'row',
@@ -1159,14 +1501,15 @@ function createStyles(theme: AppTheme) {
       marginHorizontal: 10,
     },
     modalScoreLabel: {
-      fontSize: 12,
+      fontSize: isNepali ? 14 : 12,
       color: colors.textSecondary,
-      textTransform: 'uppercase',
-      letterSpacing: 1,
+      textTransform: isNepali ? 'none' : 'uppercase',
+      letterSpacing: isNepali ? 0 : 1,
       marginBottom: 4,
+      fontFamily: fontNormal,
     },
     modalScoreValue: {
-      fontSize: 22,
+      fontSize: isNepali ? 24 : 22,
       fontWeight: '800',
       color: colors.text,
     },
@@ -1182,9 +1525,10 @@ function createStyles(theme: AppTheme) {
       elevation: 4,
     },
     modalButtonText: {
-      fontSize: 16,
+      fontSize: isNepali ? 18 : 16,
       fontWeight: '700',
       color: '#FFFFFF',
+      fontFamily: fontBold,
     },
     sheetContainer: {
       backgroundColor: isDark ? glass.backgroundColor : colors.card,
@@ -1197,20 +1541,20 @@ function createStyles(theme: AppTheme) {
       width: 48,
       height: 4,
       borderRadius: 2,
-      backgroundColor: '#00000020',
+      backgroundColor: isDark ? '#4ade80' : '#00000020',
       marginBottom: 10,
     },
-    sheetTitle: { fontSize: 22, color: colors.text, marginBottom: 4 },
-    sheetSubtitle: { fontSize: 14, color: '#888', marginBottom: 12 },
+    sheetTitle: { fontSize: isNepali ? 24 : 22, color: colors.text, marginBottom: 4, fontFamily: fontBold },
+    sheetSubtitle: { fontSize: isNepali ? 16 : 14, color: '#888', marginBottom: 12, fontFamily: fontNormal },
     sheetStatsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
     sheetStatBox: { flex: 1, borderWidth: 1, borderColor: '#eee', borderRadius: 12, alignItems: 'center', paddingVertical: 12 },
-    sheetStatLabel: { color: '#777', marginBottom: 4 },
-    sheetStatValue: { color: colors.text, fontSize: 20 },
-    sheetInstructionTitle: { fontSize: 16, color: colors.text, marginBottom: 8 },
-    sheetStartButton: { backgroundColor: '#434D57', paddingVertical: 14, borderRadius: 24, alignItems: 'center' },
-    sheetStartButtonText: { color: '#fff', fontSize: 16 },
+    sheetStatLabel: { color: '#777', marginBottom: 4, fontFamily: fontNormal, fontSize: isNepali ? 14 : 12 },
+    sheetStatValue: { color: colors.text, fontSize: isNepali ? 22 : 20, fontFamily: fontBold },
+    sheetInstructionTitle: { fontSize: isNepali ? 18 : 16, color: colors.text, marginBottom: 8, fontFamily: fontBold },
+    sheetStartButton: { backgroundColor: isDark ? '#4ade80' : '#434D57', paddingVertical: 14, borderRadius: 24, alignItems: 'center' },
+    sheetStartButtonText: { color: isDark ? '#111827' : '#fff', fontSize: isNepali ? 18 : 16, fontWeight: '700', fontFamily: fontBold },
     instructionList: { marginBottom: 16 },
-    instructionItem: { color: colors.text, marginBottom: 6, lineHeight: 20 },
+    instructionItem: { color: colors.text, marginBottom: 6, lineHeight: isNepali ? 22 : 20, fontFamily: fontNormal, fontSize: isNepali ? 15 : 14 },
     headerBackButton: {
       padding: 8,
       marginLeft: 10,

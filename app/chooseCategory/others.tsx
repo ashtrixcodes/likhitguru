@@ -1,13 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View, LayoutAnimation } from 'react-native';
-import { knowledgeAnswerKeyLetters, knowledgeQuestions } from '../practiceMore/knowledge';
-import { actRegulationAnswerKeyIndices, actRegulationQuestions, techAndMechanicalAnswerKeyIndices, techAndMechanicalQuestions, trafficSignalKnowledgeAnswerKeyIndices, trafficSignalKnowledgeQuestions, vehiclePollutionAnswerKeyIndices, vehiclePollutionQuestions } from './constant';
+import { Animated, BackHandler, LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { Skeleton } from '@/components/Skeleton';
+import * as nepaliKnowledge from '../practiceMore/bikeKnowledge';
+import * as englishKnowledge from '../practiceMore/knowledge';
+import * as nepaliConstants from './bikeConstants';
+import * as englishConstants from './constant';
 
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme, ThemeBackground } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { themedHeaderOptions } from '@/constants/screenHelpers';
+import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import type { AppTheme } from '@/constants/theme';
+import AdBanner from '@/components/AdBanner';
 
 const ITEMS_PER_PAGE = 20; // Items per page
 const SKELETON_COUNT = 5;
@@ -28,6 +34,7 @@ interface QuestionCardProps {
   show: boolean;
   onToggleReveal: (id: number) => void;
   anim: Animated.Value;
+  isNepali: boolean;
 }
 
 interface PaginationControlsProps {
@@ -35,12 +42,14 @@ interface PaginationControlsProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   isLoading: boolean;
+  isNepali: boolean;
 }
 
 interface SectionHeaderProps {
   totalQuestions: number;
   currentPage: number;
   totalPages: number;
+  isNepali: boolean;
 }
 
 // Throttle utility
@@ -66,50 +75,26 @@ function throttle<T extends (...args: any[]) => void>(func: T, delay: number): T
 
 // Memoized skeleton component
 const QuestionSkeleton = memo(() => {
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-
-  useEffect(() => {
-    const shimmer = () => {
-      Animated.sequence([
-        Animated.timing(shimmerAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmerAnim, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]).start(() => shimmer());
-    };
-    shimmer();
-  }, [shimmerAnim]);
-
-  const opacity = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
-  });
 
   return (
     <View style={styles.card}>
       <View style={styles.questionHeader}>
-        <Animated.View style={[styles.skeletonTag, { opacity }]} />
+        <Skeleton height={20} style={{ width: 80, marginBottom: 8 }} />
       </View>
-      <Animated.View style={[styles.skeletonQuestion, { opacity }]} />
-      <Animated.View style={[styles.skeletonQuestionSmall, { opacity }]} />
+      <Skeleton height={20} style={{ width: '100%', marginBottom: 8 }} />
+      <Skeleton height={20} style={{ width: '75%', marginBottom: 12 }} />
       <View style={styles.dashed} />
       <View style={styles.optionGrid}>
         {[0, 1, 2, 3].map((i: number) => (
           <View key={i} style={styles.optionCell}>
-            <Animated.View style={[styles.skeletonOption, { opacity }]} />
+            <Skeleton height={16} style={{ width: '90%', marginVertical: 2 }} />
           </View>
         ))}
       </View>
       <View style={styles.revealRow}>
-        <Animated.View style={[styles.skeletonReveal, { opacity }]} />
+        <Skeleton height={14} style={{ width: 80 }} />
       </View>
     </View>
   );
@@ -117,7 +102,7 @@ const QuestionSkeleton = memo(() => {
 
 // Strip prefix utility moved outside component to avoid recreation
 const stripPrefix = (text: string): string => {
-  return String(text).replace(/^\s*\(?[a-dA-D]\)?[.)]?\s*/, '').trim();
+  return String(text).replace(/^\s*\(?[a-dA-Dक-घ]\)?[.)]?\s*/, '').trim();
 };
 
 // Memoized individual question card component with better optimization
@@ -125,29 +110,25 @@ const QuestionCard = memo(({
   item, 
   show, 
   onToggleReveal, 
-  anim 
+  anim,
+  isNepali 
 }: QuestionCardProps) => {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-  // Pre-calculate interpolated values to avoid recreation
-  const animatedStyles = useMemo(() => ({
-    pillTranslateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-52, 0] }),
-    spacerHeight: anim.interpolate({ inputRange: [0, 1], outputRange: [0, 52] }),
-    opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] })
-  }), [anim]);
+  const styles = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
+  const optionPrefixes = isNepali ? ['(क)', '(ख)', '(ग)', '(घ)'] : ['a.', 'b.', 'c.', 'd.'];
 
   // Pre-calculate static values
   const staticValues = useMemo(() => {
-    const letter = ['a','b','c','d'][item.correctIndex];
+    const letter = optionPrefixes[item.correctIndex];
     const strippedOptions = item.opts.map(stripPrefix);
-    const correctAnswerText = `${letter}. ${strippedOptions[item.correctIndex]}`;
+    const correctAnswerText = `${letter} ${strippedOptions[item.correctIndex]}`;
     
     return {
       letter,
       strippedOptions,
       correctAnswerText
     };
-  }, [item.opts, item.correctIndex]);
+  }, [item.opts, item.correctIndex, optionPrefixes]);
 
   const handleToggle = useCallback(() => {
     onToggleReveal(item.id);
@@ -157,9 +138,13 @@ const QuestionCard = memo(({
     <View style={{ zIndex: show ? 2 : 1 }}>
       <View style={[styles.card, { zIndex: 10 }]}>
         <View style={styles.questionHeader}>
-          <Text style={styles.sectionTag}>{item.section}</Text>
+          <Text style={styles.sectionTag}>
+            {isNepali ? unicodeToAakriti(item.section) : item.section}
+          </Text>
         </View>
-        <Text style={styles.questionText}>{item.q}</Text>
+        <Text style={styles.questionText}>
+          {isNepali ? unicodeToAakriti(item.q) : item.q}
+        </Text>
         <View style={styles.dashed} />
         <View style={styles.optionGrid}>
           {staticValues.strippedOptions.map((option: string, index: number) => (
@@ -168,7 +153,7 @@ const QuestionCard = memo(({
                 styles.optionText, 
                 show && item.correctIndex === index && styles.optionCorrect
               ]}>
-                {['a', 'b', 'c', 'd'][index]}. {option}
+                {isNepali ? unicodeToAakriti(`${optionPrefixes[index]} ${option}`) : `${optionPrefixes[index]} ${option}`}
               </Text>
             </View>
           ))}
@@ -179,7 +164,11 @@ const QuestionCard = memo(({
           hitSlop={{ top: 8, bottom: 8, left: 20, right: 20 }}
         >
           <View style={styles.revealRow}>
-            <Text style={styles.revealText}>{show ? 'Hide answer' : 'Show answer'}</Text>
+            <Text style={styles.revealText}>
+              {isNepali
+                ? unicodeToAakriti(show ? 'उत्तर लुकाउनुहोस्' : 'उत्तर हेर्नुहोस्')
+                : (show ? 'Hide answer' : 'Show answer')}
+            </Text>
             <Ionicons name={show ? 'chevron-up' : 'chevron-down'} size={14} color="#FF6B35" />
           </View>
         </Pressable>
@@ -189,7 +178,9 @@ const QuestionCard = memo(({
         <View style={{ overflow: 'hidden', zIndex: 1 }}>
           <View style={styles.answerPill} pointerEvents="none">
             <Text numberOfLines={2} ellipsizeMode="tail" style={styles.answerPillText}>
-              {staticValues.letter}. {staticValues.strippedOptions[item.correctIndex]}
+              {isNepali
+                ? unicodeToAakriti(`${staticValues.letter} ${staticValues.strippedOptions[item.correctIndex]}`)
+                : `${staticValues.letter} ${staticValues.strippedOptions[item.correctIndex]}`}
             </Text>
           </View>
         </View>
@@ -199,7 +190,8 @@ const QuestionCard = memo(({
 }, (prevProps, nextProps) => {
   // Custom comparison for better performance
   return prevProps.item.id === nextProps.item.id && 
-         prevProps.show === nextProps.show;
+         prevProps.show === nextProps.show &&
+         prevProps.isNepali === nextProps.isNepali;
 });
 
 // Pagination controls component
@@ -207,7 +199,8 @@ const PaginationControls = memo(({
   currentPage, 
   totalPages, 
   onPageChange,
-  isLoading 
+  isLoading,
+  isNepali
 }: PaginationControlsProps) => {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -227,16 +220,16 @@ const PaginationControls = memo(({
           color={canGoPrevious ? "#434D57" : "#CCC"} 
         />
         <Text style={[styles.paginationText, !canGoPrevious && styles.paginationTextDisabled]}>
-          Previous
+          {isNepali ? 'अघिल्लो' : 'Previous'}
         </Text>
       </Pressable>
 
       <View style={styles.pageInfo}>
         <Text style={styles.pageInfoText}>
-          Page {currentPage} of {totalPages}
+          {isNepali ? `पृष्ठ ${currentPage} / ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
         </Text>
         <Text style={styles.pageInfoSubtext}>
-          {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, totalPages * ITEMS_PER_PAGE)} questions
+          {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, totalPages * ITEMS_PER_PAGE)} {isNepali ? 'प्रश्नहरू' : 'questions'}
         </Text>
       </View>
 
@@ -246,7 +239,7 @@ const PaginationControls = memo(({
         disabled={!canGoNext}
       >
         <Text style={[styles.paginationText, !canGoNext && styles.paginationTextDisabled]}>
-          Next
+          {isNepali ? 'पछिल्लो' : 'Next'}
         </Text>
         <Ionicons 
           name="chevron-forward" 
@@ -271,10 +264,11 @@ const LoadingSkeletons = memo(() => (
 const SectionHeader = memo(({ 
   totalQuestions, 
   currentPage, 
-  totalPages 
+  totalPages,
+  isNepali
 }: SectionHeaderProps) => {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
 
   if (totalQuestions === 0) return null;
 
@@ -282,15 +276,21 @@ const SectionHeader = memo(({
     <View style={styles.sectionCard}>
       <View style={styles.sectionRow}>
         <View style={styles.sectionIcon}>
-          <Ionicons name="document-text-outline" size={22} color="#434D57" />
+          <Ionicons name="document-text-outline" size={22} color={theme.colors.text} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.sectionTitle}>All Questions</Text>
+          <Text style={styles.sectionTitle}>
+            {isNepali ? unicodeToAakriti('सबै प्रश्नहरू') : 'All Questions'}
+          </Text>
           <Text style={styles.sectionSubtitle}>
-            Complete collection of all driving test questions ({totalQuestions} total)
+            {isNepali
+              ? unicodeToAakriti(`सवारी चालक लिखित परीक्षाका सबै प्रश्नहरूको संग्रह (जम्मा ${totalQuestions} वटा)`)
+              : `Complete collection of all driving test questions (${totalQuestions} total)`}
           </Text>
           <Text style={styles.loadingInfo}>
-            Page {currentPage} of {totalPages} • {ITEMS_PER_PAGE} questions per page
+            {isNepali
+              ? unicodeToAakriti(`पृष्ठ ${currentPage} / ${totalPages} • प्रति पृष्ठ ${ITEMS_PER_PAGE} प्रश्नहरू`)
+              : `Page ${currentPage} of ${totalPages} • ${ITEMS_PER_PAGE} questions per page`}
           </Text>
         </View>
       </View>
@@ -301,22 +301,26 @@ const SectionHeader = memo(({
 export default function OthersScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-  
+  const { isNepali } = useLanguage();
+  const styles = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
+
+  const activeConstants = isNepali ? nepaliConstants : englishConstants;
+  const activeKnowledge = isNepali ? nepaliKnowledge : englishKnowledge;
+
   // Pre-process all questions once and memoize
   const allQuestions = useMemo((): Question[] => {
-    let QUESTIONS: any[] = Array.isArray(actRegulationQuestions) ? actRegulationQuestions : [];
-    let ANSWER_KEYS: number[] = Array.isArray(actRegulationAnswerKeyIndices) ? actRegulationAnswerKeyIndices : [];
-    let TECH_QUESTIONS: any[] = Array.isArray(techAndMechanicalQuestions) ? techAndMechanicalQuestions : [];
-    let TECH_ANSWER_KEYS: number[] = Array.isArray(techAndMechanicalAnswerKeyIndices) ? techAndMechanicalAnswerKeyIndices : [];
-    let POLLUTION_QUESTIONS: any[] = Array.isArray(vehiclePollutionQuestions) ? vehiclePollutionQuestions : [];
-    let POLLUTION_ANSWER_KEYS: number[] = Array.isArray(vehiclePollutionAnswerKeyIndices) ? vehiclePollutionAnswerKeyIndices : [];
-    let DRIVE_QUESTIONS: any[] = Array.isArray(knowledgeQuestions) ? knowledgeQuestions : [];
-    let SIGNAL_QUESTIONS: any[] = Array.isArray(trafficSignalKnowledgeQuestions) ? trafficSignalKnowledgeQuestions : [];
-    let SIGNAL_ANSWER_KEYS: number[] = Array.isArray(trafficSignalKnowledgeAnswerKeyIndices) ? trafficSignalKnowledgeAnswerKeyIndices : [];
+    let QUESTIONS: any[] = Array.isArray(activeConstants.actRegulationQuestions) ? activeConstants.actRegulationQuestions : [];
+    let ANSWER_KEYS: number[] = Array.isArray(activeConstants.actRegulationAnswerKeyIndices) ? activeConstants.actRegulationAnswerKeyIndices : [];
+    let TECH_QUESTIONS: any[] = Array.isArray(activeConstants.techAndMechanicalQuestions) ? activeConstants.techAndMechanicalQuestions : [];
+    let TECH_ANSWER_KEYS: number[] = Array.isArray(activeConstants.techAndMechanicalAnswerKeyIndices) ? activeConstants.techAndMechanicalAnswerKeyIndices : [];
+    let POLLUTION_QUESTIONS: any[] = Array.isArray(activeConstants.vehiclePollutionQuestions) ? activeConstants.vehiclePollutionQuestions : [];
+    let POLLUTION_ANSWER_KEYS: number[] = Array.isArray(activeConstants.vehiclePollutionAnswerKeyIndices) ? activeConstants.vehiclePollutionAnswerKeyIndices : [];
+    let DRIVE_QUESTIONS: any[] = Array.isArray(activeKnowledge.knowledgeQuestions) ? activeKnowledge.knowledgeQuestions : [];
+    let SIGNAL_QUESTIONS: any[] = Array.isArray(activeConstants.trafficSignalKnowledgeQuestions) ? activeConstants.trafficSignalKnowledgeQuestions : [];
+    let SIGNAL_ANSWER_KEYS: number[] = Array.isArray(activeConstants.trafficSignalKnowledgeAnswerKeyIndices) ? activeConstants.trafficSignalKnowledgeAnswerKeyIndices : [];
     
     const letterToIndex = (l: string): number => ({ a: 0, b: 1, c: 2, d: 3 } as const)[String(l).toLowerCase() as 'a'|'b'|'c'|'d'] ?? 0;
-    let DRIVE_ANSWER_KEYS: number[] = Array.isArray(knowledgeAnswerKeyLetters) ? knowledgeAnswerKeyLetters.map(letterToIndex) : [];
+    let DRIVE_ANSWER_KEYS: number[] = Array.isArray(activeKnowledge.knowledgeAnswerKeyLetters) ? activeKnowledge.knowledgeAnswerKeyLetters.map(letterToIndex) : [];
     
     const combinedQuestions: Question[] = [];
     let currentId = 0;
@@ -334,20 +338,20 @@ export default function OthersScreen() {
       });
     };
 
-    addQuestions(QUESTIONS, ANSWER_KEYS, 'Vehicular Act/Regulation');
-    addQuestions(TECH_QUESTIONS, TECH_ANSWER_KEYS, 'Technical Knowledge');
-    addQuestions(POLLUTION_QUESTIONS, POLLUTION_ANSWER_KEYS, 'Environment Pollution');
-    addQuestions(DRIVE_QUESTIONS, DRIVE_ANSWER_KEYS, 'Driving Knowledge');
-    addQuestions(SIGNAL_QUESTIONS, SIGNAL_ANSWER_KEYS, 'Traffic Signals');
+    addQuestions(QUESTIONS, ANSWER_KEYS, isNepali ? 'सवारी ऐन तथा नियम' : 'Vehicular Act & Regulation');
+    addQuestions(TECH_QUESTIONS, TECH_ANSWER_KEYS, isNepali ? 'प्राविधिक ज्ञान' : 'Technical Knowledge');
+    addQuestions(POLLUTION_QUESTIONS, POLLUTION_ANSWER_KEYS, isNepali ? 'वातावरण प्रदूषण' : 'Environment Pollution');
+    addQuestions(DRIVE_QUESTIONS, DRIVE_ANSWER_KEYS, isNepali ? 'सवारी सञ्चालन ज्ञान' : 'Driving Knowledge');
+    addQuestions(SIGNAL_QUESTIONS, SIGNAL_ANSWER_KEYS, isNepali ? 'ट्राफिक संकेत' : 'Traffic Signals');
 
     return combinedQuestions;
-  }, []); // Empty dependency array since data is static
+  }, [isNepali, activeConstants, activeKnowledge]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [showGoTop, setShowGoTop] = useState(false);
   const [revealedSet, setRevealedSet] = useState<Set<number>>(new Set());
-  const answerAnimMapRef = useRef<Map<number, Animated.Value>>(new Map());
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Calculate pagination values
@@ -361,15 +365,6 @@ export default function OthersScreen() {
     [allQuestions, startIndex, endIndex]
   );
 
-  // Animation value getter with better caching
-  const getAnimForId = useCallback((id: number) => {
-    const map = answerAnimMapRef.current;
-    if (!map.has(id)) {
-      map.set(id, new Animated.Value(0));
-    }
-    return map.get(id)!;
-  }, []);
-
   // Optimized toggle reveal with immediate state update
   const toggleReveal = useCallback((id: number) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -380,7 +375,7 @@ export default function OthersScreen() {
       if (!prev.has(id)) next.add(id); else next.delete(id);
       return next;
     });
-  }, [revealedSet, getAnimForId]);
+  }, []);
 
   // Page change handler
   const handlePageChange = useCallback((newPage: number) => {
@@ -401,13 +396,11 @@ export default function OthersScreen() {
     }, 200);
   }, [totalPages, isLoading]);
 
-  // Throttled scroll handler for smooth scrolling
-  const handleScroll = useCallback(
-    throttle((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      // You can add scroll-based logic here if needed
-    }, THROTTLE_DELAY),
-    []
-  );
+  const handleScroll = useCallback((event: any) => {
+    const offsetY = event?.nativeEvent?.contentOffset?.y || 0;
+    if (offsetY > 400 && !showGoTop) setShowGoTop(true);
+    if (offsetY <= 400 && showGoTop) setShowGoTop(false);
+  }, [showGoTop]);
 
   // Render questions with proper memoization
   const renderedQuestions = useMemo(() => {
@@ -415,7 +408,6 @@ export default function OthersScreen() {
     
     return currentQuestions.map((item: Question) => {
       const show = revealedSet.has(item.id);
-      const anim = getAnimForId(item.id);
       
       return (
         <QuestionCard
@@ -423,24 +415,30 @@ export default function OthersScreen() {
           item={item}
           show={show}
           onToggleReveal={toggleReveal}
-          anim={anim}
+          anim={new Animated.Value(0)}
+          isNepali={isNepali}
         />
       );
     });
-  }, [currentQuestions, revealedSet, isLoading, toggleReveal, getAnimForId]);
+  }, [currentQuestions, revealedSet, isLoading, toggleReveal, isNepali]);
 
   return (
-    <>
+    <ThemeBackground>
       <Stack.Screen 
         options={{
-          title: "Other Exam Test",
+          title: isNepali ? unicodeToAakriti("अन्य लिखित परीक्षा") : "Other Exam Test",
           ...themedHeaderOptions(theme),
+          headerTitleStyle: {
+            fontSize: isNepali ? 22 : 20,
+            color: '#FFFFFF',
+            fontFamily: isNepali ? 'AakritiBold' : undefined,
+          },
           headerLeft: () => (
             <Pressable 
               onPress={() => router.back()}
               style={styles.headerBackButton}
             >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </Pressable>
           ),
         }}
@@ -459,6 +457,7 @@ export default function OthersScreen() {
           totalQuestions={allQuestions.length} 
           currentPage={currentPage}
           totalPages={totalPages}
+          isNepali={isNepali}
         />
 
         {/* Questions */}
@@ -471,6 +470,7 @@ export default function OthersScreen() {
             totalPages={totalPages}
             onPageChange={handlePageChange}
             isLoading={isLoading}
+            isNepali={isNepali}
           />
         )}
 
@@ -478,21 +478,52 @@ export default function OthersScreen() {
         {allQuestions.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="document-outline" size={48} color="#CCC" />
-            <Text style={styles.emptyStateText}>No questions available</Text>
-            <Text style={styles.emptyStateSubtext}>Questions will be added soon.</Text>
+            <Text style={styles.emptyStateText}>कुनै प्रश्न उपलब्ध छैन</Text>
+            <Text style={styles.emptyStateSubtext}>प्रश्नहरू चाँडै थपिनेछन्।</Text>
           </View>
         )}
+        <AdBanner />
       </ScrollView>
-    </>
+      
+      {showGoTop && (
+        <Pressable
+          style={styles.fab}
+          onPress={() => scrollViewRef.current?.scrollTo({ y: 0, animated: true })}
+        >
+          <Ionicons name="arrow-up" size={24} color={theme.isDark ? 'rgba(255,255,255,0.8)' : '#000'} />
+        </Pressable>
+      )}
+    </ThemeBackground>
   );
 }
-function createStyles(theme: AppTheme) {
+function createStyles(theme: AppTheme, isNepali: boolean = false) {
   const { colors, glass, isDark } = theme;
+  const fontNormal = isNepali ? 'Aakriti' : undefined;
+  const fontBold = isNepali ? 'AakritiBold' : undefined;
 
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    fab: {
+      position: 'absolute',
+      bottom: 24,
+      right: 24,
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: isDark ? 'transparent' : '#fff',
+      borderWidth: isDark ? 1 : 0,
+      borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'transparent',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0 : 0.25,
+      shadowRadius: 3.84,
+      elevation: isDark ? 0 : 5,
+      zIndex: 100,
     },
     scrollContent: {
       paddingBottom: 32,
@@ -500,47 +531,51 @@ function createStyles(theme: AppTheme) {
     sectionCard: {
       backgroundColor: isDark ? glass.backgroundColor : colors.card,
       borderRadius: isDark ? glass.borderRadius : 16,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
       marginHorizontal: 16,
       marginTop: 16,
       marginBottom: 8,
-      borderWidth: isDark ? glass.borderWidth : 1,
-      borderColor: isDark ? glass.borderColor : '#434D57',
+      borderWidth: isDark ? glass.borderWidth : 1.5,
+      borderColor: isDark ? glass.borderColor : colors.cardBorder,
       shadowColor: colors.shadow,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: isDark ? 0.3 : 0.08,
       shadowRadius: isDark ? 8 : 6,
-      elevation: isDark ? 4 : 3,
+      elevation: isDark ? 0 : 3,
     },
     sectionRow: {
       flexDirection: 'row',
       alignItems: 'center',
     },
     sectionIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F0F0F0',
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F0F4F8',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,
     },
     sectionTitle: {
-      fontSize: 18,
+      fontSize: isNepali ? 20 : 18,
       color: colors.text,
       fontWeight: '700',
+      fontFamily: fontBold,
+      marginBottom: 3,
+      lineHeight: isNepali ? 26 : 22,
     },
     sectionSubtitle: {
-      fontSize: 12,
-      color: colors.textSecondary,
-      marginTop: 2,
+      fontSize: isNepali ? 15 : 13,
+      color: isDark ? '#94A3B8' : '#64748B',
+      fontFamily: fontNormal,
+      lineHeight: isNepali ? 21 : 17,
     },
     loadingInfo: {
-      fontSize: 12,
+      fontSize: isNepali ? 13 : 12,
       color: colors.textTertiary,
       marginTop: 4,
-      fontStyle: 'italic',
+      fontFamily: fontNormal,
     },
     card: {
       backgroundColor: isDark ? glass.backgroundColor : colors.card,
@@ -556,31 +591,32 @@ function createStyles(theme: AppTheme) {
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: isDark ? 0.3 : 0.08,
       shadowRadius: isDark ? 8 : 6,
-      elevation: isDark ? 4 : 3,
+      elevation: isDark ? 0 : 3,
     },
     questionHeader: {
       marginBottom: 8,
     },
     sectionTag: {
-      fontSize: 11,
-      color: isDark ? colors.text : '#434D57',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F0F0F0',
+      fontSize: isNepali ? 14 : 11,
+      color: isDark ? '#FF9800' : '#E65100',
+      backgroundColor: isDark ? 'rgba(255,152,0,0.15)' : '#FFF3E0',
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: 8,
       alignSelf: 'flex-start',
       fontWeight: '600',
+      fontFamily: fontBold || fontNormal,
     },
     questionText: {
-      fontSize: 16,
-      color: colors.text,
+      fontSize: isNepali ? 22 : 16,
+      color: isDark ? colors.text : '#252b31ff',
       marginBottom: 12,
-      lineHeight: 22,
+      lineHeight: isNepali ? 30 : 22,
+      fontFamily: fontBold || fontNormal,
     },
     dashed: {
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : '#D9D9D9',
-      borderStyle: 'dashed',
+      height: 1,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0',
       marginBottom: 12,
     },
     optionGrid: {
@@ -593,13 +629,15 @@ function createStyles(theme: AppTheme) {
       marginBottom: 10,
     },
     optionText: {
-      fontSize: 14,
-      color: colors.text,
-      lineHeight: 20,
+      fontSize: isNepali ? 19 : 14,
+      color: isDark ? '#E5E7EB' : '#252b31ff',
+      lineHeight: isNepali ? 26 : 20,
+      fontFamily: fontNormal,
     },
     optionCorrect: {
       color: '#4CAF50',
       fontWeight: '700',
+      fontFamily: fontBold || fontNormal,
     },
     revealRow: {
       marginTop: 6,
@@ -610,10 +648,9 @@ function createStyles(theme: AppTheme) {
     },
     revealText: {
       color: colors.accent,
-      fontSize: 15,
+      fontSize: isNepali ? 18 : 15,
       marginRight: 4,
-      textTransform: 'capitalize',
-      fontWeight: '600',
+      fontFamily: fontBold || fontNormal,
     },
     answerPill: {
       marginHorizontal: 25,
@@ -630,9 +667,10 @@ function createStyles(theme: AppTheme) {
     },
     answerPillText: {
       color: isDark ? '#81C784' : '#FFFFFF',
-      fontSize: 16,
+      fontSize: isNepali ? 19 : 16,
       fontWeight: '700',
       textAlign: 'center',
+      fontFamily: fontBold || fontNormal,
     },
     revealTouch: {
       alignSelf: 'stretch',
@@ -662,7 +700,7 @@ function createStyles(theme: AppTheme) {
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: isDark ? 0.3 : 0.08,
       shadowRadius: isDark ? 8 : 6,
-      elevation: isDark ? 4 : 3,
+      elevation: isDark ? 0 : 3,
     },
     paginationButton: {
       flexDirection: 'row',
@@ -716,40 +754,6 @@ function createStyles(theme: AppTheme) {
       fontSize: 14,
       color: colors.textTertiary,
       marginTop: 4,
-    },
-    // Skeleton styles
-    skeletonTag: {
-      width: 120,
-      height: 16,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
-      borderRadius: 8,
-    },
-    skeletonQuestion: {
-      width: '100%',
-      height: 20,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
-      borderRadius: 4,
-      marginBottom: 8,
-    },
-    skeletonQuestionSmall: {
-      width: '75%',
-      height: 20,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
-      borderRadius: 4,
-      marginBottom: 12,
-    },
-    skeletonOption: {
-      width: '90%',
-      height: 16,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
-      borderRadius: 4,
-      marginVertical: 2,
-    },
-    skeletonReveal: {
-      width: 80,
-      height: 14,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E5E5',
-      borderRadius: 4,
     },
   });
 }

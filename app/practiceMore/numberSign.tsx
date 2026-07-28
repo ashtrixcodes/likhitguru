@@ -1,20 +1,68 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { useMemo, useState, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { useTheme } from '@/context/ThemeContext';
+import AdBanner from '@/components/AdBanner';
+import { Skeleton } from '@/components/Skeleton';
 import { createSignGridStyles, themedHeaderOptions } from '@/constants/screenHelpers';
+import { useLanguage } from '@/context/LanguageContext';
+import { useTheme, ThemeBackground } from '@/context/ThemeContext';
 import { numberSign } from './constant';
+import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
+
+// Memoized skeleton sign card
+const SignSkeleton = memo(({ isLarge }: { isLarge: boolean }) => {
+  const { theme } = useTheme();
+  const s = useMemo(() => createSignGridStyles(theme), [theme]);
+
+  return (
+    <View style={[s.card, isLarge && { width: '100%', marginBottom: 18 }]}>
+      <View style={s.cardInner}>
+        <Skeleton
+          height={isLarge ? 180 : 110}
+          style={[
+            s.cardImage,
+            isLarge && { height: 180, marginBottom: 14 }
+          ]}
+        />
+        <Skeleton
+          height={isLarge ? 20 : 16}
+          style={[
+            { width: isLarge ? '60%' : '80%', alignSelf: 'center' }
+          ]}
+        />
+      </View>
+    </View>
+  );
+});
+
+// Grid loading skeletons wrapper
+const LoadingSkeletons = memo(({ isLarge }: { isLarge: boolean }) => (
+  <>
+    {Array.from({ length: 6 }, (_, i: number) => (
+      <SignSkeleton key={`skeleton-${i}`} isLarge={isLarge} />
+    ))}
+  </>
+));
 
 export default function NumberSignScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { isNepali } = useLanguage();
   const s = useMemo(() => createSignGridStyles(theme), [theme]);
   const [isLarge, setIsLarge] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
+
   const scrollViewRef = useRef<ScrollView>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -22,21 +70,26 @@ export default function NumberSignScreen() {
   };
 
   return (
-    <View style={s.container}>
+    <ThemeBackground>
       <Stack.Screen
         options={{
-          title: "Number Test",
+          title: isNepali ? unicodeToAakriti("अङ्क परीक्षण") : "Number Test",
           ...themedHeaderOptions(theme),
+          headerTitleStyle: {
+            fontSize: isNepali ? 22 : 20,
+            color: '#FFFFFF',
+            fontFamily: isNepali ? 'AakritiBold' : undefined,
+          },
           headerLeft: () => (
             <Pressable onPress={() => router.back()} style={s.headerBackButton}>
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </Pressable>
           ),
           headerRight: () => (
-            <Pressable 
-              onPress={() => setIsLarge(prev => !prev)} 
+            <Pressable
+              onPress={() => setIsLarge(prev => !prev)}
               style={({ pressed }) => [
-                s.headerBackButton, 
+                s.headerBackButton,
                 { marginRight: 10, opacity: pressed ? 0.7 : 1 }
               ]}
               accessibilityLabel={isLarge ? "Switch to standard grid view" : "Switch to enlarged list view"}
@@ -47,47 +100,52 @@ export default function NumberSignScreen() {
           ),
         }}
       />
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={s.content} 
-        style={s.container}
+        contentContainerStyle={s.content}
+        style={{ flex: 1 }}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
         <View style={s.grid}>
-          {numberSign.map((item) => (
-            <View 
-              key={item.key} 
-              style={[
-                s.card,
-                isLarge && { width: '100%', marginBottom: 18 }
-              ]}
-            >
-              <View style={s.cardInner}>
-                <Image 
-                  source={item.src} 
-                  style={[
-                    s.cardImage,
-                    isLarge && { height: 180, marginBottom: 14 }
-                  ]} 
-                  resizeMode="contain" 
-                />
-                <Text 
-                  style={[
-                    s.cardLabel,
-                    isLarge && { fontSize: 18, lineHeight: 24, fontWeight: '600' }
-                  ]} 
-                  numberOfLines={isLarge ? undefined : 2}
-                >
-                  {item.label}
-                </Text>
+          {isLoading ? (
+            <LoadingSkeletons isLarge={isLarge} />
+          ) : (
+            numberSign.map((item) => (
+              <View
+                key={item.key}
+                style={[
+                  s.card,
+                  isLarge && { width: '100%', marginBottom: 18 }
+                ]}
+              >
+                <View style={s.cardInner}>
+                  <Image
+                    source={item.src}
+                    style={[
+                      s.cardImage,
+                      isLarge && { height: 180, marginBottom: 14 }
+                    ]}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    style={[
+                      s.cardLabel,
+                      isLarge && { fontSize: 18, lineHeight: 24, fontWeight: '600' }
+                    ]}
+                    numberOfLines={isLarge ? undefined : 2}
+                  >
+                    {item.label}
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
+        <AdBanner />
       </ScrollView>
       {showScrollTop && (
-        <Pressable 
+        <Pressable
           onPress={() => scrollViewRef.current?.scrollTo({ y: 0, animated: true })}
           style={({ pressed }) => [
             {
@@ -117,6 +175,6 @@ export default function NumberSignScreen() {
           <Ionicons name="arrow-up" size={24} color="#FFFFFF" />
         </Pressable>
       )}
-    </View>
+    </ThemeBackground>
   );
 }

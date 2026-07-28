@@ -5,20 +5,22 @@ import { Pressable, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import LoadingDots from '@/components/LoadingDots';
-import { useTheme } from '@/context/ThemeContext';
 import { createWebViewScreenStyles, themedHeaderOptions } from '@/constants/screenHelpers';
+import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function LicensePrintCheckScreen() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
+  const { isNepali } = useLanguage();
   const s = useMemo(() => createWebViewScreenStyles(theme), [theme]);
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: "License Print Check",
+          title: isNepali ? "लाइसेन्स प्रिन्ट अवस्था" : "License Print Check",
           ...themedHeaderOptions(theme),
           headerLeft: () => (
             <Pressable onPress={() => router.back()} style={s.headerBackButton}>
@@ -34,7 +36,7 @@ export default function LicensePrintCheckScreen() {
           </View>
         )}
         <WebView
-          source={{ uri: 'https://dotm.gov.np/DrivingLicense/SearchLicense' }}
+          source={{ uri: 'https://licenseprintcheck.app/' }}
           style={s.webview}
           javaScriptEnabled={true}
           domStorageEnabled={true}

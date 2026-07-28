@@ -1,7 +1,14 @@
 import DarkModeToggle from '@/components/DarkModeToggle';
-import WeatherOverlay from '@/components/WeatherOverlay';
+import LanguageToggle from '@/components/LanguageToggle';
+import NepaliDateHeaderBadge from '@/components/NepaliDateHeaderBadge';
+import ExamCountdownBanner from '@/components/ExamCountdownBanner';
+import { ShimmerBar } from '@/components/Shimmer';
 import { useSidebar } from '@/components/SidebarContext';
+import WeatherOverlay from '@/components/WeatherOverlay';
+import { homeTranslations } from '@/constants/homeTranslations';
+import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
+import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -9,25 +16,112 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import {
 	ActivityIndicator,
 	Alert,
+	Dimensions,
 	Image,
 	Modal,
 	Pressable,
-	RefreshControl,
 	ScrollView,
 	StyleSheet,
 	Text,
 	TextInput,
 	TouchableOpacity,
-	View,
+	View
 } from 'react-native';
 import { shareApp } from './shareapp'; // Import the share function
+
+// ─── Reusable Dynamic Cards ──────────────────────────────────────────
+function CategoryCard({ tag, image, onPress, s, theme, isLoading, imageStyle, viewLabel, isNepali }: any) {
+	return (
+		<TouchableOpacity onPress={onPress} style={s.categoryCard} activeOpacity={0.8} disabled={isLoading}>
+			{isLoading ? (
+				<View style={{ flex: 1, width: '100%', alignItems: 'center' }}>
+					<ShimmerBar width={60} height={20} borderRadius={10} style={{ alignSelf: 'flex-start', marginBottom: 20 }} />
+					<ShimmerBar width={140} height={140} borderRadius={70} style={{ marginVertical: 5, marginBottom: 15 }} />
+					<ShimmerBar width={80} height={20} />
+				</View>
+			) : (
+				<>
+					<View style={s.categoryTag}>
+						<Text style={s.categoryTagText}>{isNepali ? unicodeToAakriti(tag) : tag}</Text>
+					</View>
+
+					<View style={s.categoryImageContainer}>
+						<Image source={image} style={[s.categoryImage, imageStyle]} resizeMode="contain" />
+					</View>
+					<View style={s.viewButton}>
+						<View style={s.playIconContainer}>
+							<Ionicons name="play" size={16} color={theme.colors.viewButtonText} />
+						</View>
+						<Text style={s.viewButtonText}>{isNepali ? unicodeToAakriti(viewLabel || 'View') : (viewLabel || 'View')}</Text>
+					</View>
+				</>
+			)}
+		</TouchableOpacity>
+	);
+}
+
+function QuizItemCard({ title, subtitle, icon, iconStyle, onPress, s, isLoading, practiceActionLabel, isNepali }: any) {
+	return (
+		<TouchableOpacity style={s.quizItem} onPress={onPress} disabled={isLoading}>
+			{isLoading ? (
+				<View style={{ flexDirection: 'row', width: '100%', alignItems: 'center' }}>
+					<ShimmerBar width={50} height={50} borderRadius={25} style={{ marginRight: 15 }} />
+					<View style={{ flex: 1 }}>
+						<ShimmerBar width={120} height={20} style={{ marginBottom: 8 }} />
+						<ShimmerBar width={80} height={15} />
+					</View>
+					<ShimmerBar width={60} height={15} />
+				</View>
+			) : (
+				<>
+					<View style={s.quizIcon}>
+						<Image source={icon} style={[s.quizIconImage, iconStyle]} resizeMode="contain" />
+					</View>
+					<View style={s.quizContent}>
+						<View style={s.quizHeader}>
+							<Text style={s.quizTitle}>{isNepali ? unicodeToAakriti(title) : title}</Text>
+							<Image source={require('@/assets/images/trophy.png')} style={s.trophyIcon} resizeMode="contain" />
+						</View>
+						<Text style={s.quizSubtitle}>{isNepali ? unicodeToAakriti(subtitle) : subtitle}</Text>
+					</View>
+					<Text style={s.practiceText}>{isNepali ? unicodeToAakriti(practiceActionLabel || 'Practice →') : (practiceActionLabel || 'Practice →')}</Text>
+				</>
+			)}
+		</TouchableOpacity>
+	);
+}
+
+function PracticeCard({ title, icon, onPress, s, isLoading, isNepali }: any) {
+	return (
+		<TouchableOpacity style={s.practiceCard} onPress={onPress} disabled={isLoading}>
+			{isLoading ? (
+				<View style={{ width: '100%', alignItems: 'center' }}>
+					<ShimmerBar width={40} height={40} borderRadius={20} style={{ marginBottom: 12 }} />
+					<ShimmerBar width={50} height={12} style={{ marginBottom: 4 }} />
+					<ShimmerBar width={30} height={12} />
+				</View>
+			) : (
+				<>
+					<View style={s.practiceIcon}>
+						<Image source={icon} style={s.practiceIconImage} resizeMode="contain" />
+					</View>
+					<Text style={s.practiceCardText}>{isNepali ? unicodeToAakriti(title) : title}</Text>
+				</>
+			)}
+		</TouchableOpacity>
+	);
+}
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 import type { AppTheme } from '@/constants/theme';
 
 // ─── UsernameReq Component ───────────────────────────────────────────
 function UsernameReq() {
 	const { theme } = useTheme();
-	const s = useMemo(() => createStyles(theme), [theme]);
+	const { language, isNepali } = useLanguage();
+	const t = homeTranslations[language].usernameModal;
+	const s = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
 
 	const [userName, setUserName] = React.useState('Lekhit Guru');
 	const [showModal, setShowModal] = React.useState(false);
@@ -41,11 +135,11 @@ function UsernameReq() {
 	const handleSaveName = async () => {
 		const trimmedName = inputName.trim();
 		if (trimmedName.length === 0) {
-			Alert.alert('Invalid Name', 'Please enter a valid name.');
+			Alert.alert(t.invalidTitle, t.invalidMsg);
 			return;
 		}
 		if (trimmedName.length > 20) {
-			Alert.alert('Name Too Long', 'Please enter a name with 20 characters or less.');
+			Alert.alert(t.tooLongTitle, t.tooLongMsg);
 			return;
 		}
 
@@ -103,7 +197,7 @@ function UsernameReq() {
 				<View style={s.modalOverlay}>
 					<View style={s.modalContainer}>
 						<View style={s.modalHeader}>
-							<Text style={s.modalTitle}>What should I call you?</Text>
+							<Text style={s.modalTitle}>{isNepali ? unicodeToAakriti(t.title) : t.title}</Text>
 						</View>
 
 						<View style={s.modalBody}>
@@ -111,7 +205,7 @@ function UsernameReq() {
 								style={s.textInput}
 								value={inputName}
 								onChangeText={setInputName}
-								placeholder="Enter your name"
+								placeholder={t.placeholder}
 								placeholderTextColor={theme.colors.inputPlaceholder}
 								autoFocus={true}
 								maxLength={20}
@@ -120,7 +214,7 @@ function UsernameReq() {
 							/>
 
 							<Text style={s.charCounter}>
-								{inputName.length}/20 characters
+								{t.charCount(inputName.length)}
 							</Text>
 						</View>
 
@@ -129,14 +223,14 @@ function UsernameReq() {
 								style={[s.button, s.cancelButton]}
 								onPress={handleCancel}
 							>
-								<Text style={s.cancelButtonText}>Cancel</Text>
+								<Text style={s.cancelButtonText}>{isNepali ? unicodeToAakriti(t.cancel) : t.cancel}</Text>
 							</Pressable>
 
 							<Pressable
 								style={[s.button, s.saveButton]}
 								onPress={handleSaveName}
 							>
-								<Text style={s.saveButtonText}>Save</Text>
+								<Text style={s.saveButtonText}>{isNepali ? unicodeToAakriti(t.save) : t.save}</Text>
 							</Pressable>
 						</View>
 					</View>
@@ -155,14 +249,16 @@ type HomeHeaderProps = {
 
 function HomeHeader({ onSharePress, onMenuPress }: HomeHeaderProps) {
 	const { theme } = useTheme();
-	const s = useMemo(() => createStyles(theme), [theme]);
+	const { language, isNepali } = useLanguage();
+	const tGreetings = homeTranslations[language].greetings;
+	const s = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
 
 	const getGreeting = () => {
 		const hour = new Date().getHours();
-		if (hour >= 5 && hour < 12) return 'Good Morning!';
-		if (hour >= 12 && hour < 17) return 'Good Afternoon!';
-		if (hour >= 17 && hour < 20) return 'Good Evening!';
-		return 'Good Night!';
+		if (hour >= 5 && hour < 12) return tGreetings.morning;
+		if (hour >= 12 && hour < 17) return tGreetings.afternoon;
+		if (hour >= 17 && hour < 20) return tGreetings.evening;
+		return tGreetings.night;
 	};
 
 	return (
@@ -176,18 +272,22 @@ function HomeHeader({ onSharePress, onMenuPress }: HomeHeaderProps) {
 
 				{/* User Info with greeting and clickable username */}
 				<View style={s.userInfo}>
-					<Text style={s.greeting}>{getGreeting()}</Text>
+					<Text style={s.greeting}>{isNepali ? unicodeToAakriti(getGreeting()) : getGreeting()}</Text>
 					<UsernameReq />
 				</View>
 
-				{/* Dark mode toggle + Share button */}
+				{/* Language toggle + Dark mode toggle + Share button */}
 				<View style={s.headerActions}>
+					<LanguageToggle />
 					<DarkModeToggle />
 					<TouchableOpacity style={s.shareButton} onPress={onSharePress}>
 						<Ionicons name="share-social" size={20} color={theme.colors.headerText} />
 					</TouchableOpacity>
 				</View>
 			</View>
+
+			{/* Nepali Date Header Badge */}
+			<NepaliDateHeaderBadge />
 		</>
 	);
 }
@@ -196,27 +296,42 @@ function HomeHeader({ onSharePress, onMenuPress }: HomeHeaderProps) {
 export default function HomeScreen() {
 	const scrollViewRef = useRef<ScrollView>(null);
 	const [currentCategoryIndex, setCurrentCategoryIndex] = React.useState(1);
-	const [refreshing, setRefreshing] = React.useState(false);
+	const [isLoading, setIsLoading] = React.useState(true);
 	const { setSidebarVisible } = useSidebar();
 	const router = useRouter();
 	const didTriggerLightPullRef = useRef(false);
 	const { theme } = useTheme();
-	const s = useMemo(() => createStyles(theme), [theme]);
+	const { language, isNepali } = useLanguage();
+	const t = homeTranslations[language];
+	const s = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
 
 	useEffect(() => {
-		setTimeout(() => {
-			scrollViewRef.current?.scrollTo({ x: 215, animated: false });
-			setCurrentCategoryIndex(1);
-		}, 300);
+		// Simulate initial loading time for skeleton
+		const loadTimer = setTimeout(() => {
+			setIsLoading(false);
+
+			// Initial scroll after loading
+			setTimeout(() => {
+				const centerOffset = (SCREEN_WIDTH - 250) / 2;
+				const initialOffset = 295 - centerOffset;
+				scrollViewRef.current?.scrollTo({ x: initialOffset, animated: false });
+				setCurrentCategoryIndex(1);
+			}, 100);
+		}, 1200);
+
+		return () => clearTimeout(loadTimer);
 	}, []);
 
 	const handleScroll = (event: any) => {
 		const contentOffset = event.nativeEvent.contentOffset.x;
+		const centerOffset = (SCREEN_WIDTH - 250) / 2;
+		const x1 = 295 - centerOffset;
+		const x2 = 560 - centerOffset;
 
 		let newIndex;
-		if (contentOffset < 100) {
+		if (contentOffset < x1 / 2) {
 			newIndex = 0;
-		} else if (contentOffset < 320) {
+		} else if (contentOffset < (x1 + x2) / 2) {
 			newIndex = 1;
 		} else {
 			newIndex = 2;
@@ -225,13 +340,6 @@ export default function HomeScreen() {
 		setCurrentCategoryIndex(newIndex);
 	};
 
-	const onRefresh = () => {
-		setRefreshing(true);
-		setTimeout(() => {
-			setRefreshing(false);
-			didTriggerLightPullRef.current = false;
-		}, 800);
-	};
 
 	const handleShareApp = async () => {
 		await shareApp();
@@ -247,7 +355,6 @@ export default function HomeScreen() {
 				ref={scrollViewRef}
 				style={s.scrollView}
 				showsVerticalScrollIndicator={false}
-				refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.refreshIndicator} />}
 			>
 				<View style={s.header}>
 					<WeatherOverlay />
@@ -255,93 +362,52 @@ export default function HomeScreen() {
 						<HomeHeader onSharePress={handleShareApp} onMenuPress={handleMenuPress} />
 					</View>
 				</View>
-				{refreshing && (
-					<View style={s.refreshContainer}>
-						<ActivityIndicator size="small" color={theme.colors.refreshIndicator} />
-					</View>
-				)}
+
+				{/* Driving Exam Countdown Sticky Banner */}
+				<ExamCountdownBanner />
 
 				{/* Choose Category Section */}
 				<View style={s.examSection}>
-					<Text style={s.examSectionTitle}>Lekhit Exam</Text>
+					<Text style={s.examSectionTitle}>{isNepali ? unicodeToAakriti(t.sections.lekhitExam) : t.sections.lekhitExam}</Text>
 					<ScrollView
 						horizontal
 						showsHorizontalScrollIndicator={false}
 						style={s.categoryScroll}
 						contentContainerStyle={s.categoryScrollContent}
-						snapToInterval={215}
+						snapToOffsets={[0, 295 - (SCREEN_WIDTH - 250) / 2, 560 - (SCREEN_WIDTH - 250) / 2]}
 						decelerationRate="fast"
-						snapToAlignment="start"
+						snapToAlignment="center"
 						pagingEnabled={false}
 						onScroll={handleScroll}
 						scrollEventThrottle={16}
-						contentOffset={{ x: 215, y: 0 }}
+						contentOffset={{ x: 295 - (SCREEN_WIDTH - 250) / 2, y: 0 }}
 					>
-						<TouchableOpacity
+						<CategoryCard
+							tag={t.categoryCards.car}
+							image={require('@/assets/images/car.png')}
+							imageStyle={s.categoryImageCar}
 							onPress={() => router.push('/chooseCategory/fourWheeler')}
-							style={s.categoryCard}
-						>
-							<View style={s.categoryTag}>
-								<Text style={s.categoryTagText}>Car</Text>
-							</View>
-							<View style={s.categoryImageContainer}>
-								<Image
-									source={require('@/assets/images/car.png')}
-									style={[s.categoryImage, s.categoryImageCar]}
-									resizeMode="contain"
-								/>
-							</View>
-							<View style={s.viewButton}>
-								<View style={s.playIconContainer}>
-									<Ionicons name="play" size={16} color={theme.colors.viewButtonText} />
-								</View>
-								<Text style={s.viewButtonText}>View</Text>
-							</View>
-						</TouchableOpacity>
-
-						<TouchableOpacity
+							s={s} theme={theme} isLoading={isLoading}
+							viewLabel={t.categoryCards.view}
+							isNepali={isNepali}
+						/>
+						<CategoryCard
+							tag={t.categoryCards.bike}
+							image={require('@/assets/images/bike.png')}
 							onPress={() => router.push('/chooseCategory/twoWheeler')}
-							style={s.categoryCard}
-						>
-							<View style={s.categoryTag}>
-								<Text style={s.categoryTagText}>Bike</Text>
-							</View>
-							<View style={s.categoryImageContainer}>
-								<Image
-									source={require('@/assets/images/bike.png')}
-									style={s.categoryImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<View style={s.viewButton}>
-								<View style={s.playIconContainer}>
-									<Ionicons name="play" size={16} color={theme.colors.viewButtonText} />
-								</View>
-								<Text style={s.viewButtonText}>View</Text>
-							</View>
-						</TouchableOpacity>
-
-						<TouchableOpacity
+							s={s} theme={theme} isLoading={isLoading}
+							viewLabel={t.categoryCards.view}
+							isNepali={isNepali}
+						/>
+						<CategoryCard
+							tag={t.categoryCards.others}
+							image={require('@/assets/images/others.png')}
+							imageStyle={s.categoryImageOthers}
 							onPress={() => router.push('/chooseCategory/others')}
-							style={s.categoryCard}
-						>
-							<View style={s.categoryTag}>
-								<Text style={s.categoryTagText}>Others</Text>
-							</View>
-							<View style={s.categoryImageContainer}>
-								<Image
-									source={require('@/assets/images/others.png')}
-									style={[s.categoryImage, s.categoryImageOthers]}
-									resizeMode="contain"
-								/>
-							</View>
-							<View style={s.viewButton}>
-								<View style={s.playIconContainer}>
-									<Ionicons name="play" size={16} color={theme.colors.viewButtonText} />
-								</View>
-								<Text style={s.viewButtonText}>View</Text>
-							</View>
-						</TouchableOpacity>
+							s={s} theme={theme} isLoading={isLoading}
+							viewLabel={t.categoryCards.view}
+							isNepali={isNepali}
+						/>
 					</ScrollView>
 
 					<View style={s.pagination}>
@@ -362,195 +428,110 @@ export default function HomeScreen() {
 
 				{/* Quiz Section */}
 				<View style={s.section}>
-					<Text style={s.sectionTitle}>Quiz</Text>
+					<Text style={s.sectionTitle}>{isNepali ? unicodeToAakriti(t.sections.quiz) : t.sections.quiz}</Text>
 					<View style={s.quizList}>
-						<TouchableOpacity
-							style={s.quizItem}
+						<QuizItemCard
+							title={t.quizCards.signTestTitle}
+							subtitle={t.quizCards.signTestSubtitle}
+							icon={require('@/assets/images/testing.png')}
 							onPress={() => router.push('/quiz/signTest')}
-						>
-							<View style={s.quizIcon}>
-								<Image
-									source={require('@/assets/images/testing.png')}
-									style={s.quizIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<View style={s.quizContent}>
-								<View style={s.quizHeader}>
-									<Text style={s.quizTitle}>Sign Test</Text>
-									<Image
-										source={require('@/assets/images/trophy.png')}
-										style={s.trophyIcon}
-										resizeMode="contain"
-									/>
-								</View>
-								<Text style={s.quizSubtitle}>Traffic Signals</Text>
-							</View>
-							<Text style={s.practiceText}>Practice →</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={s.quizItem}
+							s={s} isLoading={isLoading}
+							practiceActionLabel={t.quizCards.practiceAction}
+							isNepali={isNepali}
+						/>
+						<QuizItemCard
+							title={t.quizCards.eyeTestTitle}
+							subtitle={t.quizCards.eyeTestSubtitle}
+							icon={require('@/assets/images/number-block.png')}
 							onPress={() => router.push('/quiz/eyeTest')}
-						>
-							<View style={s.quizIcon}>
-								<Image
-									source={require('@/assets/images/number-block.png')}
-									style={s.quizIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<View style={s.quizContent}>
-								<View style={s.quizHeader}>
-									<Text style={s.quizTitle}>Eye Test</Text>
-									<Image
-										source={require('@/assets/images/trophy.png')}
-										style={s.trophyIcon}
-										resizeMode="contain"
-									/>
-								</View>
-								<Text style={s.quizSubtitle}>Numbers Pattern</Text>
-							</View>
-							<Text style={s.practiceText}>Practice →</Text>
-						</TouchableOpacity>
+							s={s} isLoading={isLoading}
+							practiceActionLabel={t.quizCards.practiceAction}
+							isNepali={isNepali}
+						/>
 					</View>
 				</View>
 
 				{/* Practice More Section */}
 				<View style={s.section}>
-					<Text style={s.sectionTitle}>Practice More</Text>
+					<Text style={s.sectionTitle}>{isNepali ? unicodeToAakriti(t.sections.practiceMore) : t.sections.practiceMore}</Text>
 					<View style={s.practiceGrid}>
-						<TouchableOpacity
-							style={s.practiceCard}
+						<PracticeCard
+							title={t.practiceCards.informative}
+							icon={require('@/assets/images/stop-sgn.png')}
 							onPress={() => router.push('/practiceMore/informativeSign')}
-						>
-							<View style={s.practiceIcon}>
-								<Image
-									source={require('@/assets/images/stop-sgn.png')}
-									style={s.practiceIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<Text style={s.practiceCardText}>Informative</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={s.practiceCard}
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
+						<PracticeCard
+							title={t.practiceCards.restrictive}
+							icon={require('@/assets/images/restriction.png')}
 							onPress={() => router.push('/practiceMore/restrictiveSign')}
-						>
-							<View style={s.practiceIcon}>
-								<Image
-									source={require('@/assets/images/restriction.png')}
-									style={s.practiceIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<Text style={s.practiceCardText}>Restrictive</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={s.practiceCard}
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
+						<PracticeCard
+							title={t.practiceCards.numbers}
+							icon={require('@/assets/images/numbers.png')}
 							onPress={() => router.push('/practiceMore/numberSign')}
-						>
-							<View style={s.practiceIcon}>
-								<Image
-									source={require('@/assets/images/numbers.png')}
-									style={s.practiceIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<Text style={s.practiceCardText}>Numbers</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={s.practiceCard}
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
+						<PracticeCard
+							title={t.practiceCards.examTest}
+							icon={require('@/assets/images/exam.png')}
 							onPress={() => router.push('/practiceMore/examTest')}
-						>
-							<View style={s.practiceIcon}>
-								<Image
-									source={require('@/assets/images/exam.png')}
-									style={s.practiceIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<Text style={s.practiceCardText}>Exam Test</Text>
-						</TouchableOpacity>
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
 					</View>
 				</View>
 
 				{/* Others Section */}
 				<View style={s.section}>
-					<Text style={s.sectionTitle}>Others</Text>
+					<Text style={s.sectionTitle}>{isNepali ? unicodeToAakriti(t.sections.others) : t.sections.others}</Text>
 					<View style={s.practiceGrid}>
-						<TouchableOpacity
-							style={s.practiceCard}
+						<PracticeCard
+							title={t.otherCards.licenseForm}
+							icon={require('@/assets/images/government.png')}
 							onPress={() => router.push('/others/licenseForm')}
-						>
-							<View style={s.practiceIcon}>
-								<Image
-									source={require('@/assets/images/government.png')}
-									style={s.practiceIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<Text style={s.practiceCardText}>Online license form</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={s.practiceCard}
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
+						<PracticeCard
+							title={t.otherCards.licensePrintCheck}
+							icon={require('@/assets/images/printer.png')}
 							onPress={() => router.push('/others/licensePrintCheck')}
-						>
-							<View style={s.practiceIcon}>
-								<Image
-									source={require('@/assets/images/printer.png')}
-									style={s.practiceIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<Text style={s.practiceCardText}>License Print Check</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={s.practiceCard}
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
+						<PracticeCard
+							title={t.otherCards.trafficFines}
+							icon={require('@/assets/images/fine.png')}
 							onPress={() => router.push('/others/trafficFines')}
-						>
-							<View style={s.practiceIcon}>
-								<Image
-									source={require('@/assets/images/fine.png')}
-									style={s.practiceIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<Text style={s.practiceCardText}>Traffic Fines    Info</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={s.practiceCard}
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
+						<PracticeCard
+							title={t.otherCards.nagdhunga}
+							icon={require('@/assets/images/tunnel.png')}
 							onPress={() => router.push('/others/nagdhungaPass')}
-						>
-							<View style={s.practiceIcon}>
-								<Image
-									source={require('@/assets/images/tunnel.png')}
-									style={s.practiceIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<Text style={s.practiceCardText}>Nagdhunga Charges</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={s.practiceCard}
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
+						<PracticeCard
+							title={t.otherCards.moreInfo}
+							icon={require('@/assets/images/question.png')}
 							onPress={() => router.push('/others/moreInfo')}
-						>
-							<View style={s.practiceIcon}>
-								<Image
-									source={require('@/assets/images/question.png')}
-									style={s.practiceIconImage}
-									resizeMode="contain"
-								/>
-							</View>
-							<Text style={s.practiceCardText}>More Info</Text>
-						</TouchableOpacity>
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
+						<PracticeCard
+							title={t.otherCards.nepaliCalendar}
+							icon={require('@/assets/images/testing.png')}
+							onPress={() => router.push('/others/nepaliCalendar')}
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
 					</View>
 				</View>
 
@@ -562,8 +543,10 @@ export default function HomeScreen() {
 }
 
 // ─── Style factory ───────────────────────────────────────────────────
-function createStyles(theme: AppTheme) {
+function createStyles(theme: AppTheme, isNepali: boolean = false) {
 	const { colors, glass, isDark } = theme;
+	const fontNormal = isNepali ? 'Aakriti' : undefined;
+	const fontBold = isNepali ? 'AakritiBold' : undefined;
 
 	return StyleSheet.create({
 		container: {
@@ -643,12 +626,13 @@ function createStyles(theme: AppTheme) {
 		greeting: {
 			color: colors.headerText,
 			left: 4,
-			fontSize: 12,
+			fontSize: isNepali ? 16 : 12,
 			opacity: 0.8,
 			marginTop: 10,
 			textShadowColor: 'rgba(0, 0, 0, 0.4)',
 			textShadowOffset: { width: 0, height: 1 },
 			textShadowRadius: 3,
+			fontFamily: fontNormal,
 		},
 		headerActions: {
 			flexDirection: 'row',
@@ -669,7 +653,7 @@ function createStyles(theme: AppTheme) {
 		userNameContainer: {
 			flexDirection: 'row',
 			alignItems: 'center',
-			marginTop: 2,
+			marginTop: -4,
 			paddingVertical: 2,
 			paddingHorizontal: 4,
 			borderRadius: 8,
@@ -677,6 +661,7 @@ function createStyles(theme: AppTheme) {
 		userName: {
 			color: colors.headerText,
 			fontSize: 20,
+			fontWeight: 'bold',
 			marginBottom: 1,
 			marginRight: 6,
 			textShadowColor: 'rgba(0, 0, 0, 0.4)',
@@ -718,6 +703,7 @@ function createStyles(theme: AppTheme) {
 			fontWeight: 'bold',
 			color: colors.modalText,
 			textAlign: 'center',
+			fontFamily: fontBold,
 		},
 		modalBody: {
 			paddingHorizontal: 24,
@@ -733,12 +719,14 @@ function createStyles(theme: AppTheme) {
 			color: colors.inputText,
 			backgroundColor: colors.inputBackground,
 			textAlign: 'center',
+			fontFamily: fontNormal,
 		},
 		charCounter: {
 			fontSize: 12,
 			color: colors.textTertiary,
 			textAlign: 'right',
 			marginTop: 8,
+			fontFamily: fontNormal,
 		},
 		modalFooter: {
 			flexDirection: 'row',
@@ -767,11 +755,13 @@ function createStyles(theme: AppTheme) {
 			fontSize: 16,
 			fontWeight: '600',
 			color: colors.cancelButtonText,
+			fontFamily: fontNormal,
 		},
 		saveButtonText: {
 			fontSize: 16,
 			fontWeight: '600',
 			color: colors.saveButtonText,
+			fontFamily: fontBold || fontNormal,
 		},
 		// Sections
 		section: {
@@ -779,21 +769,23 @@ function createStyles(theme: AppTheme) {
 			marginTop: 20,
 		},
 		sectionTitle: {
-			fontSize: 16,
+			fontSize: isNepali ? 20 : 16,
 			fontWeight: 'bold',
 			color: colors.text,
 			marginBottom: 10,
 			marginLeft: 15,
+			fontFamily: fontBold,
 		},
 		examSection: {
 			marginTop: 20,
 		},
 		examSectionTitle: {
-			fontSize: 16,
+			fontSize: isNepali ? 20 : 16,
 			fontWeight: 'bold',
 			color: colors.text,
 			marginBottom: 10,
 			marginLeft: 30,
+			fontFamily: fontBold,
 		},
 		categoryScroll: {
 			marginBottom: 5,
@@ -801,6 +793,7 @@ function createStyles(theme: AppTheme) {
 		categoryScrollContent: {
 			paddingLeft: 30,
 			paddingRight: 30,
+			paddingVertical: 15, // Adds buffer space so Android elevation shadows are not clipped
 		},
 		// Glass card for categories
 		categoryCard: {
@@ -814,10 +807,10 @@ function createStyles(theme: AppTheme) {
 			height: 270,
 			alignItems: 'center',
 			shadowColor: colors.shadow,
-			shadowOffset: { width: 0, height: 0 },
-			shadowOpacity: isDark ? 0.3 : 0.2,
-			shadowRadius: isDark ? 8 : 0,
-			elevation: isDark ? 0 : 8,
+			shadowOffset: { width: 0, height: 4 }, // Added drop offset instead of 0
+			shadowOpacity: isDark ? 0.3 : 0.1,    // Softened light mode opacity from 0.2 to 0.1
+			shadowRadius: isDark ? 8 : 10,       // Added soft blur radius in light mode instead of 0
+			elevation: isDark ? 0 : 5,            // Clean drop shadow on Android instead of overlapping/harsh 8
 		},
 		categoryTag: {
 			backgroundColor: colors.tagBackground,
@@ -828,7 +821,8 @@ function createStyles(theme: AppTheme) {
 		},
 		categoryTagText: {
 			color: colors.tagText,
-			fontSize: 10,
+			fontSize: isNepali ? 14 : 10,
+			fontFamily: fontBold || fontNormal,
 		},
 		categoryImageContainer: {
 			width: 180,
@@ -868,8 +862,9 @@ function createStyles(theme: AppTheme) {
 		},
 		viewButtonText: {
 			color: colors.viewButtonText,
-			fontSize: 16,
-			height: 20,
+			fontSize: isNepali ? 20 : 16,
+			marginTop: -3,
+			fontFamily: fontBold || fontNormal,
 		},
 		pagination: {
 			flexDirection: 'row',
@@ -931,18 +926,22 @@ function createStyles(theme: AppTheme) {
 			marginBottom: 5,
 		},
 		quizTitle: {
-			fontSize: 16,
+			fontSize: isNepali ? 20 : 16,
 			color: colors.text,
 			marginRight: 8,
+			fontFamily: fontBold,
 		},
 		quizSubtitle: {
-			fontSize: 12,
+			fontSize: isNepali ? 15 : 12,
 			color: colors.quizSubtitle,
+			fontFamily: fontNormal,
 		},
 		practiceText: {
 			color: colors.practiceLink,
+			fontFamily: fontBold || fontNormal,
+			fontSize: isNepali ? 17 : 14,
 		},
-		// Practice grid — glass cards
+		// Practice grid — glass cards (4-column layout)
 		practiceGrid: {
 			flexDirection: 'row',
 			flexWrap: 'wrap',
@@ -954,7 +953,9 @@ function createStyles(theme: AppTheme) {
 			borderWidth: isDark ? glass.borderWidth : 0,
 			borderColor: isDark ? glass.borderColor : 'transparent',
 			width: '23.8%',
-			paddingTop: 15,
+			paddingTop: 12,
+			paddingBottom: 8,
+			paddingHorizontal: 2,
 			alignItems: 'center',
 			shadowColor: colors.shadow,
 			shadowOffset: { width: 0, height: 1 },
@@ -965,36 +966,30 @@ function createStyles(theme: AppTheme) {
 		practiceIcon: {
 			width: 40,
 			height: 40,
-			borderRadius: 25,
+			borderRadius: 20,
 			backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : colors.surface,
 			alignItems: 'center',
 			justifyContent: 'center',
-			marginBottom: 10,
+			marginBottom: 8,
 		},
 		practiceIconImage: {
-			width: 30,
-			height: 30,
+			width: 28,
+			height: 28,
 		},
 		trophyIcon: {
 			width: 20,
 			height: 20,
 		},
 		practiceCardText: {
-			fontSize: 12,
+			fontSize: isNepali ? 16.5 : 12,
 			color: colors.text,
 			textAlign: 'center',
-			lineHeight: 16,
-			marginBottom: 10,
+			lineHeight: isNepali ? 19 : 15,
+			marginBottom: 4,
+			fontFamily: fontBold || fontNormal,
 		},
 		bottomSpacing: {
 			height: 100,
-		},
-		refreshContainer: {
-			paddingVertical: 8,
-			marginTop: 14,
-			marginBottom: 6,
-			alignItems: 'center',
-			justifyContent: 'center',
 		},
 		// Unused but kept for backward compat
 		notificationButton: {

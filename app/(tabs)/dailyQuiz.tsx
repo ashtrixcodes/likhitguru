@@ -1,41 +1,122 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Animated,
   Dimensions,
   Image,
   ImageBackground,
-  Modal,
   Platform,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { dailyquizQT } from "../(tabs)/dailyquizQT"; // Updated import
+import { SafeAreaView } from "react-native-safe-area-context";
+import { InterstitialAd, AdEventType, TestIds } from '@/utils/mobileAds';
+import { dailyquizQT } from "./dailyquizQT";
+import { knowledgeQuestions as nepaliKnowledgeQuestions } from "../practiceMore/bikeKnowledge";
 
 import type { AppTheme } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 
-// Add safety check for imported data with proper fallbacks
-const safeKnowledgeQuestions = Array.isArray(dailyquizQT) ? dailyquizQT : [];
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const backgroundImage = require('../../assets/images/background.jpg');
 
 interface Question {
   question: string;
   options: [string, string, string, string];
-  correctAnswer: string; // Added correctAnswer to interface
+  correctAnswer: string;
 }
+
+function toNepaliNumber(num: number | string): string {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return String(num).replace(/[0-9]/g, (d) => nepaliDigits[parseInt(d, 10)]);
+}
+
+function getOptionPrefix(index: number, isNepali: boolean): string {
+  if (!isNepali) {
+    return `${String.fromCharCode(65 + index)}. `;
+  }
+  const nepaliLetters = ['(क)', '(ख)', '(ग)', '(घ)'];
+  const letter = nepaliLetters[index] || '(क)';
+  return unicodeToAakriti(`${letter} `);
+}
+
+// Fisher-Yates shuffle algorithm
+function shuffleArray<T>(array: T[]): T[] {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
+const TOTAL_QUESTIONS_COUNT = Math.min(dailyquizQT.length, nepaliKnowledgeQuestions.length);
+
+function getQuestionAtIndex(index: number, isNepali: boolean): Question {
+  const englishQ = dailyquizQT[index];
+  const nepaliQ = nepaliKnowledgeQuestions[index];
+
+  if (isNepali && nepaliQ && Array.isArray(nepaliQ.options) && nepaliQ.options.length === 4) {
+    const cleanNepaliOptions = nepaliQ.options.map(opt => opt.replace(/^(\([a-dक-घ]\)|[a-dक-घ]\.|\([a-d]\))\s*/i, '')) as [string, string, string, string];
+    const correctIdx = englishQ ? englishQ.options.indexOf(englishQ.correctAnswer) : 0;
+    const validCorrectIdx = correctIdx >= 0 && correctIdx < 4 ? correctIdx : 0;
+    const correctAnswer = cleanNepaliOptions[validCorrectIdx];
+
+    return {
+      question: nepaliQ.question,
+      options: shuffleArray([...cleanNepaliOptions]) as [string, string, string, string],
+      correctAnswer: correctAnswer,
+    };
+  }
+
+  return {
+    question: englishQ?.question || "Question missing",
+    options: shuffleArray([...(englishQ?.options || ["Option A", "Option B", "Option C", "Option D"])]) as [string, string, string, string],
+    correctAnswer: englishQ?.correctAnswer || "Option A",
+  };
+}
+
+const interstitialAdUnitId = __DEV__
+  ? TestIds.INTERSTITIAL
+  : Platform.select({
+      ios: 'YOUR_IOS_INTERSTITIAL_AD_UNIT_ID',
+      android: 'YOUR_ANDROID_INTERSTITIAL_AD_UNIT_ID',
+      default: TestIds.INTERSTITIAL,
+    }) || TestIds.INTERSTITIAL;
+
+const interstitial = InterstitialAd.createForAdRequest(interstitialAdUnitId, {
+  requestNonPersonalizedAdsOnly: true,
+});
+
+const BackgroundWrapper = React.memo(({ isDark, colors, style, children }: { isDark: boolean; colors: [string, string]; style: any; children: React.ReactNode }) => {
+  if (isDark) {
+    return (
+      <ImageBackground source={backgroundImage} style={style} resizeMode="stretch">
+        {children}
+      </ImageBackground>
+    );
+  }
+  return (
+    <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={style}>
+      {children}
+    </LinearGradient>
+  );
+});
 
 export default function EnhancedDailyQuizScreen() {
   const { theme } = useTheme();
-  const s = useMemo(() => createDailyQuizStyles(theme), [theme]);
+  const { isNepali, fontFamily, fontFamilyBold } = useLanguage();
+  const s = useMemo(() => createDailyQuizStyles(theme, isNepali), [theme, isNepali]);
 
-  // Gradient colors based on theme
+  const fontStyle = isNepali ? { fontFamily: fontFamily || 'Aakriti', fontWeight: 'normal' as const } : {};
+  const fontBoldStyle = isNepali ? { fontFamily: fontFamilyBold || 'AakritiBold', fontWeight: 'normal' as const } : fontStyle;
+
   const gradientPrimary: [string, string] = theme.isDark
     ? ['#1a1c2e', '#2d2b55']
     : ['#434D57', '#6B5B95'];
@@ -43,25 +124,7 @@ export default function EnhancedDailyQuizScreen() {
     ? ['#2d2b55', '#1a1c2e']
     : ['#6B5B95', '#434D57'];
 
-  const backgroundImage = require('../../assets/images/background.jpg');
-
-  // Wrapper component that uses ImageBackground in dark mode, LinearGradient in light
-  const BackgroundWrapper = ({ colors, children }: { colors: [string, string]; children: React.ReactNode }) => {
-    if (theme.isDark) {
-      return (
-        <ImageBackground source={backgroundImage} style={s.container} resizeMode="stretch">
-          {children}
-        </ImageBackground>
-      );
-    }
-    return (
-      <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.container}>
-        {children}
-      </LinearGradient>
-    );
-  };
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [originalIndices, setOriginalIndices] = useState<number[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -69,162 +132,201 @@ export default function EnhancedDailyQuizScreen() {
   const [isAnswered, setIsAnswered] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [modalData, setModalData] = useState<{ title: string; score: number; total: number; percentage: number; message: string; emoji: string }>({ title: '', score: 0, total: 0, percentage: 0, message: '', emoji: '' });
+  const [adLoaded, setAdLoaded] = useState(false);
 
-  // Simplified animation values for better Android performance
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  // Animation references
+  const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const modalScaleAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // Start entrance animations with Android optimization
+  // Timeout refs to prevent unmount memory leaks
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const addTimeout = (fn: () => void, ms: number) => {
+    const timeout = setTimeout(fn, ms);
+    timeoutsRef.current.push(timeout);
+    return timeout;
+  };
+
+  const clearAllTimeouts = () => {
+    timeoutsRef.current.forEach(clearTimeout);
+    timeoutsRef.current = [];
+  };
+
   useEffect(() => {
-    if (questions.length > 0) {
-      // Simplified animation sequence for better Android performance
+    return () => clearAllTimeouts();
+  }, []);
+
+  // Handle Ads
+  useEffect(() => {
+    const unsubscribeLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => setAdLoaded(true));
+    const unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      setAdLoaded(false);
+      interstitial.load();
+    });
+    const unsubscribeError = interstitial.addAdEventListener(AdEventType.ERROR, () => setAdLoaded(false));
+
+    interstitial.load();
+
+    return () => {
+      unsubscribeLoaded();
+      unsubscribeClosed();
+      unsubscribeError();
+    };
+  }, []);
+
+  // Generate a fresh set of daily questions
+  const generateNewQuizSet = useCallback(async () => {
+    if (TOTAL_QUESTIONS_COUNT === 0) {
+      setHasError(true);
+      setIsLoading(false);
+      return [];
+    }
+
+    const indices = Array.from({ length: TOTAL_QUESTIONS_COUNT }, (_, i) => i);
+    const shuffledIndices = shuffleArray(indices);
+    const selectedIndices = shuffledIndices.slice(0, Math.min(5, TOTAL_QUESTIONS_COUNT));
+
+    const dailySet: Question[] = selectedIndices.map(idx => getQuestionAtIndex(idx, isNepali));
+
+    const today = new Date().toDateString();
+    try {
+      await AsyncStorage.setItem("dailyQuiz", JSON.stringify({ questions: dailySet, isNepali }));
+      await AsyncStorage.setItem("quizDate", today);
+    } catch (e) {
+      console.warn("Failed to persist daily quiz cache", e);
+    }
+
+    return dailySet;
+  }, [isNepali]);
+
+  // Main loader effect
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const loadDailyQuiz = async () => {
+      setIsLoading(true);
+      setHasError(false);
+
+      if (TOTAL_QUESTIONS_COUNT === 0) {
+        if (isSubscribed) {
+          setHasError(true);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const today = new Date().toDateString();
+        const savedQuiz = await AsyncStorage.getItem("dailyQuiz");
+        const savedDate = await AsyncStorage.getItem("quizDate");
+
+        let loadedQuestions: Question[] = [];
+
+        if (savedQuiz && savedDate === today) {
+          try {
+            const parsed = JSON.parse(savedQuiz);
+            if (Array.isArray(parsed.questions) && parsed.questions.length > 0 && parsed.isNepali === isNepali) {
+              loadedQuestions = parsed.questions;
+            }
+          } catch (e) {
+            console.warn("Corrupted daily quiz cache, generating new one...");
+          }
+        }
+
+        if (loadedQuestions.length === 0) {
+          loadedQuestions = await generateNewQuizSet();
+        }
+
+        if (isSubscribed) {
+          setQuestions(loadedQuestions);
+          setCurrentIndex(0);
+          setScore(0);
+          setShowResult(false);
+          setSelectedAnswer(null);
+          setIsAnswered(false);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error("Failed to load daily quiz:", err);
+        if (isSubscribed) {
+          setHasError(true);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    addTimeout(loadDailyQuiz, 50);
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [generateNewQuizSet, isNepali]);
+
+  // Handle smooth entrance animations when questions load or index changes
+  useEffect(() => {
+    if (!isLoading && questions.length > 0 && !showResult) {
+      fadeAnim.setValue(0);
+      slideAnim.setValue(0);
+      scaleAnim.setValue(0.95);
+
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 600,
-          useNativeDriver: Platform.OS === 'ios', // Use native driver only on iOS
+          duration: 350,
+          useNativeDriver: true,
         }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: Platform.OS === 'ios',
-        }),
-        Animated.timing(scaleAnim, {
+        Animated.spring(scaleAnim, {
           toValue: 1,
-          duration: 500,
-          useNativeDriver: Platform.OS === 'ios',
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
         }),
       ]).start();
     }
-  }, [questions.length]);
+  }, [isLoading, currentIndex, showResult, questions.length]);
 
-  // Update progress animation
+  // Handle smooth entrance animation when result screen mounts
+  useEffect(() => {
+    if (showResult) {
+      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.85);
+
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 7,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showResult]);
+
+  // Update progress bar
   useEffect(() => {
     if (questions.length > 0) {
       const progress = (currentIndex + 1) / questions.length;
       Animated.timing(progressAnim, {
         toValue: progress,
         duration: 300,
-        useNativeDriver: false, // Keep false for width interpolation
+        useNativeDriver: false,
       }).start();
     }
   }, [currentIndex, questions.length]);
 
-  // Load daily quiz
-  useEffect(() => {
-    const loadDailyQuiz = async () => {
-      try {
-        console.log("Starting to load daily quiz...");
-        console.log("Safe knowledge questions length:", safeKnowledgeQuestions.length);
-
-        setIsLoading(true);
-        setHasError(false);
-
-        // Check if we have questions available
-        if (safeKnowledgeQuestions.length === 0) {
-          console.error("No knowledge questions available");
-          setHasError(true);
-          setIsLoading(false);
-          return;
-        }
-
-        // Add Android-specific delay for better stability
-        if (Platform.OS === 'android') {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-
-        const today = new Date().toDateString();
-        console.log("Today's date:", today);
-
-        const savedQuiz = await AsyncStorage.getItem("dailyQuiz");
-        const savedDate = await AsyncStorage.getItem("quizDate");
-
-        console.log("Saved quiz exists:", !!savedQuiz);
-        console.log("Saved date:", savedDate);
-
-        if (savedQuiz && savedDate === today) {
-          console.log("Loading saved quiz for today");
-          const parsedQuiz = JSON.parse(savedQuiz);
-          const loadedQuestions = parsedQuiz.questions || [];
-          const loadedIndices = parsedQuiz.originalIndices || [];
-
-          console.log("Loaded questions count:", loadedQuestions.length);
-          setQuestions(loadedQuestions);
-          setOriginalIndices(loadedIndices);
-        } else {
-          console.log("Creating new daily quiz");
-          const indices = Array.from({ length: safeKnowledgeQuestions.length }, (_, i) => i);
-          const shuffledIndices = indices.sort(() => Math.random() - 0.5);
-          const selectedIndices = shuffledIndices.slice(0, Math.min(5, safeKnowledgeQuestions.length));
-
-          console.log("Selected indices:", selectedIndices);
-
-          const dailySet: Question[] = selectedIndices.map(index => {
-            const q = safeKnowledgeQuestions[index];
-            if (!q || !q.question || !q.options || !q.correctAnswer) {
-              console.warn(`Question at index ${index} is invalid:`, q);
-              return {
-                question: "Question data is missing",
-                options: ["Option A", "Option B", "Option C", "Option D"],
-                correctAnswer: "Option A"
-              };
-            }
-
-            // Validate options array
-            if (!Array.isArray(q.options) || q.options.length !== 4) {
-              console.warn(`Question at index ${index} has invalid options:`, q.options);
-              return {
-                question: q.question,
-                options: ["Option A", "Option B", "Option C", "Option D"],
-                correctAnswer: q.correctAnswer
-              };
-            }
-
-            return {
-              question: q.question,
-              options: q.options,
-              correctAnswer: q.correctAnswer
-            };
-          });
-
-          console.log("Created daily set with", dailySet.length, "questions");
-          setQuestions(dailySet);
-          setOriginalIndices(selectedIndices);
-
-          await AsyncStorage.setItem("dailyQuiz", JSON.stringify({
-            questions: dailySet,
-            originalIndices: selectedIndices
-          }));
-          await AsyncStorage.setItem("quizDate", today);
-          console.log("Saved new quiz to storage");
-        }
-
-        console.log("Quiz loading completed successfully");
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error loading daily quiz:", error);
-        setHasError(true);
-        setIsLoading(false);
-      }
-    };
-
-    // Add a small delay to ensure proper state initialization
-    const timer = setTimeout(loadDailyQuiz, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleAnswer = (selectedOption: string) => {
-    if (isAnswered) return;
+    if (isAnswered || !questions[currentIndex]) return;
 
     setSelectedAnswer(selectedOption);
     setIsAnswered(true);
 
-    // Updated answer validation logic
     const currentQuestion = questions[currentIndex];
     const isCorrect = selectedOption === currentQuestion.correctAnswer;
 
@@ -232,122 +334,65 @@ export default function EnhancedDailyQuizScreen() {
       setScore(prev => prev + 1);
     }
 
-    setTimeout(() => {
+    addTimeout(() => {
       if (currentIndex + 1 < questions.length) {
         nextQuestion();
       } else {
         finishQuiz();
       }
-    }, 1500);
+    }, 1200);
   };
 
   const nextQuestion = () => {
     Animated.timing(slideAnim, {
       toValue: -SCREEN_WIDTH,
-      duration: 300,
-      useNativeDriver: Platform.OS === 'ios',
-    }).start(() => {
-      setCurrentIndex(prev => prev + 1);
-      setSelectedAnswer(null);
-      setIsAnswered(false);
+      duration: 250,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        slideAnim.setValue(SCREEN_WIDTH);
+        setCurrentIndex(prev => prev + 1);
+        setSelectedAnswer(null);
+        setIsAnswered(false);
 
-      slideAnim.setValue(0); // Reset slideAnim to 0
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: Platform.OS === 'ios',
-      }).start();
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      }
     });
   };
 
   const finishQuiz = () => {
-    setShowResult(true);
-
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: Platform.OS === 'ios',
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: Platform.OS === 'ios',
-      }),
-    ]).start();
-
-    setTimeout(() => {
-      const finalScore = score;
-      const percentage = (finalScore / questions.length) * 100;
-      let message = "";
-      let emoji = "";
-
-      if (percentage >= 80) {
-        message = "Outstanding! You're a quiz master!";
-        emoji = "🎉";
-      } else if (percentage >= 60) {
-        message = "Well done! Keep up the great work!";
-        emoji = "👏";
-      } else {
-        message = "Practice makes perfect!";
-        emoji = "📚";
+    if (adLoaded) {
+      try {
+        interstitial.show();
+      } catch (e) {
+        console.warn('Failed to show interstitial ad:', e);
       }
-
-      setModalData({ title: 'Quiz Completed!', score: finalScore, total: questions.length, percentage, message, emoji });
-      setShowModal(true);
-      modalScaleAnim.setValue(0);
-      Animated.spring(modalScaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 6,
-        tension: 80,
-      }).start();
-    }, 500);
+    }
+    setShowResult(true);
   };
 
   const resetQuiz = async () => {
+    clearAllTimeouts();
+    setIsLoading(true);
+    setHasError(false);
+
     try {
       await AsyncStorage.removeItem("dailyQuiz");
       await AsyncStorage.removeItem("quizDate");
+      const newQuestions = await generateNewQuizSet();
+      setQuestions(newQuestions);
       setCurrentIndex(0);
       setScore(0);
       setShowResult(false);
       setSelectedAnswer(null);
       setIsAnswered(false);
-      setIsLoading(true);
-      setHasError(false);
-
-      if (safeKnowledgeQuestions.length === 0) {
-        setHasError(true);
-        setIsLoading(false);
-        return;
-      }
-
-      const indices = Array.from({ length: safeKnowledgeQuestions.length }, (_, i) => i);
-      const shuffledIndices = indices.sort(() => Math.random() - 0.5);
-      const selectedIndices = shuffledIndices.slice(0, Math.min(5, safeKnowledgeQuestions.length));
-
-      const dailySet: Question[] = selectedIndices.map(index => {
-        const q = safeKnowledgeQuestions[index];
-        return {
-          question: q?.question ?? "Missing question",
-          options: Array.isArray(q?.options) ? q.options : ["Option A", "Option B", "Option C", "Option D"],
-          correctAnswer: q?.correctAnswer ?? "Option A"
-        };
-      });
-
-      setQuestions(dailySet);
-      setOriginalIndices(selectedIndices);
-
-      const today = new Date().toDateString();
-      await AsyncStorage.setItem("dailyQuiz", JSON.stringify({
-        questions: dailySet,
-        originalIndices: selectedIndices
-      }));
-      await AsyncStorage.setItem("quizDate", today);
       setIsLoading(false);
-    } catch (error) {
-      console.error("Error resetting quiz:", error);
+    } catch (e) {
+      console.error("Error resetting quiz:", e);
       setHasError(true);
       setIsLoading(false);
     }
@@ -355,9 +400,12 @@ export default function EnhancedDailyQuizScreen() {
 
   const getOptionStyle = (option: string, index: number) => {
     if (!isAnswered) {
-      const hue = theme.isDark ? 230 + index * 12 : 220 + index * 15;
-      const lightness = theme.isDark ? 35 : 55;
-      return [s.optionBtn, { backgroundColor: `hsl(${hue}, 70%, ${lightness}%)` }];
+      if (theme.isDark) {
+        return [s.optionBtn, s.optionBtnDarkNormal];
+      } else {
+        const hue = 220 + index * 15;
+        return [s.optionBtn, { backgroundColor: `hsl(${hue}, 70%, 50%)` }];
+      }
     }
 
     const currentQuestion = questions[currentIndex];
@@ -375,7 +423,7 @@ export default function EnhancedDailyQuizScreen() {
     }
   };
 
-  const getCorrectOptionIcon = (option: string) => {
+  const getOptionIcon = (option: string) => {
     if (!isAnswered) return null;
 
     const currentQuestion = questions[currentIndex];
@@ -385,28 +433,30 @@ export default function EnhancedDailyQuizScreen() {
     if (isCorrect) {
       return <Text style={s.correctIcon}>✓</Text>;
     }
-
     if (isSelected && !isCorrect) {
       return <Text style={s.incorrectIcon}>✗</Text>;
     }
-
     return null;
   };
 
-  // Show error state if there's an error
+  // Error view
   if (hasError) {
     return (
-      <BackgroundWrapper colors={gradientPrimary}>
+      <BackgroundWrapper isDark={theme.isDark} colors={gradientPrimary} style={s.container}>
         <SafeAreaView style={s.safeArea}>
           <View style={s.loadingContainer}>
             <View style={s.errorCard}>
               <Text style={s.errorEmoji}>😔</Text>
-              <Text style={s.errorTitle}>Oops! Something went wrong</Text>
-              <Text style={s.errorText}>
-                Unable to load quiz questions. Please check that your knowledge file is properly configured.
+              <Text style={[s.errorTitle, fontBoldStyle]}>
+                {isNepali ? unicodeToAakriti("प्रश्नोत्तरी उपलब्ध भएन") : "Oops! Quiz Unavailable"}
               </Text>
-              <TouchableOpacity style={s.retryBtn} onPress={resetQuiz}>
-                <Text style={s.retryBtnText}>Try Again</Text>
+              <Text style={[s.errorText, fontStyle]}>
+                {isNepali ? unicodeToAakriti("हामीले आजका प्रश्नहरू लोड गर्न सकेनौं। कृपया पुनः प्रयास गर्नुहोस्।") : "We couldn't load the questions for today. Please try again."}
+              </Text>
+              <TouchableOpacity style={s.retryBtn} onPress={resetQuiz} activeOpacity={0.8}>
+                <Text style={[s.retryBtnText, fontBoldStyle]}>
+                  {isNepali ? unicodeToAakriti("पुनः लोड गर्नुहोस्") : "Reload Quiz"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -415,86 +465,81 @@ export default function EnhancedDailyQuizScreen() {
     );
   }
 
-  // Show loading state
+  // Loading view
   if (isLoading || questions.length === 0) {
     return (
-      <BackgroundWrapper colors={gradientPrimary}>
+      <BackgroundWrapper isDark={theme.isDark} colors={gradientPrimary} style={s.container}>
         <SafeAreaView style={s.safeArea}>
           <View style={s.loadingContainer}>
-            <Animated.View style={[s.loadingCard, { transform: [{ scale: scaleAnim }] }]}>
+            <View style={s.loadingCard}>
               <Text style={s.loadingEmoji}>🧠</Text>
-              <Text style={s.loadingText}>Preparing your daily challenge...</Text>
+              <Text style={[s.loadingText, fontStyle]}>
+                {isNepali ? unicodeToAakriti("तपाईंको दैनिक चुनौती तयार हुँदैछ...") : "Preparing your daily challenge..."}
+              </Text>
               <View style={s.loadingDots}>
                 <View style={[s.dot, s.dot1]} />
                 <View style={[s.dot, s.dot2]} />
                 <View style={[s.dot, s.dot3]} />
               </View>
-            </Animated.View>
+            </View>
           </View>
         </SafeAreaView>
       </BackgroundWrapper>
     );
   }
 
+  // Results screen
   if (showResult) {
     const finalScore = score;
-    const percentage = (finalScore / questions.length) * 100;
+    const percentage = Math.round((finalScore / questions.length) * 100);
 
     return (
-      <BackgroundWrapper colors={gradientReverse}>
+      <BackgroundWrapper isDark={theme.isDark} colors={gradientReverse} style={s.container}>
         <SafeAreaView style={s.safeArea}>
           <StatusBar barStyle="light-content" />
-          <Animated.View
-            style={[
-              s.resultContainer,
-              { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
-            ]}
-          >
+          <Animated.View style={[s.resultContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
             <View style={s.resultCard}>
-              <Text style={s.resultEmoji}>
-                {percentage >= 80 ? '🏆' : percentage >= 60 ? '🌟' : '💪'}
+              <Text style={s.resultEmoji}>{percentage >= 80 ? '🏆' : percentage >= 60 ? '🌟' : '💪'}</Text>
+              <Text style={[s.resultTitle, fontBoldStyle]}>
+                {isNepali ? unicodeToAakriti("प्रश्नोत्तरी समाप्त भयो!") : "Quiz Complete!"}
               </Text>
-              <Text style={s.resultTitle}>Quiz Complete!</Text>
               <View style={s.scoreContainer}>
-                <Text style={s.scoreNumber}>{finalScore}</Text>
-                <Text style={s.scoreDivider}>/</Text>
-                <Text style={s.scoreTotal}>{questions.length}</Text>
+                <Text style={[s.scoreNumber, fontBoldStyle]}>
+                  {isNepali ? toNepaliNumber(finalScore) : finalScore}
+                </Text>
+                <Text style={[s.scoreDivider, fontStyle]}>/</Text>
+                <Text style={[s.scoreTotal, fontStyle]}>
+                  {isNepali ? toNepaliNumber(questions.length) : questions.length}
+                </Text>
               </View>
-              <Text style={s.percentageText}>{percentage.toFixed(0)}% Correct</Text>
-
-              <View style={s.progressContainer}>
-                <View style={s.progressTrack}>
-                  <Animated.View
-                    style={[
-                      s.progressFill,
-                      { width: `${percentage}%` }
-                    ]}
-                  />
-                </View>
-              </View>
-
-              <Text style={s.motivationText}>
-                {percentage >= 80
-                  ? "Outstanding! You're a quiz master!"
-                  : percentage >= 60
-                    ? "Well done! Keep up the great work!"
-                    : "Practice makes perfect! Try again tomorrow!"}
+              <Text style={[s.percentageText, fontStyle]}>
+                {isNepali ? unicodeToAakriti(`${toNepaliNumber(percentage)}% सही`) : `${percentage}% Correct`}
               </Text>
 
-              <View style={s.buttonContainer}>
-                <TouchableOpacity style={s.resetBtn} onPress={resetQuiz}>
-                  <LinearGradient
-                    colors={gradientPrimary}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={s.resetBtnGradient}
-                  >
-                    <Text style={s.resetBtnText}>🔄Try New Quiz</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+              <View style={s.resultProgressTrack}>
+                <View style={[s.resultProgressFill, { width: `${percentage}%` }]} />
               </View>
 
-              <Text style={s.comeBackText}>New questions available tomorrow! ⏰</Text>
+              <Text style={[s.motivationText, fontStyle]}>
+                {percentage >= 80
+                  ? (isNepali ? unicodeToAakriti("उत्कृष्ट! तपाईं ज्ञानी हुनुहुन्छ!") : "Outstanding! You're a quiz master!")
+                  : percentage >= 60
+                    ? (isNepali ? unicodeToAakriti("स्याबास! अझै प्रयास जारी राख्नुहोस्!") : "Well done! Keep up the great work!")
+                    : (isNepali ? unicodeToAakriti("अभ्यासले पोख्त बनाउँछ! पुनः प्रयास गर्नुहोस्!") : "Practice makes perfect! Try again!")}
+              </Text>
+
+              <TouchableOpacity style={s.resetBtn} onPress={resetQuiz} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={gradientPrimary}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={s.resetBtnGradient}
+                >
+                  <Text style={[s.resetBtnText, fontBoldStyle]}>
+                    {isNepali ? unicodeToAakriti("🔄 नयाँ प्रश्नोत्तरी सुरु गर्नुहोस्") : "🔄 Try New Quiz"}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </SafeAreaView>
@@ -502,37 +547,31 @@ export default function EnhancedDailyQuizScreen() {
     );
   }
 
+  const currentQuestion = questions[currentIndex];
+
+  // Active Quiz View
   return (
-    <BackgroundWrapper colors={gradientPrimary}>
+    <BackgroundWrapper isDark={theme.isDark} colors={gradientPrimary} style={s.container}>
       <SafeAreaView style={s.safeArea}>
         <StatusBar barStyle="light-content" />
 
-        <Animated.View
-          style={[
-            s.headerContainer,
-            { transform: [{ scale: scaleAnim }] }
-          ]}
-        >
-          <Text style={s.headerTitle}>Daily Quiz 🧠</Text>
-          <Text style={s.headerSubtitle}>Test Your Knowledge</Text>
-        </Animated.View>
+        <View style={s.headerContainer}>
+          <Text style={[s.headerTitle, fontBoldStyle]}>
+            {isNepali ? unicodeToAakriti("दैनिक प्रश्नोत्तरी 🧠") : "Daily Quiz 🧠"}
+          </Text>
+          <Text style={[s.headerSubtitle, fontStyle]}>
+            {isNepali ? unicodeToAakriti("ज्ञान परीक्षण गर्नुहोस्") : "Test Your Knowledge"}
+          </Text>
+        </View>
 
         <View style={s.progressBarContainer}>
-          <Text style={s.progressText}>
-            Question {currentIndex + 1} of {questions.length}
+          <Text style={[s.progressText, fontStyle]}>
+            {isNepali
+              ? unicodeToAakriti(`प्रश्न ${toNepaliNumber(currentIndex + 1)} ÷ ${toNepaliNumber(questions.length)}`)
+              : `Question ${currentIndex + 1} of ${questions.length}`}
           </Text>
           <View style={s.progressTrack}>
-            <Animated.View
-              style={[
-                s.progressBar,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  })
-                }
-              ]}
-            />
+            <Animated.View style={[s.progressBar, { width: progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]} />
           </View>
         </View>
 
@@ -541,12 +580,10 @@ export default function EnhancedDailyQuizScreen() {
             s.questionContainer,
             {
               opacity: fadeAnim,
-              transform: [{
-                translateX: slideAnim.interpolate({
-                  inputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
-                  outputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
-                })
-              }]
+              transform: [
+                { scale: scaleAnim },
+                { translateX: slideAnim }
+              ]
             }
           ]}
         >
@@ -558,13 +595,13 @@ export default function EnhancedDailyQuizScreen() {
                 resizeMode="contain"
               />
             </View>
-            <Text style={s.questionText}>
-              {questions[currentIndex]?.question || "Loading question..."}
+            <Text style={[s.questionText, fontStyle]}>
+              {currentQuestion?.question ? (isNepali ? unicodeToAakriti(currentQuestion.question) : currentQuestion.question) : ""}
             </Text>
           </View>
 
           <View style={s.optionsContainer}>
-            {questions[currentIndex]?.options?.map((option, index) => (
+            {currentQuestion?.options?.map((option, index) => (
               <TouchableOpacity
                 key={index}
                 style={getOptionStyle(option, index)}
@@ -574,96 +611,26 @@ export default function EnhancedDailyQuizScreen() {
               >
                 <Text style={[
                   s.optionText,
-                  isAnswered && selectedAnswer === option && s.selectedOptionText
+                  isAnswered && selectedAnswer === option && s.selectedOptionText,
+                  fontStyle
                 ]}>
-                  {String.fromCharCode(65 + index)}. {option}
+                  {getOptionPrefix(index, isNepali)}
+                  {isNepali ? unicodeToAakriti(option) : option}
                 </Text>
-                {getCorrectOptionIcon(option)}
+                {getOptionIcon(option)}
               </TouchableOpacity>
-            )) || (
-                <View style={s.loadingOptions}>
-                  <Text style={s.loadingOptionsText}>Loading options...</Text>
-                </View>
-              )}
+            ))}
           </View>
         </Animated.View>
       </SafeAreaView>
-
-      {/* Custom Result Modal */}
-      <Modal
-        visible={showModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          Animated.timing(modalScaleAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setShowModal(false));
-        }}
-      >
-        <View style={s.modalOverlay}>
-          <Animated.View style={[s.modalContainer, { transform: [{ scale: modalScaleAnim }] }]}>
-            {/* Icon */}
-            <Text style={s.modalEmoji}>{modalData.emoji}</Text>
-
-            {/* Title */}
-            <Text style={s.modalTitle}>{modalData.title}</Text>
-
-            {/* Score */}
-            <View style={s.modalScoreRow}>
-              <Text style={[
-                s.modalScoreValue,
-                { color: modalData.percentage >= 80 ? '#4CAF50' : modalData.percentage >= 60 ? '#FF9800' : '#F44336' }
-              ]}>
-                {modalData.score}
-              </Text>
-              <Text style={s.modalScoreTotal}>/{modalData.total}</Text>
-            </View>
-            <Text style={s.modalPercentage}>{modalData.percentage.toFixed(0)}% Correct</Text>
-            <Text style={s.modalMessage}>{modalData.message}</Text>
-
-            {/* Stats */}
-            <View style={s.modalStatsRow}>
-              <View style={s.modalStatItem}>
-                <Text style={s.modalStatValue}>{modalData.score}</Text>
-                <Text style={s.modalStatLabel}>Correct</Text>
-              </View>
-              <View style={s.modalStatDivider} />
-              <View style={s.modalStatItem}>
-                <Text style={s.modalStatValue}>{modalData.total - modalData.score}</Text>
-                <Text style={s.modalStatLabel}>Wrong</Text>
-              </View>
-              <View style={s.modalStatDivider} />
-              <View style={s.modalStatItem}>
-                <Text style={s.modalStatValue}>{modalData.total}</Text>
-                <Text style={s.modalStatLabel}>Total</Text>
-              </View>
-            </View>
-
-            {/* Buttons */}
-            <View style={s.modalButtonRow}>
-              <TouchableOpacity style={s.modalButtonSecondary} onPress={() => {
-                Animated.timing(modalScaleAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setShowModal(false));
-              }}>
-                <Text style={s.modalButtonSecondaryText}>Close</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.modalButtonPrimary} onPress={() => {
-                Animated.timing(modalScaleAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
-                  setShowModal(false);
-                  resetQuiz();
-                });
-              }}>
-                <Text style={s.modalButtonPrimaryText}>🔄 New Quiz</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
     </BackgroundWrapper>
   );
 }
 
-function createDailyQuizStyles(theme: AppTheme) {
+function createDailyQuizStyles(theme: AppTheme, isNepali: boolean) {
   const { isDark } = theme;
-  const cardBg = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)';
-  const cardTextPrimary = isDark ? '#E8EAED' : '#2c3e50';
+  const cardBg = isDark ? 'rgba(30, 32, 48, 0.85)' : 'rgba(255, 255, 255, 0.95)';
+  const cardTextPrimary = isDark ? '#FFFFFF' : '#2c3e50';
   const cardTextSecondary = isDark ? '#B0B3B8' : '#7f8c8d';
 
   return StyleSheet.create({
@@ -672,143 +639,152 @@ function createDailyQuizStyles(theme: AppTheme) {
     },
     safeArea: {
       flex: 1,
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
     },
     headerContainer: {
       alignItems: 'center',
-      paddingTop: 20,
-      paddingBottom: 30,
-      paddingHorizontal: 16,
+      paddingTop: 15,
+      paddingBottom: 20,
     },
     headerTitle: {
-      fontSize: 32,
+      fontSize: isNepali ? 32 : 28,
       fontWeight: '800',
       color: '#ffffff',
       textAlign: 'center',
       textShadowColor: 'rgba(0, 0, 0, 0.3)',
-      textShadowOffset: { width: 2, height: 2 },
-      textShadowRadius: 4,
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 3,
     },
     headerSubtitle: {
-      fontSize: 16,
-      color: 'rgba(255, 255, 255, 0.8)',
-      marginTop: 5,
+      fontSize: isNepali ? 18 : 15,
+      color: 'rgba(255, 255, 255, 0.85)',
+      marginTop: 4,
       fontWeight: '500',
     },
     progressBarContainer: {
-      marginBottom: 30,
-      paddingHorizontal: 8,
+      marginBottom: 20,
+      paddingHorizontal: 4,
     },
     progressText: {
-      fontSize: 16,
+      fontSize: isNepali ? 18 : 15,
       color: '#ffffff',
       textAlign: 'center',
-      marginBottom: 15,
+      marginBottom: 10,
       fontWeight: '600',
     },
     progressTrack: {
       height: 8,
-      backgroundColor: 'rgba(146, 255, 146, 0.41)',
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
       borderRadius: 4,
       overflow: 'hidden',
-      marginHorizontal: 5,
     },
     progressBar: {
       height: '100%',
       backgroundColor: '#38ef7d',
       borderRadius: 4,
     },
-    progressFill: {
-      height: '100%',
-      backgroundColor: '#38ef7d',
-      borderRadius: 4,
-    },
     questionContainer: {
       flex: 1,
-      paddingBottom: 20,
-      paddingHorizontal: 3,
+      justifyContent: 'flex-start',
     },
     questionCard: {
-      borderRadius: 20,
-      padding: 10,
-      marginBottom: 25,
+      borderRadius: 18,
+      padding: 20,
+      marginBottom: 20,
       backgroundColor: isDark
-        ? 'rgba(255, 255, 255, 0.06)'
-        : Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-      ...(isDark && {
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.10)',
+        ? 'rgba(255, 255, 255, 0.12)'
+        : 'rgba(255, 255, 255, 0.95)',
+      borderWidth: isDark ? 1 : 0,
+      borderColor: 'rgba(255, 255, 255, 0.18)',
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.15,
+          shadowRadius: 10,
+        },
+        android: {
+          elevation: isDark ? 0 : 4,
+        },
       }),
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: Platform.OS === 'ios' ? 0.25 : 0,
-      shadowRadius: Platform.OS === 'ios' ? 20 : 0,
-      elevation: (Platform.OS === 'android' && !isDark) ? 8 : 0,
     },
     questionIconContainer: {
       alignItems: 'center',
-      marginBottom: 15,
+      marginBottom: 12,
     },
     questionIconImage: {
-      width: 50,
-      height: 50,
-      tintColor: '#ffffff',
+      width: 44,
+      height: 44,
+      tintColor: isDark ? '#FFD700' : '#434D57',
     },
     questionText: {
-      fontSize: 20,
-      fontWeight: '600',
-      color: '#ffffff',
+      fontSize: isNepali ? 23 : 19,
+      fontWeight: '700',
+      color: isDark ? '#FFFFFF' : '#1A202C',
       textAlign: 'center',
-      lineHeight: 28,
+      lineHeight: isNepali ? 32 : 26,
     },
     optionsContainer: {
       flex: 1,
-      paddingHorizontal: 4,
     },
     optionBtn: {
-      borderRadius: 15,
-      padding: 15,
-      marginBottom: 15,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0,
-      shadowRadius: Platform.OS === 'ios' ? 8 : 0,
-      elevation: (Platform.OS === 'android' && !isDark) ? 4 : 0,
+      borderRadius: 14,
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      marginBottom: 14,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      ...(isDark && {
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+      minHeight: 62,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.12,
+          shadowRadius: 6,
+        },
+        android: {
+          elevation: 2,
+        },
       }),
     },
+    optionBtnDarkNormal: {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
     optionText: {
-      fontSize: 16,
+      fontSize: isNepali ? 24 : 18,
       color: '#ffffff',
       fontWeight: '600',
       flex: 1,
+      marginRight: 10,
+      lineHeight: isNepali ? 32 : 24,
     },
     selectedOptionText: {
-      fontWeight: '700',
+      fontWeight: '800',
     },
     correctOption: {
-      backgroundColor: isDark ? 'rgba(76, 175, 80, 0.3)' : '#27ae60',
-      borderColor: isDark ? 'rgba(76, 175, 80, 0.5)' : 'transparent',
+      backgroundColor: '#2e7d32',
+      borderWidth: 1,
+      borderColor: '#4caf50',
     },
     incorrectOption: {
-      backgroundColor: isDark ? 'rgba(231, 76, 60, 0.3)' : '#e74c3c',
-      borderColor: isDark ? 'rgba(231, 76, 60, 0.5)' : 'transparent',
+      backgroundColor: '#c62828',
+      borderWidth: 1,
+      borderColor: '#ef5350',
     },
     disabledOption: {
-      backgroundColor: isDark ? 'rgba(108, 117, 125, 0.4)' : 'rgba(108, 117, 125, 0.6)',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(200, 200, 200, 0.5)',
+      opacity: 0.6,
     },
     correctIcon: {
-      fontSize: 20,
+      fontSize: 18,
       color: '#ffffff',
       fontWeight: 'bold',
     },
     incorrectIcon: {
-      fontSize: 20,
+      fontSize: 18,
       color: '#ffffff',
       fontWeight: 'bold',
     },
@@ -816,33 +792,26 @@ function createDailyQuizStyles(theme: AppTheme) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
     },
     loadingCard: {
       backgroundColor: cardBg,
       borderRadius: 20,
-      padding: 40,
+      padding: 36,
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.25,
-      shadowRadius: 20,
-      elevation: isDark ? 0 : 10,
-      ...(isDark && {
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.10)',
-      }),
+      width: '100%',
+      maxWidth: 340,
     },
     loadingEmoji: {
-      fontSize: 50,
-      marginBottom: 20,
+      fontSize: 48,
+      marginBottom: 16,
     },
     loadingText: {
-      fontSize: 18,
+      fontSize: isNepali ? 20 : 17,
       color: cardTextPrimary,
       fontWeight: '600',
       textAlign: 'center',
-      marginBottom: 20,
+      marginBottom: 16,
     },
     loadingDots: {
       flexDirection: 'row',
@@ -853,7 +822,7 @@ function createDailyQuizStyles(theme: AppTheme) {
       height: 8,
       borderRadius: 4,
       backgroundColor: isDark ? '#9BA1A6' : '#434D57',
-      marginHorizontal: 3,
+      marginHorizontal: 4,
     },
     dot1: { opacity: 0.4 },
     dot2: { opacity: 0.7 },
@@ -861,284 +830,128 @@ function createDailyQuizStyles(theme: AppTheme) {
     errorCard: {
       backgroundColor: cardBg,
       borderRadius: 20,
-      padding: 40,
+      padding: 36,
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.25,
-      shadowRadius: 20,
-      elevation: isDark ? 0 : 10,
-      ...(isDark && {
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.10)',
-      }),
+      width: '100%',
+      maxWidth: 340,
     },
     errorEmoji: {
-      fontSize: 50,
-      marginBottom: 20,
+      fontSize: 48,
+      marginBottom: 16,
     },
     errorTitle: {
-      fontSize: 24,
+      fontSize: isNepali ? 26 : 22,
       fontWeight: '700',
       color: '#e74c3c',
-      marginBottom: 15,
+      marginBottom: 12,
       textAlign: 'center',
     },
     errorText: {
-      fontSize: 16,
+      fontSize: isNepali ? 18 : 15,
       color: cardTextSecondary,
       textAlign: 'center',
-      lineHeight: 22,
-      marginBottom: 30,
+      lineHeight: isNepali ? 25 : 22,
+      marginBottom: 24,
     },
     retryBtn: {
-      backgroundColor: isDark ? 'rgba(67, 77, 87, 0.8)' : '#434D57',
-      paddingHorizontal: 30,
-      paddingVertical: 15,
-      borderRadius: 15,
-      shadowColor: '#434D57',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 5,
+      backgroundColor: isDark ? '#3b82f6' : '#2563eb',
+      borderRadius: 12,
+      paddingVertical: 14,
+      paddingHorizontal: 28,
     },
     retryBtnText: {
-      fontSize: 16,
       color: '#ffffff',
+      fontSize: isNepali ? 18 : 16,
       fontWeight: '700',
     },
     resultContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: 20,
     },
     resultCard: {
       backgroundColor: cardBg,
-      borderRadius: 25,
-      padding: 40,
+      borderRadius: 24,
+      padding: 32,
       alignItems: 'center',
       width: '100%',
-      maxWidth: 350,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 15 },
-      shadowOpacity: 0.3,
-      shadowRadius: 25,
-      elevation: isDark ? 0 : 15,
-      ...(isDark && {
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.10)',
-      }),
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 16,
+      elevation: 6,
     },
     resultEmoji: {
-      fontSize: 60,
-      marginBottom: 20,
+      fontSize: 64,
+      marginBottom: 16,
     },
     resultTitle: {
-      fontSize: 28,
+      fontSize: isNepali ? 30 : 26,
       fontWeight: '800',
       color: cardTextPrimary,
-      marginBottom: 20,
+      marginBottom: 16,
     },
     scoreContainer: {
       flexDirection: 'row',
       alignItems: 'baseline',
-      marginBottom: 10,
+      marginBottom: 8,
     },
     scoreNumber: {
-      fontSize: 48,
-      fontWeight: '900',
-      color: isDark ? '#9B8DC7' : '#6B5B95',
+      fontSize: isNepali ? 52 : 48,
+      fontWeight: '800',
+      color: '#38ef7d',
     },
     scoreDivider: {
-      fontSize: 36,
-      fontWeight: '600',
+      fontSize: 32,
       color: cardTextSecondary,
-      marginHorizontal: 8,
+      marginHorizontal: 4,
     },
     scoreTotal: {
-      fontSize: 36,
+      fontSize: isNepali ? 32 : 28,
       fontWeight: '600',
       color: cardTextSecondary,
     },
     percentageText: {
-      fontSize: 18,
-      color: isDark ? '#B0B3B8' : '#34495e',
-      fontWeight: '600',
+      fontSize: isNepali ? 21 : 18,
+      fontWeight: '700',
+      color: cardTextPrimary,
       marginBottom: 20,
     },
-    progressContainer: {
+    resultProgressTrack: {
+      height: 10,
+      backgroundColor: 'rgba(0, 0, 0, 0.1)',
+      borderRadius: 5,
       width: '100%',
-      marginBottom: 25,
+      overflow: 'hidden',
+      marginBottom: 20,
+    },
+    resultProgressFill: {
+      height: '100%',
+      backgroundColor: '#38ef7d',
+      borderRadius: 5,
     },
     motivationText: {
-      fontSize: 16,
+      fontSize: isNepali ? 19 : 16,
       color: cardTextSecondary,
       textAlign: 'center',
-      marginBottom: 30,
-      lineHeight: 22,
+      lineHeight: isNepali ? 27 : 22,
+      marginBottom: 28,
       fontWeight: '500',
-    },
-    buttonContainer: {
-      width: '100%',
-      marginBottom: 20,
     },
     resetBtn: {
-      borderRadius: 15,
-      shadowColor: '#434D57',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 5,
+      width: '100%',
+      borderRadius: 14,
+      overflow: 'hidden',
     },
     resetBtnGradient: {
-      padding: 15,
-      borderRadius: 15,
+      paddingVertical: 16,
       alignItems: 'center',
+      borderRadius: 14,
     },
     resetBtnText: {
-      fontSize: 16,
       color: '#ffffff',
+      fontSize: isNepali ? 20 : 17,
       fontWeight: '700',
-    },
-    comeBackText: {
-      fontSize: 14,
-      color: isDark ? '#8A8D91' : '#95a5a6',
-      textAlign: 'center',
-      fontStyle: 'italic',
-    },
-    loadingOptions: {
-      padding: 20,
-      alignItems: 'center',
-    },
-    loadingOptionsText: {
-      fontSize: 16,
-      color: '#ffffff',
-      opacity: 0.7,
-    },
-    // Modal styles
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: 30,
-    },
-    modalContainer: {
-      width: '100%',
-      backgroundColor: isDark ? 'rgba(30, 35, 45, 0.95)' : '#FFFFFF',
-      borderRadius: 24,
-      paddingVertical: 32,
-      paddingHorizontal: 24,
-      alignItems: 'center',
-      borderWidth: isDark ? 1 : 0,
-      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 12 },
-      shadowOpacity: 0.3,
-      shadowRadius: 24,
-      elevation: isDark ? 0 : 10,
-    },
-    modalEmoji: {
-      fontSize: 56,
-      marginBottom: 12,
-    },
-    modalTitle: {
-      fontSize: 22,
-      fontWeight: '800',
-      color: isDark ? '#E8EAED' : '#2c3e50',
-      marginBottom: 16,
-      textAlign: 'center',
-    },
-    modalScoreRow: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      marginBottom: 4,
-    },
-    modalScoreValue: {
-      fontSize: 48,
-      fontWeight: '900',
-    },
-    modalScoreTotal: {
-      fontSize: 24,
-      fontWeight: '600',
-      color: isDark ? '#B0B3B8' : '#7f8c8d',
-    },
-    modalPercentage: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: isDark ? '#B0B3B8' : '#34495e',
-      marginBottom: 8,
-    },
-    modalMessage: {
-      fontSize: 15,
-      color: isDark ? '#8A8D91' : '#7f8c8d',
-      marginBottom: 24,
-      textAlign: 'center',
-    },
-    modalStatsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA',
-      borderRadius: 16,
-      paddingVertical: 16,
-      paddingHorizontal: 20,
-      width: '100%',
-      marginBottom: 24,
-    },
-    modalStatItem: {
-      flex: 1,
-      alignItems: 'center',
-      gap: 4,
-    },
-    modalStatValue: {
-      fontSize: 18,
-      fontWeight: '800',
-      color: isDark ? '#E8EAED' : '#2c3e50',
-    },
-    modalStatLabel: {
-      fontSize: 12,
-      fontWeight: '500',
-      color: isDark ? '#8A8D91' : '#7f8c8d',
-    },
-    modalStatDivider: {
-      width: 1,
-      height: 36,
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E0E0E0',
-    },
-    modalButtonRow: {
-      flexDirection: 'row',
-      gap: 12,
-      width: '100%',
-    },
-    modalButtonSecondary: {
-      flex: 1,
-      paddingVertical: 14,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F0F0F0',
-      borderWidth: isDark ? 1 : 0,
-      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-    },
-    modalButtonSecondaryText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: isDark ? '#E8EAED' : '#2c3e50',
-    },
-    modalButtonPrimary: {
-      flex: 1,
-      paddingVertical: 14,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#FF6B35',
-    },
-    modalButtonPrimaryText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: '#FFFFFF',
     },
   });
 }

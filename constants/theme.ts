@@ -135,10 +135,10 @@ export interface AppTheme {
 
 // ─── Light palette ───────────────────────────────────────────────────
 const lightColors: ThemePalette = {
-  background: '#f5f5f5',
-  surface: '#f0f0f0',
+  background: '#F4F7FA',
+  surface: '#EEF2F6',
   card: '#ffffff',
-  cardBorder: 'transparent',
+  cardBorder: '#E5E9F0',
 
   text: '#333333',
   textSecondary: '#666666',
@@ -178,7 +178,7 @@ const lightColors: ThemePalette = {
   saveButtonBg: '#4CAF50',
   saveButtonText: '#ffffff',
 
-  shadow: '#000000',
+  shadow: '#55708C',
 
   tagBackground: '#434D57',
   tagText: '#ffffff',
@@ -199,7 +199,7 @@ const lightColors: ThemePalette = {
 
 // ─── Dark palette ────────────────────────────────────────────────────
 const darkColors: ThemePalette = {
-  background: 'transparent', // background.jpg is shown instead
+  background: 'transparent', // background.jpg image is shown underneath
   surface: 'rgba(255, 255, 255, 0.06)',
   card: 'rgba(255, 255, 255, 0.08)',
   cardBorder: 'rgba(255, 255, 255, 0.12)',
@@ -208,7 +208,7 @@ const darkColors: ThemePalette = {
   textSecondary: '#B0B3B8',
   textTertiary: '#8A8D91',
 
-  header: 'rgba(30, 33, 38, 0.75)',
+  header: '#1E2126',
   headerText: '#ffffff',
   headerAccent: 'rgba(255, 255, 255, 0.12)',
 

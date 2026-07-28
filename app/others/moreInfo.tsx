@@ -3,54 +3,49 @@ import { Stack, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { useTheme } from '@/context/ThemeContext';
 import type { AppTheme } from '@/constants/theme';
+import { useLanguage } from '@/context/LanguageContext';
+import { useTheme, ThemeBackground } from '@/context/ThemeContext';
+import { themedHeaderOptions } from '@/constants/screenHelpers';
+import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 
 export default function MoreInfoScreen() {
   const router = useRouter();
   const [showFullDisclaimer, setShowFullDisclaimer] = useState(false);
   const { theme } = useTheme();
-  const s = useMemo(() => createMoreInfoStyles(theme), [theme]);
+  const { isNepali } = useLanguage();
+  const s = useMemo(() => createMoreInfoStyles(theme, isNepali), [theme, isNepali]);
 
   return (
-    <>
-      <Stack.Screen 
+    <ThemeBackground>
+      <Stack.Screen
         options={{
-          headerShown: false,
-          title: "More Info",
-          headerTitleAlign: 'left',
-    
-        headerTitleStyle: {
-            fontSize: 20,
-            color: '#000000',
+          title: isNepali ? unicodeToAakriti('थप जानकारी') : 'More Info',
+          ...themedHeaderOptions(theme),
+          headerTitleStyle: {
+            fontSize: isNepali ? 22 : 20,
+            color: '#FFFFFF',
+            fontFamily: isNepali ? 'AakritiBold' : undefined,
           },
-          headerTintColor: '#FFFFFF',
           headerLeft: () => (
-            <Pressable 
+            <Pressable
               onPress={() => router.back()}
-              style={s.headerBackButton}
+              style={{ padding: 8, marginLeft: 10, borderRadius: 20 }}
             >
-              <Ionicons name="arrow-back" size={20} color="#000000" />
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </Pressable>
           ),
         }}
       />
       <ScrollView style={s.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={s.container}>
-          {/* Hero Image with Back Button */}
+          {/* Hero Image */}
           <View style={s.imageContainer}>
-            <Image 
-              source={require('../../assets/images/moreinfo.jpg')} 
+            <Image
+              source={require('../../assets/images/moreinfo.jpg')}
               style={s.heroImage}
               resizeMode="contain"
             />
-            {/* Back Button Overlay */}
-            <Pressable 
-              onPress={() => router.back()}
-              style={s.backButtonOverlay}
-            >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-            </Pressable>
           </View>
 
           {/* Title */}
@@ -59,36 +54,50 @@ export default function MoreInfoScreen() {
           {/* Description */}
           <View style={s.descriptionContainer}>
             <Text style={s.description}>
-              Lekhit Guru offers a modern and interactive approach to preparing for the Lekhit exam 
-              through a variety of tools such as quizzes, full exam tests, and eye tests. Designed 
-              with user convenience in mind, the app also includes a unique feature that allows users 
-              to upload and securely store their driving license for easy access ideal during traffic 
-              checks or official verifications.
+              {isNepali
+                ? unicodeToAakriti('लिखित गुरुले सवारी चालक लिखित परीक्षाको तयारीका लागि विभिन्न आधुनिक तथा अन्तरक्रियात्मक साधनहरू जस्तै: विषयगत प्रश्नोत्तरी, पूर्ण नमुना परीक्षा, र दृष्टि परीक्षा (आई टेस्ट) उपलब्ध गराउँछ। प्रयोगकर्ताको सहजतालाई ध्यानमा राखी तयार पारिएको यस एपमा चालक अनुमतिपत्र (लाइसेन्स) सुरक्षित रूपमा भण्डारण गर्ने विशेष सुविधा पनि समावेश छ, जुन ट्राफिक चेकिङ वा आधिकारिक प्रमाणीकरणका बखत उपयोगी हुन्छ।')
+                : 'Lekhit Guru offers a modern and interactive approach to preparing for the Lekhit exam through a variety of tools such as quizzes, full exam tests, and eye tests. Designed with user convenience in mind, the app also includes a unique feature that allows users to upload and securely store their driving license for easy access ideal during traffic checks or official verifications.'}
             </Text>
 
-             {/* Disclaimer */}
-             <TouchableOpacity 
+            {/* Disclaimer */}
+            <TouchableOpacity
               style={s.disclaimerContainer}
               onPress={() => setShowFullDisclaimer(!showFullDisclaimer)}
               activeOpacity={0.7}
             >
               <Text style={s.disclaimerText}>
-                Note: This app is a privately developed for educational tool and{' '}
-                {showFullDisclaimer ? (
+                {isNepali ? (
                   <>
-                    <Text style={s.boldText}> isn't affiliated with, endorsed by, or representative 
-                    of any government authority or official department</Text>. All content is intended 
-                    to assist users in learning and preparation only.
+                    {unicodeToAakriti('द्रष्टव्य: यो एप व्यक्तिगत रूपमा विकसित गरिएको एक शैक्षिक सामग्री हो। यो ')}
+                    {showFullDisclaimer ? (
+                      <>
+                        <Text style={s.boldText}>
+                          {unicodeToAakriti('कुनै पनि सरकारी निकाय, विभाग वा आधिकारिक संस्थासँग सम्बद्ध, अनुमोदित वा सम्बन्धित छैन')}
+                        </Text>
+                        {unicodeToAakriti('। सम्पूर्ण सामग्री केवल सिकाइ तथा परीक्षा तयारीको सहायताका लागि तयार पारिएको हो।')}
+                      </>
+                    ) : (
+                      <Text style={s.boldText}>{unicodeToAakriti('सरकारी निकायसँग सम्बद्ध छैन...')}</Text>
+                    )}
                   </>
                 ) : (
-                  <Text style={s.boldText}>not affiliated with...</Text>
+                  <>
+                    Note: This app is a privately developed for educational tool and{' '}
+                    {showFullDisclaimer ? (
+                      <>
+                        <Text style={s.boldText}> isn't affiliated with, endorsed by, or representative of any government authority or official department</Text>. All content is intended to assist users in learning and preparation only.
+                      </>
+                    ) : (
+                      <Text style={s.boldText}>not affiliated with...</Text>
+                    )}
+                  </>
                 )}
               </Text>
               <View style={s.expandIcon}>
-                <Ionicons 
-                  name={showFullDisclaimer ? "chevron-up" : "chevron-down"} 
-                  size={16} 
-                  color={theme.colors.textSecondary} 
+                <Ionicons
+                  name={showFullDisclaimer ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color={theme.colors.textSecondary}
                 />
               </View>
             </TouchableOpacity>
@@ -100,12 +109,14 @@ export default function MoreInfoScreen() {
           </View>
         </View>
       </ScrollView>
-    </>
+    </ThemeBackground>
   );
 }
 
-function createMoreInfoStyles(theme: AppTheme) {
+function createMoreInfoStyles(theme: AppTheme, isNepali: boolean = false) {
   const { colors, isDark } = theme;
+  const fontNormal = isNepali ? 'Aakriti' : undefined;
+  const fontBold = isNepali ? 'AakritiBold' : undefined;
 
   return StyleSheet.create({
     scrollContainer: {
@@ -121,7 +132,7 @@ function createMoreInfoStyles(theme: AppTheme) {
     imageContainer: {
       alignItems: 'center',
       marginBottom: 14,
-      marginTop: 70,
+      marginTop: 10,
     },
     heroImage: {
       width: 400,
@@ -139,11 +150,12 @@ function createMoreInfoStyles(theme: AppTheme) {
       marginBottom: 40,
     },
     description: {
-      fontSize: 16,
-      lineHeight: 24,
+      fontSize: isNepali ? 18 : 16,
+      lineHeight: isNepali ? 28 : 24,
       color: colors.textSecondary,
       textAlign: 'left',
       marginBottom: 20,
+      fontFamily: fontNormal,
     },
     disclaimerContainer: {
       backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f8f9fa',
@@ -156,12 +168,13 @@ function createMoreInfoStyles(theme: AppTheme) {
       alignItems: 'flex-start',
     },
     disclaimerText: {
-      fontSize: 14,
-      lineHeight: 20,
+      fontSize: isNepali ? 16 : 14,
+      lineHeight: isNepali ? 24 : 20,
       color: colors.textSecondary,
       textAlign: 'left',
       flex: 1,
       paddingRight: 8,
+      fontFamily: fontNormal,
     },
     expandIcon: {
       marginTop: 2,
@@ -169,6 +182,7 @@ function createMoreInfoStyles(theme: AppTheme) {
     boldText: {
       fontWeight: 'bold',
       color: colors.text,
+      fontFamily: fontBold,
     },
     footer: {
       alignItems: 'center',

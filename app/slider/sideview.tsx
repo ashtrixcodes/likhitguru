@@ -66,6 +66,7 @@ export default function SideView() {
         { id: 'license-print-check', label: 'License Print Check', icon: 'print-outline', route: '/others/licensePrintCheck' },
         { id: 'traffic-fines', label: 'Traffic Fines Info', icon: 'warning-outline', route: '/others/trafficFines' },
         { id: 'more-info', label: 'More Info', icon: 'help-outline', route: '/others/moreInfo' },
+        { id: 'nepali-calendar', label: 'Nepali Calendar', icon: 'calendar-outline', route: '/others/nepaliCalendar' },
       ]
     },
     {

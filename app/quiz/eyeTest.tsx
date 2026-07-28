@@ -1,16 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme, ThemeBackground } from '@/context/ThemeContext';
+import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import { themedHeaderOptions } from '@/constants/screenHelpers';
 import type { AppTheme } from '@/constants/theme';
-import { Animated, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { quizEyeTest } from './constant'; // Import the quiz data
+import { Animated, Image, Modal, Pressable, StyleSheet, Text, View, Platform, ScrollView } from 'react-native';
+import { quizEyeTest } from './constant';
+import { useLanguage } from '@/context/LanguageContext';
+import { useRewardedAd, TestIds } from '@/utils/mobileAds';
+
+const rewardedAdUnitId = 'ca-app-pub-9520863212221697/6426303936';
+
+import AdBanner from '@/components/AdBanner';
 // Quiz data structure with correct answers
 
-export default function SignTest() {
+export default function EyeTest() {
     const { theme } = useTheme();
-    const styles = useMemo(() => createStyles(theme), [theme]);
+    const { isNepali } = useLanguage();
+    const styles = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
     const router = useRouter();
     const [gameState, setGameState] = useState<'idle' | 'playing' | 'finished'>('idle');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -22,6 +30,52 @@ export default function SignTest() {
     const [attempts, setAttempts] = useState(0);
     const [showModal, setShowModal] = useState(false);
     const [modalData, setModalData] = useState<{ title: string; score: number; timeTaken: number; isTimeUp: boolean }>({ title: '', score: 0, timeTaken: 0, isTimeUp: false });
+    const [userAnswers, setUserAnswers] = useState<string[]>([]);
+    const [isReviewUnlocked, setIsReviewUnlocked] = useState(false);
+    const [pendingAction, setPendingAction] = useState<'review' | 'restart' | 'back' | null>(null);
+
+    // Hook for AdMob Rewarded Ad
+    const { isLoaded, isClosed, show, reward, load } = useRewardedAd(rewardedAdUnitId, {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Proactively load the ad when the screen mounts
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    // Handle reward and unlock reviews
+    useEffect(() => {
+        if (isClosed && reward) {
+            setIsReviewUnlocked(true);
+            if (pendingAction === 'review') {
+                setShowModal(false);
+            } else if (pendingAction === 'restart') {
+                setShowModal(false);
+                resetGame();
+            } else if (pendingAction === 'back') {
+                router.back();
+            }
+            setPendingAction(null);
+        } else if (isClosed) {
+            // User closed early - reload ad, don't unlock/go back
+            setPendingAction(null);
+            load();
+        }
+    }, [isClosed, reward, pendingAction, load]);
+
+    const handleBackPress = () => {
+        if (gameState === 'finished' && !isReviewUnlocked) {
+            if (isLoaded) {
+                setPendingAction('back');
+                show();
+            } else {
+                router.back();
+            }
+        } else {
+            router.back();
+        }
+    };
     const modalScaleAnim = useRef(new Animated.Value(0)).current;
     
     // Animation refs
@@ -166,6 +220,7 @@ export default function SignTest() {
         
         setSelectedAnswer(answer);
         setShowResult(true);
+        setUserAnswers(prev => [...prev, answer]);
         
         const isCorrect = answer === currentQuiz[currentQuestionIndex].correctAnswer;
         
@@ -204,7 +259,7 @@ export default function SignTest() {
     };
 
     // Reset game
-    const resetGame = () => {
+    function resetGame() {
         setGameState('idle');
         setCurrentQuestionIndex(0);
         setScore(0);
@@ -212,6 +267,8 @@ export default function SignTest() {
         setSelectedAnswer(null);
         setShowResult(false);
         setCurrentQuiz([]);
+        setUserAnswers([]);
+        setIsReviewUnlocked(false);
         
         // Reset animations
         liquidProgressAnim.setValue(0);
@@ -249,14 +306,19 @@ export default function SignTest() {
     };
 
     return (
-        <>
+        <ThemeBackground>
             <Stack.Screen 
                 options={{
-                    title: "Eye Test",
+                    title: isNepali ? unicodeToAakriti("दृष्टि परीक्षा (आई टेस्ट)") : "Eye Test",
                     ...themedHeaderOptions(theme),
+                    headerTitleStyle: {
+                        fontSize: isNepali ? 22 : 20,
+                        color: '#FFFFFF',
+                        fontFamily: isNepali ? 'AakritiBold' : undefined,
+                    },
                     headerLeft: () => (
                         <Pressable 
-                            onPress={() => router.back()}
+                            onPress={handleBackPress}
                             style={styles.headerBackButton}
                         >
                             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -281,11 +343,11 @@ export default function SignTest() {
                             />
                         </Animated.View>
                         <View style={styles.timerTextContainer}>
-                            <Text style={styles.timerLabel}>Timer</Text>
+                            <Text style={styles.timerLabel}>{isNepali ? 'समय' : 'Timer'}</Text>
                             <Text style={styles.timerSubtext}>
-                                {gameState === 'playing' ? "Time is running" : 
-                                 gameState === 'finished' ? "Time has ended" : 
-                                 "Press start to begin"}
+                                {gameState === 'playing' ? (isNepali ? "समय चलिरहेको छ" : "Time is running") : 
+                                 gameState === 'finished' ? (isNepali ? "समय समाप्त भयो" : "Time has ended") : 
+                                 (isNepali ? "सुरु गर्न Start थिच्नुहोस्" : "Press start to begin")}
                             </Text>
                         </View>
                     </View>
@@ -315,7 +377,7 @@ export default function SignTest() {
                                 style={styles.startButton}
                                 onPress={handleStart}
                             >
-                                <Text style={styles.startButtonText}>Start</Text>
+                                <Text style={styles.startButtonText}>{isNepali ? 'सुरु गर्नुहोस्' : 'Start'}</Text>
                             </Pressable>
                         )}
                     </Animated.View>
@@ -324,16 +386,16 @@ export default function SignTest() {
                 {/* Score Display */}
                 {gameState === 'playing' && (
                     <View style={styles.scoreContainer}>
-                        <Text style={styles.scoreText}>Score: {score}/20</Text>
-                        <Text style={styles.questionCounter}>Question {currentQuestionIndex + 1}/20</Text>
+                        <Text style={styles.scoreText}>{isNepali ? `प्राप्तांक: ${score}/२०` : `Score: ${score}/20`}</Text>
+                        <Text style={styles.questionCounter}>{isNepali ? `प्रश्न ${currentQuestionIndex + 1}/२०` : `Question ${currentQuestionIndex + 1}/20`}</Text>
                     </View>
                 )}
 
                 {/* Question Section */}
                 {gameState === 'playing' && currentQuiz.length > 0 && (
                     <View style={styles.questionSection}>
-                        <Text style={styles.questionTitle}>Which sign is this?</Text>
-                        <Text style={styles.questionSubtitle}>Please identify the sign</Text>
+                        <Text style={styles.questionTitle}>{isNepali ? 'यो कुन संख्या हो?' : 'Which number is this?'}</Text>
+                        <Text style={styles.questionSubtitle}>{isNepali ? 'चित्रमा देखिएको संख्या पहिचान गर्नुहोस्' : 'Please identify the number'}</Text>
                         
                         <View style={styles.signContainer}>
                             <Image 
@@ -381,26 +443,58 @@ export default function SignTest() {
 
                 {/* Game Over Screen */}
                 {gameState === 'finished' && (
-                    <View style={styles.gameOverContainer}>
-                        <Text style={styles.gameOverTitle}>Quiz Completed!</Text>
-                        <Text style={styles.gameOverScore}>Final Score: {score}/20</Text>
-                        <Text style={styles.gameOverTime}>Time Taken: {60 - timeLeft} seconds</Text>
+                    <ScrollView 
+                        style={styles.gameOverContainer} 
+                        contentContainerStyle={{ paddingBottom: 40, alignItems: 'center' }}
+                        showsVerticalScrollIndicator={false}
+                    >
+                        <Text style={styles.gameOverScore}>{isNepali ? `अन्तिम प्राप्तांक: ${score}/२०` : `Final Score: ${score}/20`}</Text>
+                        <Text style={styles.gameOverTime}>{isNepali ? `लागेको समय: ${60 - timeLeft} सेकेन्ड` : `Time Taken: ${60 - timeLeft} seconds`}</Text>
+                        
+                        {isReviewUnlocked && currentQuiz.map((item, index) => {
+                            const userAns = userAnswers[index];
+                            const isCorrect = userAns === item.correctAnswer;
+                            return (
+                                <View key={index} style={styles.reviewCard}>
+                                    <Text style={styles.reviewNumber}>{isNepali ? `प्रश्न ${index + 1}` : `Question ${index + 1}`}</Text>
+                                    <Image source={item.image} style={styles.reviewImage} resizeMode="contain" />
+                                    
+                                    <View style={styles.reviewAnswers}>
+                                        <Text style={styles.reviewTextLabel}>{isNepali ? 'तपाईंको उत्तर:' : 'Your Answer:'}</Text>
+                                        <Text style={[styles.reviewTextValue, { color: isCorrect ? '#4CAF50' : '#F44336' }]}>
+                                            {userAns || (isNepali ? 'उत्तर नदिएको' : 'Unanswered')}
+                                        </Text>
+                                        
+                                        {!isCorrect && (
+                                            <>
+                                                <Text style={styles.reviewTextLabel}>{isNepali ? 'सही उत्तर:' : 'Correct Answer:'}</Text>
+                                                <Text style={[styles.reviewTextValue, { color: '#4CAF50' }]}>
+                                                    {item.correctAnswer}
+                                                </Text>
+                                            </>
+                                        )}
+                                    </View>
+                                </View>
+                            );
+                        })}
+                        
                         <Pressable style={styles.restartButton} onPress={resetGame}>
-                            <Text style={styles.restartButtonText}>Play Again</Text>
+                            <Text style={styles.restartButtonText}>{isNepali ? 'पुनः परीक्षा दिनुहोस्' : 'Play Again'}</Text>
                         </Pressable>
-                    </View>
+                        <AdBanner />
+                    </ScrollView>
                 )}
 
                 {/* Instructions */}
                 {gameState === 'idle' && (
                     <View style={styles.instructionsContainer}>
-                        <Text style={styles.instructionsTitle}>How to Play</Text>
+                        <Text style={styles.instructionsTitle}>{isNepali ? 'परीक्षा निर्देशनहरू' : 'How to Play'}</Text>
                         <Text style={styles.instructionsText}>
-                            • Identify 20 numbers within 60 seconds{'\n'}
-                            • Click the correct answer from 3 options{'\n'}
-                            • Green glow → correct answer{'\n'}
-                            • Red glow → incorrect answer{'\n'}
-                            • Complete all questions before time runs out!
+                            • {isNepali ? '६० सेकेन्डभित्र २० वटा संख्याहरूको पहिचान गर्नुहोस्' : 'Identify 20 numbers within 60 seconds'}{'\n'}
+                            • {isNepali ? '३ वटा विकल्पहरू मध्ये सही उत्तर छान्नुहोस्' : 'Click the correct answer from 3 options'}{'\n'}
+                            • {isNepali ? 'हरियो रङ्ग → सही उत्तर' : 'Green glow → correct answer'}{'\n'}
+                            • {isNepali ? 'रातो रङ्ग → गलत उत्तर' : 'Red glow → incorrect answer'}{'\n'}
+                            • {isNepali ? 'समय सकिनु अघि सबै प्रश्न पूरा गर्नुहोस्!' : 'Complete all questions before time runs out!'}
                         </Text>
                     </View>
                 )}
@@ -464,22 +558,57 @@ export default function SignTest() {
 
                         {/* Buttons */}
                         <View style={styles.modalButtonRow}>
-                            <Pressable style={styles.modalButtonSecondary} onPress={dismissModal}>
-                                <Text style={styles.modalButtonSecondaryText}>Close</Text>
+                            <Pressable 
+                                style={styles.modalButtonSecondary} 
+                                onPress={() => { 
+                                    if (isReviewUnlocked) {
+                                        dismissModal(); 
+                                        resetGame(); 
+                                    } else {
+                                        if (isLoaded) {
+                                            setPendingAction('restart');
+                                            show();
+                                        } else {
+                                            dismissModal();
+                                            resetGame();
+                                        }
+                                    }
+                                }}
+                            >
+                                <Ionicons name="refresh-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
+                                <Text style={styles.modalButtonSecondaryText}>Play Again</Text>
                             </Pressable>
-                            <Pressable style={styles.modalButtonPrimary} onPress={() => { dismissModal(); resetGame(); }}>
-                                <Ionicons name="refresh-outline" size={18} color="#fff" />
-                                <Text style={styles.modalButtonPrimaryText}>Play Again</Text>
+                            
+                            <Pressable 
+                                style={[
+                                    styles.modalButtonPrimary, 
+                                    { backgroundColor: isReviewUnlocked ? '#4CAF50' : '#FF6B35' }
+                                ]} 
+                                onPress={() => {
+                                    if (isReviewUnlocked) {
+                                        dismissModal();
+                                    } else {
+                                        if (isLoaded) {
+                                            setPendingAction('review');
+                                            show();
+                                        } else {
+                                            setIsReviewUnlocked(true);
+                                            dismissModal();
+                                        }
+                                    }
+                                }}
+                            >
+                                <Text style={styles.modalButtonPrimaryText}>View Result</Text>
                             </Pressable>
                         </View>
                     </Animated.View>
                 </View>
             </Modal>
-        </>
+        </ThemeBackground>
     );
 }
 
-function createStyles(theme: AppTheme) {
+function createStyles(theme: AppTheme, isNepali: boolean = false) {
   const { colors, glass, isDark } = theme;
   return StyleSheet.create({
     buttonContainer: {
@@ -680,8 +809,6 @@ function createStyles(theme: AppTheme) {
     },
     gameOverContainer: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
         backgroundColor: isDark ? glass.backgroundColor : colors.card,
         borderRadius: 12,
         padding: 30,
@@ -691,6 +818,41 @@ function createStyles(theme: AppTheme) {
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: isDark ? 0 : 3,
+    },
+    reviewCard: {
+        width: '100%',
+        backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9F9F9',
+        borderRadius: 16,
+        padding: 16,
+        marginVertical: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#EAEAEA',
+    },
+    reviewNumber: {
+        fontFamily: 'Raleway-Bold',
+        fontSize: 14,
+        color: colors.textSecondary,
+        marginBottom: 8,
+    },
+    reviewImage: {
+        width: 100,
+        height: 100,
+        marginBottom: 12,
+    },
+    reviewAnswers: {
+        width: '100%',
+        gap: 2,
+    },
+    reviewTextLabel: {
+        fontFamily: 'Raleway-Medium',
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginTop: 4,
+    },
+    reviewTextValue: {
+        fontFamily: 'Raleway-Bold',
+        fontSize: 14,
     },
     gameOverTitle: {
         fontFamily: 'Raleway-Bold',

@@ -1,3 +1,4 @@
+import LoadingScreen from '@/components/LoadingScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
@@ -9,7 +10,6 @@ import {
   useState,
 } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import LoadingScreen from '@/components/LoadingScreen';
 
 import { AppTheme, resolveTheme } from '@/constants/theme';
 

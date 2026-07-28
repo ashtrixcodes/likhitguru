@@ -1,9 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { useState, useMemo } from 'react';
-import { useTheme } from '@/context/ThemeContext';
+import { useState, useMemo, useRef, useEffect, memo } from 'react';
+import { useTheme, ThemeBackground } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
+import { themedHeaderOptions } from '@/constants/screenHelpers';
 import type { AppTheme } from '@/constants/theme';
+import AdBanner from '@/components/AdBanner';
 import {
+    Animated,
     Dimensions,
     Image,
     Pressable,
@@ -13,58 +18,120 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { Skeleton } from '@/components/Skeleton';
+
+// Memoized skeleton charge card
+const ChargeSkeleton = memo(() => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  return (
+    <View style={styles.vehicleCard}>
+      <View style={styles.vehicleHeader}>
+        <Skeleton height={60} style={styles.vehicleImage} />
+        <View style={styles.vehicleInfo}>
+          <Skeleton height={18} style={{ width: '50%', marginBottom: 8 }} borderRadius={4} />
+          <Skeleton height={14} style={{ width: '80%' }} borderRadius={4} />
+        </View>
+        <Ionicons 
+          name="chevron-down" 
+          size={24} 
+          color={theme.isDark ? 'rgba(255,255,255,0.2)' : '#E0E0E0'} 
+        />
+      </View>
+    </View>
+  );
+});
+
+// Loading skeletons wrapper
+const LoadingSkeletons = memo(() => (
+  <>
+    {Array.from({ length: 4 }, (_, i: number) => (
+      <ChargeSkeleton key={`skeleton-${i}`} />
+    ))}
+  </>
+));
 
 const { width } = Dimensions.get('window');
 
 interface VehicleCharge {
   id: string;
-  name: string;
+  nameEn: string;
+  nameNp: string;
   image: any;
-  enteringCharge: number;
-  exitingCharge: number;
-  description: string;
+  enteringChargeEn: string;
+  enteringChargeNp: string;
+  exitingChargeEn: string;
+  exitingChargeNp: string;
+  descriptionEn: string;
+  descriptionNp: string;
 }
 
 const vehicleCharges: VehicleCharge[] = [
   {
     id: 'car-van',
-    name: 'Car/Van',
+    nameEn: 'Car/Van',
+    nameNp: 'कार / भ्यान',
     image: require('@/assets/images/car.png'),
-    enteringCharge: 65,
-    exitingCharge: 60,
-    description: 'Personal vehicles and small vans'
+    enteringChargeEn: 'NPR 65',
+    enteringChargeNp: 'रु. ६५',
+    exitingChargeEn: 'NPR 60',
+    exitingChargeNp: 'रु. ६०',
+    descriptionEn: 'Personal vehicles and small vans',
+    descriptionNp: 'निजी सवारी साधन तथा साना भ्यानहरू',
   },
   {
     id: 'mini-bus-truck',
-    name: 'Mini Bus/Truck',
+    nameEn: 'Mini Bus/Truck',
+    nameNp: 'मिनी बस / मिनी ट्रक',
     image: require('@/assets/images/bluecar.png'),
-    enteringCharge: 115,
-    exitingCharge: 80,
-    description: 'Small commercial vehicles'
+    enteringChargeEn: 'NPR 115',
+    enteringChargeNp: 'रु. ११५',
+    exitingChargeEn: 'NPR 80',
+    exitingChargeNp: 'रु. ८०',
+    descriptionEn: 'Small commercial vehicles',
+    descriptionNp: 'साना व्यावसायिक तथा मालवाहक सवारी साधनहरू',
   },
   {
     id: 'bus-truck',
-    name: 'Bus/Truck',
+    nameEn: 'Bus/Truck',
+    nameNp: 'ठूलो बस / ट्रक',
     image: require('@/assets/images/greencar.png'),
-    enteringCharge: 260,
-    exitingCharge: 200,
-    description: 'Large commercial vehicles'
+    enteringChargeEn: 'NPR 260',
+    enteringChargeNp: 'रु. २६०',
+    exitingChargeEn: 'NPR 200',
+    exitingChargeNp: 'रु. २००',
+    descriptionEn: 'Large commercial vehicles',
+    descriptionNp: 'ठूला सार्वजनिक तथा व्यापारिक सवारी साधनहरू',
   },
   {
     id: 'heavy-equipment',
-    name: 'Heavy Equipment',
+    nameEn: 'Heavy Equipment',
+    nameNp: 'भारी उपकरण (हेभी इक्विपमेन्ट)',
     image: require('@/assets/images/bike.png'),
-    enteringCharge: 600,
-    exitingCharge: 250,
-    description: 'Construction and heavy machinery'
+    enteringChargeEn: 'NPR 600',
+    enteringChargeNp: 'रु. ६००',
+    exitingChargeEn: 'NPR 250',
+    exitingChargeNp: 'रु. २५०',
+    descriptionEn: 'Construction and heavy machinery',
+    descriptionNp: 'निर्माण तथा भारी मेसिनरी सवारी साधनहरू',
   }
 ];
 
 export default function NagdhungaPassScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { isNepali } = useLanguage();
+  const styles = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
   const [expandedCards, setExpandedCards] = useState<string[]>(['car-van']); // Car/Van expanded by default
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleCard = (cardId: string) => {
     setExpandedCards(prev => 
@@ -87,8 +154,12 @@ export default function NagdhungaPassScreen() {
         <View style={styles.vehicleHeader}>
           <Image source={vehicle.image} style={styles.vehicleImage} />
           <View style={styles.vehicleInfo}>
-            <Text style={styles.vehicleName}>{vehicle.name}</Text>
-            <Text style={styles.vehicleDescription}>{vehicle.description}</Text>
+            <Text style={styles.vehicleName}>
+              {isNepali ? unicodeToAakriti(vehicle.nameNp) : vehicle.nameEn}
+            </Text>
+            <Text style={styles.vehicleDescription}>
+              {isNepali ? unicodeToAakriti(vehicle.descriptionNp) : vehicle.descriptionEn}
+            </Text>
           </View>
           <Ionicons 
             name={isExpanded ? "chevron-up" : "chevron-down"} 
@@ -102,17 +173,25 @@ export default function NagdhungaPassScreen() {
             <View style={styles.chargeItem}>
               <View style={styles.chargeHeader}>
                 <Ionicons name="arrow-down-circle" size={20} color="#4CAF50" />
-                <Text style={styles.chargeLabel}>Entering Kathmandu</Text>
+                <Text style={styles.chargeLabel}>
+                  {isNepali ? unicodeToAakriti('काठमाडौँ प्रवेश (भित्रिँदा)') : 'Entering Kathmandu'}
+                </Text>
               </View>
-              <Text style={styles.chargeAmount}>NPR {vehicle.enteringCharge}</Text>
+              <Text style={styles.chargeAmount}>
+                {isNepali ? unicodeToAakriti(vehicle.enteringChargeNp) : vehicle.enteringChargeEn}
+              </Text>
             </View>
             
             <View style={styles.chargeItem}>
               <View style={styles.chargeHeader}>
                 <Ionicons name="arrow-up-circle" size={20} color="#FF9800" />
-                <Text style={styles.chargeLabel}>Exiting Kathmandu</Text>
+                <Text style={styles.chargeLabel}>
+                  {isNepali ? unicodeToAakriti('काठमाडौँबाट बाहिरिँदा') : 'Exiting Kathmandu'}
+                </Text>
               </View>
-              <Text style={styles.chargeAmount}>NPR {vehicle.exitingCharge}</Text>
+              <Text style={styles.chargeAmount}>
+                {isNepali ? unicodeToAakriti(vehicle.exitingChargeNp) : vehicle.exitingChargeEn}
+              </Text>
             </View>
           </View>
         )}
@@ -121,31 +200,27 @@ export default function NagdhungaPassScreen() {
   };
 
   return (
-    <>
+    <ThemeBackground>
       <Stack.Screen 
         options={{
-          title: "Nagdhunga Charges",
-          headerTitleAlign: 'center',
-          headerStyle: {
-            backgroundColor: theme.isDark ? theme.colors.card : '#ffffff',
-          },
+          title: isNepali ? unicodeToAakriti('नागढुङ्गा टनेल दस्तुर') : 'Nagdhunga Charges',
+          ...themedHeaderOptions(theme),
           headerTitleStyle: {
-            fontSize: 20,
-            color: theme.isDark ? '#FFF' : '#000000',
+            fontSize: isNepali ? 22 : 20,
+            color: '#FFFFFF',
+            fontFamily: isNepali ? 'AakritiBold' : undefined,
           },
-          headerTintColor: theme.isDark ? '#FFF' : '#000000',
           headerLeft: () => (
             <Pressable 
               onPress={() => router.back()}
               style={styles.headerBackButton}
             >
-              <Ionicons name="arrow-back" size={24} color={theme.isDark ? '#FFF' : '#000000'} />
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </Pressable>
           ),
         }}
       />
       <View style={styles.container}>
-        {/* Vehicle Charges */}
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
@@ -155,30 +230,44 @@ export default function NagdhungaPassScreen() {
           <View style={styles.noticeContainer}>
             <Image source={require('@/assets/images/government.png')} style={styles.governmentIcon} />
             <View style={styles.noticeText}>
-              <Text style={styles.noticeTitle}>Government Set Fees</Text>
+              <Text style={styles.noticeTitle}>
+                {isNepali ? unicodeToAakriti('सरकारी तोकिएको दस्तुर दर') : 'Government Set Fees'}
+              </Text>
               <Text style={styles.noticeSubtitle}>
-                Official charges for vehicles using the Nagdhunga Tunnel to enter and exit Kathmandu
+                {isNepali
+                  ? unicodeToAakriti('काठमाडौँ उपत्यका प्रवेश तथा बाहिरिने नागढुङ्गा टनेल प्रयोग गर्ने सवारी साधनका लागि आधिकारिक दस्तुर')
+                  : 'Official charges for vehicles using the Nagdhunga Tunnel to enter and exit Kathmandu'}
               </Text>
             </View>
           </View>
 
-          {vehicleCharges.map(renderVehicleCard)}
+          {isLoading ? (
+            <LoadingSkeletons />
+          ) : (
+            vehicleCharges.map(renderVehicleCard)
+          )}
           
           {/* Additional Info */}
           <View style={styles.infoCard}>
             <Ionicons name="information-circle" size={24} color="#2196F3" />
             <Text style={styles.infoText}>
-              Charges are subject to change. Please verify current rates before travel.
+              {isNepali
+                ? unicodeToAakriti('द्रष्टव्य: दस्तुर दर परिवर्तन हुन सक्नेछ। कृपया यात्रा गर्नुअघि अद्यावधिक दर पुष्टि गर्नुहोस्।')
+                : 'Charges are subject to change. Please verify current rates before travel.'}
             </Text>
           </View>
+          <AdBanner />
         </ScrollView>
       </View>
-    </>
+    </ThemeBackground>
   );
 }
 
-function createStyles(theme: AppTheme) {
+function createStyles(theme: AppTheme, isNepali: boolean = false) {
   const { colors, glass, isDark } = theme;
+  const fontNormal = isNepali ? 'Aakriti' : undefined;
+  const fontBold = isNepali ? 'AakritiBold' : undefined;
+
   return StyleSheet.create({
   container: {
     flex: 1,
@@ -210,15 +299,17 @@ function createStyles(theme: AppTheme) {
     flex: 1,
   },
   noticeTitle: {
-    fontSize: 16,
+    fontSize: isNepali ? 18 : 16,
     fontWeight: '600',
     color: isDark ? '#64B5F6' : '#1976D2',
     marginBottom: 4,
+    fontFamily: fontBold,
   },
   noticeSubtitle: {
-    fontSize: 14,
+    fontSize: isNepali ? 15 : 14,
     color: isDark ? '#E0E0E0' : '#424242',
-    lineHeight: 20,
+    lineHeight: isNepali ? 22 : 20,
+    fontFamily: fontNormal,
   },
   scrollView: {
     flex: 1,
@@ -239,7 +330,7 @@ function createStyles(theme: AppTheme) {
     },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: isDark ? 0 : 4,
     borderWidth: isDark ? 1 : 0,
     borderColor: isDark ? glass.borderColor : 'transparent',
   },
@@ -258,15 +349,16 @@ function createStyles(theme: AppTheme) {
     flex: 1,
   },
   vehicleName: {
-    fontSize: 18,
+    fontSize: isNepali ? 20 : 18,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
+    fontFamily: fontBold,
   },
   vehicleDescription: {
-    fontSize: 14,
+    fontSize: isNepali ? 14 : 14,
     color: colors.textSecondary,
-    fontStyle: 'italic',
+    fontFamily: fontNormal,
   },
   chargesContainer: {
     gap: 15,
@@ -287,15 +379,17 @@ function createStyles(theme: AppTheme) {
     flex: 1,
   },
   chargeLabel: {
-    fontSize: 14,
+    fontSize: isNepali ? 15 : 14,
     color: colors.textSecondary,
     marginLeft: 10,
     fontWeight: '500',
+    fontFamily: fontNormal,
   },
   chargeAmount: {
-    fontSize: 18,
+    fontSize: isNepali ? 20 : 18,
     fontWeight: '700',
     color: isDark ? '#64B5F6' : '#1976D2',
+    fontFamily: fontBold,
   },
   infoCard: {
     flexDirection: 'row',
@@ -309,11 +403,12 @@ function createStyles(theme: AppTheme) {
     borderColor: isDark ? glass.borderColor : '#e0e0e0',
   },
   infoText: {
-    fontSize: 14,
+    fontSize: isNepali ? 15 : 14,
     color: colors.textSecondary,
     marginLeft: 12,
     flex: 1,
-    lineHeight: 20,
+    lineHeight: isNepali ? 22 : 20,
+    fontFamily: fontNormal,
   },
 });
 }
