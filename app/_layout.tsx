@@ -2,15 +2,21 @@ import { useEffect } from 'react';
 import { DarkTheme as NavDarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Platform } from 'react-native';
-import 'react-native-reanimated';
+import * as SplashScreen from 'expo-splash-screen';
 import LoadingScreen from '@/components/LoadingScreen';
 import { SidebarProvider } from '@/components/SidebarContext';
 import SidebarOverlay from '@/components/SidebarOverlay';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeBackground, ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { initializeMobileAds } from '@/utils/mobileAds';
+
+import { HapticsProvider } from '@/context/HapticsContext';
+import { VoiceProvider } from '@/context/VoiceContext';
+
+// Prevent native splash screen from hiding before assets are loaded
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // ─── Inner layout that has access to ThemeContext ────────────────────
 function InnerLayout() {
@@ -29,6 +35,7 @@ function InnerLayout() {
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: 'transparent' },
+          headerBackTitle: '',
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -58,7 +65,14 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     Aakriti: require('../assets/fonts/Aakriti.ttf'),
     AakritiBold: require('../assets/fonts/Aakriti Bold.ttf'),
+    'Aakriti Bold': require('../assets/fonts/Aakriti Bold.ttf'),
   });
+
+  useEffect(() => {
+    if (loaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [loaded]);
 
   useEffect(() => {
     initializeMobileAds()
@@ -76,13 +90,17 @@ export default function RootLayout() {
   }
 
   return (
-    <LanguageProvider>
-      <ThemeProvider>
-        <SidebarProvider>
-          <InnerLayout />
-        </SidebarProvider>
-      </ThemeProvider>
-    </LanguageProvider>
+    <HapticsProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <VoiceProvider>
+            <SidebarProvider>
+              <InnerLayout />
+            </SidebarProvider>
+          </VoiceProvider>
+        </ThemeProvider>
+      </LanguageProvider>
+    </HapticsProvider>
   );
 }
 

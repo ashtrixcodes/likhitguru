@@ -1,15 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
-import { BannerAd, BannerAdSize } from '@/utils/mobileAds';
+import { BannerAd, BannerAdSize, TestIds, AD_UNITS, isAdsAvailable } from '@/utils/mobileAds';
 
-// Official AdMob test Banner ID is used in development mode (__DEV__)
-// Swap 'YOUR_IOS_BANNER_AD_UNIT_ID' and 'YOUR_ANDROID_BANNER_AD_UNIT_ID' when deploying to production.
-const BANNER_AD_UNIT_ID = 'ca-app-pub-9520863212221697/6130790460';
+// In __DEV__ (dev client builds), use Google's official test banner
+// In production (EAS release builds), use your real AdMob banner unit
+const adUnitId = __DEV__
+  ? TestIds.ADAPTIVE_BANNER
+  : AD_UNITS.BANNER;
 
 export default function AdBanner() {
   const [hasError, setHasError] = useState(false);
 
-  // If the ad fails to load, collapse the container to avoid blank space
+  useEffect(() => {
+    console.log('[AdBanner] Mount. isAdsAvailable:', isAdsAvailable, 'Platform:', Platform.OS, 'unitId:', adUnitId, '__DEV__:', __DEV__);
+  }, []);
+
+  if (!isAdsAvailable) {
+    return null;
+  }
+
   if (hasError) {
     return null;
   }
@@ -17,13 +26,16 @@ export default function AdBanner() {
   return (
     <View style={styles.adContainer}>
       <BannerAd
-        unitId={BANNER_AD_UNIT_ID}
+        unitId={adUnitId}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
-          requestNonPersonalizedAdsOnly: true, // Follow privacy best practices
+          requestNonPersonalizedAdsOnly: true,
+        }}
+        onAdLoaded={() => {
+          console.log('[AdBanner] ✅ Ad loaded successfully on', Platform.OS);
         }}
         onAdFailedToLoad={(error: any) => {
-          console.warn('Google Mobile Ads: Banner failed to load', error);
+          console.warn('[AdBanner] ❌ Ad FAILED on', Platform.OS, '| unitId:', adUnitId, '| error:', JSON.stringify(error));
           setHasError(true);
         }}
       />
@@ -36,7 +48,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
     backgroundColor: 'transparent',
   },
 });

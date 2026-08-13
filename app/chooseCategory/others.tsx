@@ -13,6 +13,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { themedHeaderOptions } from '@/constants/screenHelpers';
 import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import type { AppTheme } from '@/constants/theme';
+import QuestionSpeechButton from '@/components/QuestionSpeechButton';
 import AdBanner from '@/components/AdBanner';
 
 const ITEMS_PER_PAGE = 20; // Items per page
@@ -142,9 +143,15 @@ const QuestionCard = memo(({
             {isNepali ? unicodeToAakriti(item.section) : item.section}
           </Text>
         </View>
-        <Text style={styles.questionText}>
-          {isNepali ? unicodeToAakriti(item.q) : item.q}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
+          <QuestionSpeechButton
+            rawNepaliText={item.q}
+            englishText={item.q}
+          />
+          <Text style={[styles.questionText, { flex: 1, marginBottom: 0 }]}>
+            {isNepali ? unicodeToAakriti(item.q) : item.q}
+          </Text>
+        </View>
         <View style={styles.dashed} />
         <View style={styles.optionGrid}>
           {staticValues.strippedOptions.map((option: string, index: number) => (
@@ -529,15 +536,15 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       paddingBottom: 32,
     },
     sectionCard: {
-      backgroundColor: isDark ? glass.backgroundColor : colors.card,
-      borderRadius: isDark ? glass.borderRadius : 16,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : colors.card,
+      borderRadius: 16,
       paddingHorizontal: 16,
       paddingVertical: 14,
       marginHorizontal: 16,
       marginTop: 16,
       marginBottom: 8,
-      borderWidth: isDark ? glass.borderWidth : 1.5,
-      borderColor: isDark ? glass.borderColor : colors.cardBorder,
+      borderWidth: 1.5,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : colors.cardBorder,
       shadowColor: colors.shadow,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: isDark ? 0.3 : 0.08,
@@ -560,7 +567,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     sectionTitle: {
       fontSize: isNepali ? 20 : 18,
       color: colors.text,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       fontFamily: fontBold,
       marginBottom: 3,
       lineHeight: isNepali ? 26 : 22,
@@ -604,7 +611,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       paddingVertical: 2,
       borderRadius: 8,
       alignSelf: 'flex-start',
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       fontFamily: fontBold || fontNormal,
     },
     questionText: {
@@ -636,7 +643,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     optionCorrect: {
       color: '#4CAF50',
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       fontFamily: fontBold || fontNormal,
     },
     revealRow: {
@@ -668,7 +675,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     answerPillText: {
       color: isDark ? '#81C784' : '#FFFFFF',
       fontSize: isNepali ? 19 : 16,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       textAlign: 'center',
       fontFamily: fontBold || fontNormal,
     },

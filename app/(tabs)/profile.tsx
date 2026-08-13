@@ -736,7 +736,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     alertTitle: {
       fontSize: isNepali ? 21 : 19,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: colors.text,
       textAlign: 'center',
       marginBottom: 8,
@@ -775,7 +775,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     alertButtonText: {
       fontSize: isNepali ? 17 : 15,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       fontFamily: fontBold || fontNormal,
     },
     alertButtonTextDefault: {
@@ -822,7 +822,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     actionItemText: {
       fontSize: isNepali ? 17 : 15,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       fontFamily: fontBold || fontNormal,
     },
     actionCancelButton: {
@@ -834,7 +834,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     actionCancelButtonText: {
       fontSize: isNepali ? 17 : 15,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: isDark ? '#FFFFFF' : '#334155',
       fontFamily: fontBold || fontNormal,
     },

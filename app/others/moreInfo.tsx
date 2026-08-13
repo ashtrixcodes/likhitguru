@@ -49,14 +49,14 @@ export default function MoreInfoScreen() {
           </View>
 
           {/* Title */}
-          <Text style={s.title}>Lekhit Guru</Text>
+          <Text style={s.title}>Likhit Guru</Text>
 
           {/* Description */}
           <View style={s.descriptionContainer}>
             <Text style={s.description}>
               {isNepali
                 ? unicodeToAakriti('लिखित गुरुले सवारी चालक लिखित परीक्षाको तयारीका लागि विभिन्न आधुनिक तथा अन्तरक्रियात्मक साधनहरू जस्तै: विषयगत प्रश्नोत्तरी, पूर्ण नमुना परीक्षा, र दृष्टि परीक्षा (आई टेस्ट) उपलब्ध गराउँछ। प्रयोगकर्ताको सहजतालाई ध्यानमा राखी तयार पारिएको यस एपमा चालक अनुमतिपत्र (लाइसेन्स) सुरक्षित रूपमा भण्डारण गर्ने विशेष सुविधा पनि समावेश छ, जुन ट्राफिक चेकिङ वा आधिकारिक प्रमाणीकरणका बखत उपयोगी हुन्छ।')
-                : 'Lekhit Guru offers a modern and interactive approach to preparing for the Lekhit exam through a variety of tools such as quizzes, full exam tests, and eye tests. Designed with user convenience in mind, the app also includes a unique feature that allows users to upload and securely store their driving license for easy access ideal during traffic checks or official verifications.'}
+                : 'Likhit Guru offers a modern and interactive approach to preparing for the Likhit exam through a variety of tools such as quizzes, full exam tests, and eye tests. Designed with user convenience in mind, the app also includes a unique feature that allows users to upload and securely store their driving license for easy access ideal during traffic checks or official verifications.'}
             </Text>
 
             {/* Disclaimer */}
@@ -105,7 +105,7 @@ export default function MoreInfoScreen() {
 
           {/* Footer */}
           <View style={s.footer}>
-            <Text style={s.footerText}>© lekhitGuru 2025</Text>
+            <Text style={s.footerText}>© Likhit Guru 2025</Text>
           </View>
         </View>
       </ScrollView>
@@ -180,7 +180,7 @@ function createMoreInfoStyles(theme: AppTheme, isNepali: boolean = false) {
       marginTop: 2,
     },
     boldText: {
-      fontWeight: 'bold',
+      fontWeight: isNepali ? 'normal' : 'bold',
       color: colors.text,
       fontFamily: fontBold,
     },

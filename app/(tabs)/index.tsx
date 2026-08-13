@@ -1,3 +1,4 @@
+import { triggerHapticLight } from '@/context/HapticsContext';
 import DarkModeToggle from '@/components/DarkModeToggle';
 import LanguageToggle from '@/components/LanguageToggle';
 import NepaliDateHeaderBadge from '@/components/NepaliDateHeaderBadge';
@@ -31,8 +32,13 @@ import { shareApp } from './shareapp'; // Import the share function
 
 // ─── Reusable Dynamic Cards ──────────────────────────────────────────
 function CategoryCard({ tag, image, onPress, s, theme, isLoading, imageStyle, viewLabel, isNepali }: any) {
+	const handlePress = (e: any) => {
+		triggerHapticLight();
+		onPress?.(e);
+	};
+
 	return (
-		<TouchableOpacity onPress={onPress} style={s.categoryCard} activeOpacity={0.8} disabled={isLoading}>
+		<TouchableOpacity onPress={handlePress} style={s.categoryCard} activeOpacity={0.8} disabled={isLoading}>
 			{isLoading ? (
 				<View style={{ flex: 1, width: '100%', alignItems: 'center' }}>
 					<ShimmerBar width={60} height={20} borderRadius={10} style={{ alignSelf: 'flex-start', marginBottom: 20 }} />
@@ -61,8 +67,13 @@ function CategoryCard({ tag, image, onPress, s, theme, isLoading, imageStyle, vi
 }
 
 function QuizItemCard({ title, subtitle, icon, iconStyle, onPress, s, isLoading, practiceActionLabel, isNepali }: any) {
+	const handlePress = (e: any) => {
+		triggerHapticLight();
+		onPress?.(e);
+	};
+
 	return (
-		<TouchableOpacity style={s.quizItem} onPress={onPress} disabled={isLoading}>
+		<TouchableOpacity style={s.quizItem} onPress={handlePress} disabled={isLoading}>
 			{isLoading ? (
 				<View style={{ flexDirection: 'row', width: '100%', alignItems: 'center' }}>
 					<ShimmerBar width={50} height={50} borderRadius={25} style={{ marginRight: 15 }} />
@@ -92,8 +103,13 @@ function QuizItemCard({ title, subtitle, icon, iconStyle, onPress, s, isLoading,
 }
 
 function PracticeCard({ title, icon, onPress, s, isLoading, isNepali }: any) {
+	const handlePress = (e: any) => {
+		triggerHapticLight();
+		onPress?.(e);
+	};
+
 	return (
-		<TouchableOpacity style={s.practiceCard} onPress={onPress} disabled={isLoading}>
+		<TouchableOpacity style={s.practiceCard} onPress={handlePress} disabled={isLoading}>
 			{isLoading ? (
 				<View style={{ width: '100%', alignItems: 'center' }}>
 					<ShimmerBar width={40} height={40} borderRadius={20} style={{ marginBottom: 12 }} />
@@ -123,7 +139,7 @@ function UsernameReq() {
 	const t = homeTranslations[language].usernameModal;
 	const s = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
 
-	const [userName, setUserName] = React.useState('Lekhit Guru');
+	const [userName, setUserName] = React.useState('Likhit Guru');
 	const [showModal, setShowModal] = React.useState(false);
 	const [inputName, setInputName] = React.useState('');
 
@@ -175,6 +191,11 @@ function UsernameReq() {
 		setInputName('');
 	};
 
+	const firstName = useMemo(() => {
+		if (!userName) return '';
+		return userName.trim().split(/\s+/)[0];
+	}, [userName]);
+
 	return (
 		<>
 			<TouchableOpacity
@@ -182,8 +203,8 @@ function UsernameReq() {
 				onPress={openModal}
 				activeOpacity={0.7}
 			>
-				<Text style={s.userName}>{userName}</Text>
-				{userName === 'Lekhit Guru' && (
+				<Text style={s.userName}>{firstName}</Text>
+				{userName === 'Likhit Guru' && (
 					<Ionicons name="create-outline" size={14} color="rgba(255, 255, 255, 0.6)" style={s.editIcon} />
 				)}
 			</TouchableOpacity>
@@ -276,18 +297,19 @@ function HomeHeader({ onSharePress, onMenuPress }: HomeHeaderProps) {
 					<UsernameReq />
 				</View>
 
-				{/* Language toggle + Dark mode toggle + Share button */}
-				<View style={s.headerActions}>
-					<LanguageToggle />
-					<DarkModeToggle />
-					<TouchableOpacity style={s.shareButton} onPress={onSharePress}>
-						<Ionicons name="share-social" size={20} color={theme.colors.headerText} />
-					</TouchableOpacity>
+				<View style={{ marginTop: 20, alignItems: 'stretch' }}>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+						<LanguageToggle />
+						<DarkModeToggle />
+						<TouchableOpacity style={s.shareButton} onPress={onSharePress}>
+							<Ionicons name="share-social" size={20} color={theme.colors.headerText} />
+						</TouchableOpacity>
+					</View>
+					<View style={{ marginTop: 4 }}>
+						<NepaliDateHeaderBadge />
+					</View>
 				</View>
 			</View>
-
-			{/* Nepali Date Header Badge */}
-			<NepaliDateHeaderBadge />
 		</>
 	);
 }
@@ -700,7 +722,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 		},
 		modalTitle: {
 			fontSize: 20,
-			fontWeight: 'bold',
+			fontWeight: isNepali ? 'normal' : 'bold',
 			color: colors.modalText,
 			textAlign: 'center',
 			fontFamily: fontBold,
@@ -719,14 +741,12 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 			color: colors.inputText,
 			backgroundColor: colors.inputBackground,
 			textAlign: 'center',
-			fontFamily: fontNormal,
 		},
 		charCounter: {
 			fontSize: 12,
 			color: colors.textTertiary,
 			textAlign: 'right',
 			marginTop: 8,
-			fontFamily: fontNormal,
 		},
 		modalFooter: {
 			flexDirection: 'row',
@@ -753,13 +773,13 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 		},
 		cancelButtonText: {
 			fontSize: 16,
-			fontWeight: '600',
+			fontWeight: isNepali ? 'normal' : '600',
 			color: colors.cancelButtonText,
 			fontFamily: fontNormal,
 		},
 		saveButtonText: {
 			fontSize: 16,
-			fontWeight: '600',
+			fontWeight: isNepali ? 'normal' : '600',
 			color: colors.saveButtonText,
 			fontFamily: fontBold || fontNormal,
 		},
@@ -770,7 +790,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 		},
 		sectionTitle: {
 			fontSize: isNepali ? 20 : 16,
-			fontWeight: 'bold',
+			fontWeight: isNepali ? 'normal' : 'bold',
 			color: colors.text,
 			marginBottom: 10,
 			marginLeft: 15,
@@ -781,7 +801,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 		},
 		examSectionTitle: {
 			fontSize: isNepali ? 20 : 16,
-			fontWeight: 'bold',
+			fontWeight: isNepali ? 'normal' : 'bold',
 			color: colors.text,
 			marginBottom: 10,
 			marginLeft: 30,
@@ -822,6 +842,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 		categoryTagText: {
 			color: colors.tagText,
 			fontSize: isNepali ? 14 : 10,
+			fontWeight: isNepali ? 'normal' : '600',
 			fontFamily: fontBold || fontNormal,
 		},
 		categoryImageContainer: {
@@ -864,6 +885,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 			color: colors.viewButtonText,
 			fontSize: isNepali ? 20 : 16,
 			marginTop: -3,
+			fontWeight: isNepali ? 'normal' : '600',
 			fontFamily: fontBold || fontNormal,
 		},
 		pagination: {
@@ -989,7 +1011,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 			fontFamily: fontBold || fontNormal,
 		},
 		bottomSpacing: {
-			height: 100,
+			height: 120,
 		},
 		// Unused but kept for backward compat
 		notificationButton: {

@@ -29,15 +29,15 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="lekhitguru"/>
+        <data android:scheme="likhitguru"/>
       </intent-filter>
     </activity>
 
-    <!-- Lekhit Guru Home Screen AppWidget Receiver -->
+    <!-- Likhit Guru Home Screen AppWidget Receiver -->
     <receiver
         android:name=".ExamWidgetProvider"
         android:exported="true"
-        android:label="Lekhit Guru Exam Countdown">
+        android:label="Likhit Guru Exam Countdown">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
       </intent-filter>

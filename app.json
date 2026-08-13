@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Lekhit Guru",
-    "slug": "lekhit",
+    "name": "Likhit Guru",
+    "slug": "likhit-guru",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/splashnepal.png",
-    "scheme": "lekhitguru",
+    "scheme": "likhitguru",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -16,7 +16,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/nepal.png",
-        "backgroundColor": "#434d57"
+        "backgroundColor": "#091020"
+      },
+      "navigationBar": {
+        "backgroundColor": "#00000000"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -27,7 +30,7 @@
     "splash": {
       "image": "./assets/images/nepal.png",
       "resizeMode": "contain",
-      "backgroundColor": "#434d57"
+      "backgroundColor": "#091020"
     },
     "web": {
       "bundler": "metro",
@@ -40,9 +43,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/nepal.png",
-          "imageWidth": 200,
+          "imageWidth": 130,
           "resizeMode": "contain",
-          "backgroundColor": "#434d57"
+          "backgroundColor": "#091020"
         }
       ],
       [
@@ -55,6 +58,8 @@
       [
         "react-native-google-mobile-ads",
         {
+          "android_app_id": "ca-app-pub-9520863212221697~5703535199",
+          "ios_app_id": "ca-app-pub-9520863212221697~5703535199",
           "androidAppId": "ca-app-pub-9520863212221697~5703535199",
           "iosAppId": "ca-app-pub-9520863212221697~5703535199"
         }
@@ -67,10 +72,35 @@
           }
         }
       ],
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "bundleIdentifier": "com.likhitguru.app.widget",
+                  "targetName": "ExamWidget",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.likhitguru.app"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "6361397d-355d-4456-bec5-11cc0e2e9bbb"
+      }
+    },
+    "owner": "likhit-guru"
   }
 }

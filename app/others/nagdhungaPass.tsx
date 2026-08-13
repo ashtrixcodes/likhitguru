@@ -300,7 +300,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
   },
   noticeTitle: {
     fontSize: isNepali ? 18 : 16,
-    fontWeight: '600',
+    fontWeight: isNepali ? 'normal' : '600',
     color: isDark ? '#64B5F6' : '#1976D2',
     marginBottom: 4,
     fontFamily: fontBold,
@@ -350,7 +350,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
   },
   vehicleName: {
     fontSize: isNepali ? 20 : 18,
-    fontWeight: '600',
+    fontWeight: isNepali ? 'normal' : '600',
     color: colors.text,
     marginBottom: 4,
     fontFamily: fontBold,
@@ -382,12 +382,12 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     fontSize: isNepali ? 15 : 14,
     color: colors.textSecondary,
     marginLeft: 10,
-    fontWeight: '500',
+    fontWeight: isNepali ? 'normal' : '500',
     fontFamily: fontNormal,
   },
   chargeAmount: {
     fontSize: isNepali ? 20 : 18,
-    fontWeight: '700',
+    fontWeight: isNepali ? 'normal' : '700',
     color: isDark ? '#64B5F6' : '#1976D2',
     fontFamily: fontBold,
   },

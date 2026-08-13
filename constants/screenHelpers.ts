@@ -4,7 +4,10 @@
  * These helpers centralise the header styling and card-grid styling
  * so every sub-screen gets dark-mode support without duplicating logic.
  */
-import { StyleSheet } from 'react-native';
+import React from 'react';
+import { Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import type { AppTheme } from '@/constants/theme';
 
 /** Header options for Stack.Screen — adapts to current theme. */
@@ -19,6 +22,22 @@ export function themedHeaderOptions(theme: AppTheme) {
     },
     headerTintColor: '#FFFFFF',
     headerTitleAlign: 'center' as const,
+    headerBackTitle: '',
+    headerBackTitleVisible: false,
+    headerLeft: () =>
+      React.createElement(
+        Pressable,
+        {
+          onPress: () => router.back(),
+          style: { padding: 6, marginLeft: 4, borderRadius: 20 },
+          hitSlop: 10,
+        },
+        React.createElement(Ionicons, {
+          name: 'chevron-back',
+          size: 26,
+          color: '#FFFFFF',
+        })
+      ),
   };
 }
 

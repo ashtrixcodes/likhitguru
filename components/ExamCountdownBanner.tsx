@@ -1,5 +1,5 @@
-import React, { useCallback, useState, useMemo } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState, useMemo, useEffect, useRef } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, LayoutAnimation, UIManager, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,10 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import { toNepaliDigits } from '@/utils/nepaliCalendar';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export const EXAM_DATE_STORAGE_KEY = '@lekhitguru/exam-date';
 
@@ -25,6 +29,8 @@ export default function ExamCountdownBanner() {
   const { isNepali } = useLanguage();
 
   const [examRecord, setExamRecord] = useState<ExamDateRecord | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -55,6 +61,24 @@ export default function ExamCountdownBanner() {
     return days >= 0 ? days : 0;
   }, [examRecord]);
 
+  useEffect(() => {
+    if (isExpanded) {
+      // Auto-collapse after 3 minutes (180,000 ms)
+      timerRef.current = setTimeout(() => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setIsExpanded(false);
+      }, 180000);
+    } else {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [isExpanded]);
+
   if (!examRecord || daysRemaining === null) {
     return null;
   }
@@ -62,16 +86,21 @@ export default function ExamCountdownBanner() {
   const fontStyle = isNepali ? { fontFamily: 'Aakriti', fontWeight: 'normal' as const } : {};
   const fontBoldStyle = isNepali ? { fontFamily: 'AakritiBold', fontWeight: 'normal' as const } : {};
 
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded((prev) => !prev);
+  };
+
   return (
     <TouchableOpacity
       style={[
         styles.bannerContainer,
         {
           backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(235, 245, 255, 0.95)',
-          borderColor: theme.isDark ? '#3b82f6' : '#93c5fd',
+          borderColor: theme.isDark ? 'transparent' : '#93c5fd',
         },
       ]}
-      onPress={() => router.push('/others/nepaliCalendar' as any)}
+      onPress={toggleExpand}
       activeOpacity={0.85}
     >
       <View style={styles.iconBadge}>
@@ -83,13 +112,15 @@ export default function ExamCountdownBanner() {
             ? unicodeToAakriti(`${examRecord.typeNp}: ${toNepaliDigits(daysRemaining)} दिन बाँकी`)
             : `${examRecord.typeEn}: ${daysRemaining} Days Left`}
         </Text>
-        <Text style={[styles.subtitle, fontStyle, { color: theme.isDark ? '#93c5fd' : '#3b82f6' }]}>
-          {isNepali
-            ? unicodeToAakriti(`मिति: ${examRecord.bsDateStrNp}`)
-            : `Date: ${examRecord.bsDateStrEn}`}
-        </Text>
+        {isExpanded && (
+          <Text style={[styles.subtitle, fontStyle, { color: theme.isDark ? '#93c5fd' : '#3b82f6' }]}>
+            {isNepali
+              ? unicodeToAakriti(`मिति: ${examRecord.bsDateStrNp}`)
+              : `Date: ${examRecord.bsDateStrEn}`}
+          </Text>
+        )}
       </View>
-      <Ionicons name="chevron-forward" size={18} color={theme.isDark ? '#93c5fd' : '#2563eb'} />
+      <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color={theme.isDark ? '#93c5fd' : '#2563eb'} />
     </TouchableOpacity>
   );
 }
@@ -101,10 +132,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    marginHorizontal: 16,
-    marginTop: 10,
+    marginHorizontal: 20,
+    marginTop: -20, // Negative margin to tuck it under the header
     marginBottom: 6,
     borderWidth: 1,
+    position: 'relative',
+    zIndex: -1, // Keep it under the header curve (which has zIndex: 1000)
+    elevation: 0, // Android shadow order
+    paddingTop: 28, // Extra padding top so content clears the header curve when tucked
   },
   iconBadge: {
     marginRight: 12,

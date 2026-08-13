@@ -17,10 +17,11 @@ export default function NepaliDateHeaderBadge() {
   const formattedDateStr = useMemo(() => {
     if (isNepali) {
       const dayNp = toNepaliDigits(todayBS.day);
-      const yearNp = toNepaliDigits(todayBS.year);
-      return unicodeToAakriti(`${dayNp} ${todayBS.monthNameNp}, ${yearNp} | ${todayBS.dayNameNp}`);
+      const shortDayNp = todayBS.dayNameNp.replace('बार', '');
+      return unicodeToAakriti(`${shortDayNp}, ${todayBS.monthNameNp} ${dayNp}`);
     } else {
-      return `${todayBS.monthNameEn} ${todayBS.day}, ${todayBS.year} BS | ${todayBS.dayNameEn}`;
+      const shortDayEn = todayBS.dayNameEn.substring(0, 3);
+      return `${shortDayEn}, ${todayBS.monthNameEn} ${todayBS.day}`;
     }
   }, [todayBS, isNepali]);
 
@@ -31,8 +32,7 @@ export default function NepaliDateHeaderBadge() {
       style={[
         styles.badgeContainer,
         {
-          backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.25)',
-          borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.4)',
+          backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
         },
       ]}
       onPress={() => router.push('/others/nepaliCalendar' as any)}
@@ -42,7 +42,6 @@ export default function NepaliDateHeaderBadge() {
       <Text style={[styles.badgeText, fontStyle]}>
         {formattedDateStr}
       </Text>
-      <Ionicons name="chevron-forward" size={12} color="rgba(255, 255, 255, 0.7)" style={styles.arrowIcon} />
     </TouchableOpacity>
   );
 }
@@ -51,12 +50,11 @@ const styles = StyleSheet.create({
   badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginVertical: 6,
-    alignSelf: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)', // subtle dark background
   },
   icon: {
     marginRight: 6,

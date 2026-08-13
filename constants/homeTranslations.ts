@@ -1,3 +1,6 @@
+import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
+import { toNepaliDigits } from '@/utils/nepaliCalendar';
+
 export const homeTranslations = {
   np: {
     greetings: {
@@ -9,7 +12,7 @@ export const homeTranslations = {
     usernameModal: {
       title: 'तपाईंको नाम के हो?',
       placeholder: 'तपाईंको नाम राख्नुहोस्',
-      charCount: (len: number) => `${len}/२० अक्षरहरू`,
+      charCount: (len: number) => `${toNepaliDigits(len)} / २० अक्षरहरू`,
       cancel: 'रद्द गर्नुहोस्',
       save: 'सुरक्षित गर्नुहोस्',
       invalidTitle: 'अवैध नाम',
@@ -70,7 +73,7 @@ export const homeTranslations = {
       tooLongMsg: 'Please enter a name with 20 characters or less.',
     },
     sections: {
-      lekhitExam: 'Lekhit Exam',
+      lekhitExam: 'Likhit Exam',
       quiz: 'Quiz',
       practiceMore: 'Practice More',
       others: 'Others',

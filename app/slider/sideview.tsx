@@ -29,7 +29,7 @@ export default function SideView() {
   const categories: CategoryItem[] = [
     {
       id: 'lekhit-exam',
-      label: 'Lekhit Exam',
+      label: 'Likhit Exam',
       icon: 'car-sport-outline',
       subItems: [
         { id: 'four-wheeler', label: 'Car', icon: 'car-outline', route: '/chooseCategory/fourWheeler' },
@@ -196,7 +196,7 @@ export default function SideView() {
         </ScrollView>
 
         <View style={styles.footerSpace} />
-        <Text style={styles.copy}>© Lekhit Guru 2025</Text>
+        <Text style={styles.copy}>© Likhit Guru 2025</Text>
       </Animated.View>
 
       {/* Overlay to the right */}

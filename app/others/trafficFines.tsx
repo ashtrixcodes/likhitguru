@@ -422,7 +422,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     violationType: {
       fontSize: isNepali ? 19 : 17,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       color: colors.text,
       fontFamily: fontBold,
       lineHeight: isNepali ? 24 : 22,
@@ -434,7 +434,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       fontFamily: fontNormal,
     },
     fineAmountValue: {
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: isDark ? '#4CAF50' : '#2E7D32',
       fontFamily: fontBold,
     },

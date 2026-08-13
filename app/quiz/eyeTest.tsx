@@ -8,9 +8,9 @@ import type { AppTheme } from '@/constants/theme';
 import { Animated, Image, Modal, Pressable, StyleSheet, Text, View, Platform, ScrollView } from 'react-native';
 import { quizEyeTest } from './constant';
 import { useLanguage } from '@/context/LanguageContext';
-import { useRewardedAd, TestIds } from '@/utils/mobileAds';
+import { useRewardedAd, TestIds, AD_UNITS } from '@/utils/mobileAds';
 
-const rewardedAdUnitId = 'ca-app-pub-9520863212221697/6426303936';
+const rewardedAdUnitId = __DEV__ ? TestIds.REWARDED : AD_UNITS.REWARDED;
 
 import AdBanner from '@/components/AdBanner';
 // Quiz data structure with correct answers
@@ -77,7 +77,7 @@ export default function EyeTest() {
         }
     };
     const modalScaleAnim = useRef(new Animated.Value(0)).current;
-    
+
     // Animation refs
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const buttonWidthAnim = useRef(new Animated.Value(100)).current;
@@ -113,18 +113,18 @@ export default function EyeTest() {
     const generateRandomQuiz = () => {
         const shuffled = [...quizEyeTest].sort(() => Math.random() - 0.2);
         const selectedQuestions = shuffled.slice(0, 20);
-        
+
         // Randomize the position of correct answers in options
         return selectedQuestions.map(question => {
             const options = [...question.options];
             const correctAnswer = question.correctAnswer;
-            
+
             // Shuffle the options array to randomize positions
             for (let i = options.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [options[i], options[j]] = [options[j], options[i]];
             }
-            
+
             return {
                 ...question,
                 options: options,
@@ -167,10 +167,10 @@ export default function EyeTest() {
         setSelectedAnswer(null);
         setShowResult(false);
         setAttempts(prev => prev + 1);
-        
+
         // Reset liquid animation
         liquidProgressAnim.setValue(0);
-        
+
         // Animate button width
         Animated.spring(buttonWidthAnim, {
             toValue: 140,
@@ -217,13 +217,13 @@ export default function EyeTest() {
     // Handle answer selection
     const handleAnswerSelect = (answer: string) => {
         if (selectedAnswer || gameState !== 'playing') return;
-        
+
         setSelectedAnswer(answer);
         setShowResult(true);
         setUserAnswers(prev => [...prev, answer]);
-        
+
         const isCorrect = answer === currentQuiz[currentQuestionIndex].correctAnswer;
-        
+
         if (isCorrect) {
             setScore(prev => prev + 1);
         }
@@ -269,7 +269,7 @@ export default function EyeTest() {
         setCurrentQuiz([]);
         setUserAnswers([]);
         setIsReviewUnlocked(false);
-        
+
         // Reset animations
         liquidProgressAnim.setValue(0);
         Animated.spring(buttonWidthAnim, {
@@ -282,32 +282,32 @@ export default function EyeTest() {
     // Get button style based on answer state
     const getButtonStyle = (option: string, index: number) => {
         if (!showResult) return styles.optionButton;
-        
+
         if (option === currentQuiz[currentQuestionIndex].correctAnswer) {
             return [styles.optionButton, styles.correctAnswer];
         } else if (option === selectedAnswer && option !== currentQuiz[currentQuestionIndex].correctAnswer) {
             return [styles.optionButton, styles.incorrectAnswer];
         }
-        
+
         return styles.optionButton;
     };
 
     // Get button text color
     const getButtonTextColor = (option: string) => {
         if (!showResult) return '#fff';
-        
+
         if (option === currentQuiz[currentQuestionIndex].correctAnswer) {
             return '#fff';
         } else if (option === selectedAnswer && option !== currentQuiz[currentQuestionIndex].correctAnswer) {
             return '#fff';
         }
-        
+
         return '#fff';
     };
 
     return (
         <ThemeBackground>
-            <Stack.Screen 
+            <Stack.Screen
                 options={{
                     title: isNepali ? unicodeToAakriti("दृष्टि परीक्षा (आई टेस्ट)") : "Eye Test",
                     ...themedHeaderOptions(theme),
@@ -317,7 +317,7 @@ export default function EyeTest() {
                         fontFamily: isNepali ? 'AakritiBold' : undefined,
                     },
                     headerLeft: () => (
-                        <Pressable 
+                        <Pressable
                             onPress={handleBackPress}
                             style={styles.headerBackButton}
                         >
@@ -330,13 +330,13 @@ export default function EyeTest() {
                 {/* Timer Section */}
                 <View style={styles.timerContainer}>
                     <View style={styles.timerLeft}>
-                        <Animated.View 
+                        <Animated.View
                             style={[
                                 styles.timerIconBackground,
                                 { transform: [{ scale: scaleAnim }] },
                             ]}
                         >
-                            <Image 
+                            <Image
                                 source={require('../../assets/images/stopwatch.png')}
                                 style={styles.timerIcon}
                                 resizeMode="contain"
@@ -345,16 +345,16 @@ export default function EyeTest() {
                         <View style={styles.timerTextContainer}>
                             <Text style={styles.timerLabel}>{isNepali ? 'समय' : 'Timer'}</Text>
                             <Text style={styles.timerSubtext}>
-                                {gameState === 'playing' ? (isNepali ? "समय चलिरहेको छ" : "Time is running") : 
-                                 gameState === 'finished' ? (isNepali ? "समय समाप्त भयो" : "Time has ended") : 
-                                 (isNepali ? "सुरु गर्न Start थिच्नुहोस्" : "Press start to begin")}
+                                {gameState === 'playing' ? (isNepali ? "समय चलिरहेको छ" : "Time is running") :
+                                    gameState === 'finished' ? (isNepali ? "समय समाप्त भयो" : "Time has ended") :
+                                        (isNepali ? "सुरु गर्न Start थिच्नुहोस्" : "Press start to begin")}
                             </Text>
                         </View>
                     </View>
                     <Animated.View style={[styles.buttonContainer, { width: buttonWidthAnim }]}>
                         {gameState === 'playing' || gameState === 'finished' ? (
                             <View style={styles.startButton}>
-                                <Animated.View 
+                                <Animated.View
                                     style={[
                                         styles.liquidFill,
                                         {
@@ -373,7 +373,7 @@ export default function EyeTest() {
                                 </Text>
                             </View>
                         ) : (
-                            <Pressable 
+                            <Pressable
                                 style={styles.startButton}
                                 onPress={handleStart}
                             >
@@ -396,9 +396,9 @@ export default function EyeTest() {
                     <View style={styles.questionSection}>
                         <Text style={styles.questionTitle}>{isNepali ? 'यो कुन संख्या हो?' : 'Which number is this?'}</Text>
                         <Text style={styles.questionSubtitle}>{isNepali ? 'चित्रमा देखिएको संख्या पहिचान गर्नुहोस्' : 'Please identify the number'}</Text>
-                        
+
                         <View style={styles.signContainer}>
-                            <Image 
+                            <Image
                                 source={currentQuiz[currentQuestionIndex].image}
                                 style={styles.signImage}
                                 resizeMode="contain"
@@ -406,12 +406,12 @@ export default function EyeTest() {
                             {/* Progress dots */}
                             <View style={styles.progressDots}>
                                 {Array.from({ length: 20 }, (_, i) => (
-                                    <View 
-                                        key={i} 
+                                    <View
+                                        key={i}
                                         style={[
-                                            styles.dot, 
+                                            styles.dot,
                                             i <= currentQuestionIndex ? styles.activeDot : null
-                                        ]} 
+                                        ]}
                                     />
                                 ))}
                             </View>
@@ -427,7 +427,7 @@ export default function EyeTest() {
                                 key={index}
                                 style={{ transform: [{ scale: optionAnimations[index] }] }}
                             >
-                                <Pressable 
+                                <Pressable
                                     style={getButtonStyle(option, index)}
                                     onPress={() => handleAnswerSelect(option)}
                                     disabled={selectedAnswer !== null}
@@ -443,14 +443,14 @@ export default function EyeTest() {
 
                 {/* Game Over Screen */}
                 {gameState === 'finished' && (
-                    <ScrollView 
-                        style={styles.gameOverContainer} 
+                    <ScrollView
+                        style={styles.gameOverContainer}
                         contentContainerStyle={{ paddingBottom: 40, alignItems: 'center' }}
                         showsVerticalScrollIndicator={false}
                     >
                         <Text style={styles.gameOverScore}>{isNepali ? `अन्तिम प्राप्तांक: ${score}/२०` : `Final Score: ${score}/20`}</Text>
                         <Text style={styles.gameOverTime}>{isNepali ? `लागेको समय: ${60 - timeLeft} सेकेन्ड` : `Time Taken: ${60 - timeLeft} seconds`}</Text>
-                        
+
                         {isReviewUnlocked && currentQuiz.map((item, index) => {
                             const userAns = userAnswers[index];
                             const isCorrect = userAns === item.correctAnswer;
@@ -458,13 +458,13 @@ export default function EyeTest() {
                                 <View key={index} style={styles.reviewCard}>
                                     <Text style={styles.reviewNumber}>{isNepali ? `प्रश्न ${index + 1}` : `Question ${index + 1}`}</Text>
                                     <Image source={item.image} style={styles.reviewImage} resizeMode="contain" />
-                                    
+
                                     <View style={styles.reviewAnswers}>
                                         <Text style={styles.reviewTextLabel}>{isNepali ? 'तपाईंको उत्तर:' : 'Your Answer:'}</Text>
                                         <Text style={[styles.reviewTextValue, { color: isCorrect ? '#4CAF50' : '#F44336' }]}>
                                             {userAns || (isNepali ? 'उत्तर नदिएको' : 'Unanswered')}
                                         </Text>
-                                        
+
                                         {!isCorrect && (
                                             <>
                                                 <Text style={styles.reviewTextLabel}>{isNepali ? 'सही उत्तर:' : 'Correct Answer:'}</Text>
@@ -477,7 +477,7 @@ export default function EyeTest() {
                                 </View>
                             );
                         })}
-                        
+
                         <Pressable style={styles.restartButton} onPress={resetGame}>
                             <Text style={styles.restartButtonText}>{isNepali ? 'पुनः परीक्षा दिनुहोस्' : 'Play Again'}</Text>
                         </Pressable>
@@ -504,6 +504,7 @@ export default function EyeTest() {
             <Modal
                 visible={showModal}
                 transparent
+                statusBarTranslucent
                 animationType="fade"
                 onRequestClose={dismissModal}
             >
@@ -558,12 +559,12 @@ export default function EyeTest() {
 
                         {/* Buttons */}
                         <View style={styles.modalButtonRow}>
-                            <Pressable 
-                                style={styles.modalButtonSecondary} 
-                                onPress={() => { 
+                            <Pressable
+                                style={styles.modalButtonSecondary}
+                                onPress={() => {
                                     if (isReviewUnlocked) {
-                                        dismissModal(); 
-                                        resetGame(); 
+                                        dismissModal();
+                                        resetGame();
                                     } else {
                                         if (isLoaded) {
                                             setPendingAction('restart');
@@ -578,12 +579,12 @@ export default function EyeTest() {
                                 <Ionicons name="refresh-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
                                 <Text style={styles.modalButtonSecondaryText}>Play Again</Text>
                             </Pressable>
-                            
-                            <Pressable 
+
+                            <Pressable
                                 style={[
-                                    styles.modalButtonPrimary, 
+                                    styles.modalButtonPrimary,
                                     { backgroundColor: isReviewUnlocked ? '#4CAF50' : '#FF6B35' }
-                                ]} 
+                                ]}
                                 onPress={() => {
                                     if (isReviewUnlocked) {
                                         dismissModal();
@@ -609,445 +610,445 @@ export default function EyeTest() {
 }
 
 function createStyles(theme: AppTheme, isNepali: boolean = false) {
-  const { colors, glass, isDark } = theme;
-  return StyleSheet.create({
-    buttonContainer: {
-        overflow: 'hidden',
-        borderRadius: 20,
-    },
-    liquidFill: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        bottom: 0,
-        borderRadius: 20,
-        zIndex: 0,
-    },
-    liquidBubble: {
-        position: 'absolute',
-        right: -8,
-        top: '50%',
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        backgroundColor: '#FFFFFF20',
-        transform: [{ translateY: -8 }],
-    },
-    timerText: {
-        position: 'relative',
-        zIndex: 1,
-        color: '#FFFFFF',
-        fontFamily: 'Raleway-Bold',
-    },
-    container: {
-        flex: 1,
-        backgroundColor: colors.background,
-        paddingHorizontal: 20,
-        paddingTop: 20,
-    },
-    timerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: isDark ? glass.backgroundColor : colors.card,
-        padding: 15,
-        borderRadius: 12,
-        marginBottom: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: isDark ? 0 : 3,
-    },
-    timerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    timerIconBackground: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#F0F0F0',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    timerIcon: {
-        width: 32,
-        height: 32,
-    },
-    timerTextContainer: {
-        marginLeft: 10,
-    },
-    timerLabel: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 16,
-        color: colors.text,
-        marginBottom: 2,
-    },
-    timerSubtext: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 14,
-        color: colors.textTertiary,
-    },
-    startButton: {
-        backgroundColor: '#666',
-        paddingHorizontal: 10,
-        paddingVertical: 10,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: 30,
-    },
-    startButtonText: {
-        color: '#fff',
-        fontFamily: 'Raleway-Medium',
-        fontSize: 14,
-        textAlign: 'center',
-    },
-    scoreContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        backgroundColor: isDark ? glass.backgroundColor : colors.card,
-        padding: 15,
-        borderRadius: 12,
-        marginBottom: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: isDark ? 0 : 3,
-    },
-    scoreText: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 16,
-        color: colors.text,
-    },
-    questionCounter: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 14,
-        color: colors.textSecondary,
-    },
-    questionSection: {
-        alignItems: 'center',
-        backgroundColor: isDark ? glass.backgroundColor : colors.card,
-        borderRadius: 12,
-        padding: 30,
-        marginBottom: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: isDark ? 0 : 3,
-    },
-    questionTitle: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 20,
-        color: colors.text,
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    questionSubtitle: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 14,
-        color: colors.textTertiary,
-        marginBottom: 30,
-        textAlign: 'center',
-    },
-    signContainer: {
-        alignItems: 'center',
-        width: '100%',
-    },
-    signImage: {
-        width: 200,
-        height: 200,
-        marginBottom: 20,
-    },
-    progressDots: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-    },
-    dot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: '#E0E0E0',
-    },
-    activeDot: {
-        backgroundColor: '#FF6B35',
-    },
-    optionsContainer: {
-        gap: 10,
-        paddingBottom: 30,
-    },
-    optionButton: {
-        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#434D57',
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: isDark ? 1 : 0,
-        borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-    },
-    correctAnswer: {
-        backgroundColor: isDark ? 'rgba(76, 175, 80, 0.25)' : '#4CAF50',
-        borderColor: isDark ? 'rgba(76, 175, 80, 0.5)' : 'transparent',
-    },
-    incorrectAnswer: {
-        backgroundColor: isDark ? 'rgba(244, 67, 54, 0.25)' : '#F44336',
-        borderColor: isDark ? 'rgba(244, 67, 54, 0.5)' : 'transparent',
-    },
-    optionText: {
-        color: '#fff',
-        fontFamily: 'Raleway-Medium',
-        fontSize: 15,
-        textAlign: 'center',
-    },
-    gameOverContainer: {
-        flex: 1,
-        backgroundColor: isDark ? glass.backgroundColor : colors.card,
-        borderRadius: 12,
-        padding: 30,
-        marginBottom: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: isDark ? 0 : 3,
-    },
-    reviewCard: {
-        width: '100%',
-        backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9F9F9',
-        borderRadius: 16,
-        padding: 16,
-        marginVertical: 8,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#EAEAEA',
-    },
-    reviewNumber: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 14,
-        color: colors.textSecondary,
-        marginBottom: 8,
-    },
-    reviewImage: {
-        width: 100,
-        height: 100,
-        marginBottom: 12,
-    },
-    reviewAnswers: {
-        width: '100%',
-        gap: 2,
-    },
-    reviewTextLabel: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 12,
-        color: colors.textSecondary,
-        marginTop: 4,
-    },
-    reviewTextValue: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 14,
-    },
-    gameOverTitle: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 24,
-        color: colors.text,
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    gameOverScore: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 20,
-        color: '#4CAF50',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
-    gameOverTime: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 16,
-        color: colors.textSecondary,
-        marginBottom: 30,
-        textAlign: 'center',
-    },
-    restartButton: {
-        backgroundColor: '#FF6B35',
-        paddingHorizontal: 30,
-        paddingVertical: 15,
-        borderRadius: 25,
-    },
-    restartButtonText: {
-        color: '#fff',
-        fontFamily: 'Raleway-Bold',
-        fontSize: 18,
-    },
-    instructionsContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: isDark ? glass.backgroundColor : colors.card,
-        borderRadius: 12,
-        padding: 30,
-        marginBottom: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: isDark ? 0 : 3,
-    },
-    instructionsTitle: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 24,
-        color: colors.text,
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    instructionsText: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 16,
-        color: colors.textSecondary,
-        lineHeight: 24,
-        textAlign: 'center',
-    },
-    headerBackButton: {
-        padding: 8,
-        marginLeft: 10,
-        borderRadius: 20,
-    },
-    // Modal styles
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 30,
-    },
-    modalContainer: {
-        width: '100%',
-        backgroundColor: isDark ? 'rgba(30, 35, 45, 0.95)' : '#FFFFFF',
-        borderRadius: 24,
-        paddingVertical: 32,
-        paddingHorizontal: 24,
-        alignItems: 'center',
-        borderWidth: isDark ? 1 : 0,
-        borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.3,
-        shadowRadius: 24,
-        elevation: isDark ? 0 : 10,
-    },
-    modalIconCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-    modalIconTimeUp: {
-        backgroundColor: isDark ? 'rgba(255, 107, 53, 0.15)' : 'rgba(255, 107, 53, 0.1)',
-    },
-    modalIconComplete: {
-        backgroundColor: isDark ? 'rgba(76, 175, 80, 0.15)' : 'rgba(76, 175, 80, 0.1)',
-    },
-    modalTitle: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 22,
-        color: colors.text,
-        marginBottom: 16,
-        textAlign: 'center',
-    },
-    modalScoreRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        marginBottom: 4,
-    },
-    modalScoreValue: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 48,
-    },
-    modalScoreTotal: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 24,
-        color: colors.textSecondary,
-    },
-    modalScoreLabel: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 16,
-        color: colors.textSecondary,
-        marginBottom: 24,
-    },
-    modalStatsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA',
-        borderRadius: 16,
-        paddingVertical: 16,
-        paddingHorizontal: 20,
-        width: '100%',
-        marginBottom: 24,
-    },
-    modalStatItem: {
-        flex: 1,
-        alignItems: 'center',
-        gap: 4,
-    },
-    modalStatValue: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 18,
-        color: colors.text,
-    },
-    modalStatLabel: {
-        fontFamily: 'Raleway-Medium',
-        fontSize: 12,
-        color: colors.textSecondary,
-    },
-    modalStatDivider: {
-        width: 1,
-        height: 36,
-        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E0E0E0',
-    },
-    modalButtonRow: {
-        flexDirection: 'row',
-        gap: 12,
-        width: '100%',
-    },
-    modalButtonSecondary: {
-        flex: 1,
-        paddingVertical: 14,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F0F0F0',
-        borderWidth: isDark ? 1 : 0,
-        borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-    },
-    modalButtonSecondaryText: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 15,
-        color: colors.text,
-    },
-    modalButtonPrimary: {
-        flex: 1,
-        flexDirection: 'row',
-        paddingVertical: 14,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#FF6B35',
-        gap: 6,
-    },
-    modalButtonPrimaryText: {
-        fontFamily: 'Raleway-Bold',
-        fontSize: 15,
-        color: '#FFFFFF',
-    },
-});
+    const { colors, glass, isDark } = theme;
+    return StyleSheet.create({
+        buttonContainer: {
+            overflow: 'hidden',
+            borderRadius: 20,
+        },
+        liquidFill: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            bottom: 0,
+            borderRadius: 20,
+            zIndex: 0,
+        },
+        liquidBubble: {
+            position: 'absolute',
+            right: -8,
+            top: '50%',
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            backgroundColor: '#FFFFFF20',
+            transform: [{ translateY: -8 }],
+        },
+        timerText: {
+            position: 'relative',
+            zIndex: 1,
+            color: '#FFFFFF',
+            fontFamily: 'Raleway-Bold',
+        },
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+            paddingHorizontal: 20,
+            paddingTop: 20,
+        },
+        timerContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: isDark ? glass.backgroundColor : colors.card,
+            padding: 15,
+            borderRadius: 12,
+            marginBottom: 15,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: isDark ? 0 : 3,
+        },
+        timerLeft: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            flex: 1,
+        },
+        timerIconBackground: {
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: '#F0F0F0',
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        timerIcon: {
+            width: 32,
+            height: 32,
+        },
+        timerTextContainer: {
+            marginLeft: 10,
+        },
+        timerLabel: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 16,
+            color: colors.text,
+            marginBottom: 2,
+        },
+        timerSubtext: {
+            fontFamily: 'Raleway-Medium',
+            fontSize: 14,
+            color: colors.textTertiary,
+        },
+        startButton: {
+            backgroundColor: '#666',
+            paddingHorizontal: 10,
+            paddingVertical: 10,
+            borderRadius: 20,
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: 30,
+        },
+        startButtonText: {
+            color: '#fff',
+            fontFamily: 'Raleway-Medium',
+            fontSize: 14,
+            textAlign: 'center',
+        },
+        scoreContainer: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            backgroundColor: isDark ? glass.backgroundColor : colors.card,
+            padding: 15,
+            borderRadius: 12,
+            marginBottom: 15,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: isDark ? 0 : 3,
+        },
+        scoreText: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 16,
+            color: colors.text,
+        },
+        questionCounter: {
+            fontFamily: 'Raleway-Medium',
+            fontSize: 14,
+            color: colors.textSecondary,
+        },
+        questionSection: {
+            alignItems: 'center',
+            backgroundColor: isDark ? glass.backgroundColor : colors.card,
+            borderRadius: 12,
+            padding: 30,
+            marginBottom: 30,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: isDark ? 0 : 3,
+        },
+        questionTitle: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 20,
+            color: colors.text,
+            marginBottom: 8,
+            textAlign: 'center',
+        },
+        questionSubtitle: {
+            fontFamily: 'Raleway-Medium',
+            fontSize: 14,
+            color: colors.textTertiary,
+            marginBottom: 30,
+            textAlign: 'center',
+        },
+        signContainer: {
+            alignItems: 'center',
+            width: '100%',
+        },
+        signImage: {
+            width: 200,
+            height: 200,
+            marginBottom: 20,
+        },
+        progressDots: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+        },
+        dot: {
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: '#E0E0E0',
+        },
+        activeDot: {
+            backgroundColor: '#FF6B35',
+        },
+        optionsContainer: {
+            gap: 10,
+            paddingBottom: 30,
+        },
+        optionButton: {
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#434D57',
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 0,
+            borderColor: 'transparent',
+        },
+        correctAnswer: {
+            backgroundColor: isDark ? 'rgba(76, 175, 80, 0.25)' : '#4CAF50',
+            borderColor: isDark ? 'rgba(76, 175, 80, 0.5)' : 'transparent',
+        },
+        incorrectAnswer: {
+            backgroundColor: isDark ? 'rgba(244, 67, 54, 0.25)' : '#F44336',
+            borderColor: isDark ? 'rgba(244, 67, 54, 0.5)' : 'transparent',
+        },
+        optionText: {
+            color: '#fff',
+            fontFamily: 'Raleway-Medium',
+            fontSize: 15,
+            textAlign: 'center',
+        },
+        gameOverContainer: {
+            flex: 1,
+            backgroundColor: isDark ? glass.backgroundColor : colors.card,
+            borderRadius: 12,
+            padding: 30,
+            marginBottom: 30,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: isDark ? 0 : 3,
+        },
+        reviewCard: {
+            width: '100%',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9F9F9',
+            borderRadius: 16,
+            padding: 16,
+            marginVertical: 8,
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#EAEAEA',
+        },
+        reviewNumber: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 14,
+            color: colors.textSecondary,
+            marginBottom: 8,
+        },
+        reviewImage: {
+            width: 100,
+            height: 100,
+            marginBottom: 12,
+        },
+        reviewAnswers: {
+            width: '100%',
+            gap: 2,
+        },
+        reviewTextLabel: {
+            fontFamily: 'Raleway-Medium',
+            fontSize: 12,
+            color: colors.textSecondary,
+            marginTop: 4,
+        },
+        reviewTextValue: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 14,
+        },
+        gameOverTitle: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 24,
+            color: colors.text,
+            marginBottom: 20,
+            textAlign: 'center',
+        },
+        gameOverScore: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 20,
+            color: '#4CAF50',
+            marginBottom: 10,
+            textAlign: 'center',
+        },
+        gameOverTime: {
+            fontFamily: 'Raleway-Medium',
+            fontSize: 16,
+            color: colors.textSecondary,
+            marginBottom: 30,
+            textAlign: 'center',
+        },
+        restartButton: {
+            backgroundColor: '#FF6B35',
+            paddingHorizontal: 30,
+            paddingVertical: 15,
+            borderRadius: 25,
+        },
+        restartButtonText: {
+            color: '#fff',
+            fontFamily: 'Raleway-Bold',
+            fontSize: 18,
+        },
+        instructionsContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: isDark ? glass.backgroundColor : colors.card,
+            borderRadius: 12,
+            padding: 30,
+            marginBottom: 30,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: isDark ? 0 : 3,
+        },
+        instructionsTitle: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 24,
+            color: colors.text,
+            marginBottom: 20,
+            textAlign: 'center',
+        },
+        instructionsText: {
+            fontFamily: 'Raleway-Medium',
+            fontSize: 16,
+            color: colors.textSecondary,
+            lineHeight: 24,
+            textAlign: 'center',
+        },
+        headerBackButton: {
+            padding: 8,
+            marginLeft: 10,
+            borderRadius: 20,
+        },
+        // Modal styles
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 30,
+        },
+        modalContainer: {
+            width: '100%',
+            backgroundColor: isDark ? 'rgba(30, 35, 45, 0.95)' : '#FFFFFF',
+            borderRadius: 24,
+            paddingVertical: 32,
+            paddingHorizontal: 24,
+            alignItems: 'center',
+            borderWidth: isDark ? 1 : 0,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.3,
+            shadowRadius: 24,
+            elevation: isDark ? 0 : 10,
+        },
+        modalIconCircle: {
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 16,
+        },
+        modalIconTimeUp: {
+            backgroundColor: isDark ? 'rgba(255, 107, 53, 0.15)' : 'rgba(255, 107, 53, 0.1)',
+        },
+        modalIconComplete: {
+            backgroundColor: isDark ? 'rgba(76, 175, 80, 0.15)' : 'rgba(76, 175, 80, 0.1)',
+        },
+        modalTitle: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 22,
+            color: colors.text,
+            marginBottom: 16,
+            textAlign: 'center',
+        },
+        modalScoreRow: {
+            flexDirection: 'row',
+            alignItems: 'baseline',
+            marginBottom: 4,
+        },
+        modalScoreValue: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 48,
+        },
+        modalScoreTotal: {
+            fontFamily: 'Raleway-Medium',
+            fontSize: 24,
+            color: colors.textSecondary,
+        },
+        modalScoreLabel: {
+            fontFamily: 'Raleway-Medium',
+            fontSize: 16,
+            color: colors.textSecondary,
+            marginBottom: 24,
+        },
+        modalStatsRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA',
+            borderRadius: 16,
+            paddingVertical: 16,
+            paddingHorizontal: 20,
+            width: '100%',
+            marginBottom: 24,
+        },
+        modalStatItem: {
+            flex: 1,
+            alignItems: 'center',
+            gap: 4,
+        },
+        modalStatValue: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 18,
+            color: colors.text,
+        },
+        modalStatLabel: {
+            fontFamily: 'Raleway-Medium',
+            fontSize: 12,
+            color: colors.textSecondary,
+        },
+        modalStatDivider: {
+            width: 1,
+            height: 36,
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E0E0E0',
+        },
+        modalButtonRow: {
+            flexDirection: 'row',
+            gap: 12,
+            width: '100%',
+        },
+        modalButtonSecondary: {
+            flex: 1,
+            paddingVertical: 14,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F0F0F0',
+            borderWidth: isDark ? 1 : 0,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+        },
+        modalButtonSecondaryText: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 15,
+            color: colors.text,
+        },
+        modalButtonPrimary: {
+            flex: 1,
+            flexDirection: 'row',
+            paddingVertical: 14,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#FF6B35',
+            gap: 6,
+        },
+        modalButtonPrimaryText: {
+            fontFamily: 'Raleway-Bold',
+            fontSize: 15,
+            color: '#FFFFFF',
+        },
+    });
 }

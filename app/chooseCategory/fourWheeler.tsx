@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as nepaliKnowledge from '../practiceMore/bikeKnowledge';
 import * as englishKnowledge from '../practiceMore/knowledge';
 import * as nepaliConstants from './bikeConstants';
@@ -13,6 +13,7 @@ import { useTheme, ThemeBackground } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import { Skeleton } from '@/components/Skeleton';
+import QuestionSpeechButton from '@/components/QuestionSpeechButton';
 import AdBanner from '@/components/AdBanner';
 
 const ITEMS_PER_PAGE = 20;
@@ -251,15 +252,26 @@ export default function FourWheelerScreen() {
             return (
               <Pressable key={sec.id} style={[styles.sectionCard, isActive && styles.sectionCardActive]} onPress={() => handleSectionSelect(sec.id)}>
                 <View style={styles.sectionRow}>
-                  <View style={styles.sectionIcon}><Ionicons name="document-text-outline" size={20} color={isActive ? theme.colors.text : theme.colors.textSecondary} /></View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.sectionTitle, { color: isActive ? theme.colors.text : theme.colors.textSecondary }]}>
+                  <View style={[styles.sectionIcon, isActive && styles.sectionIconActive]}>
+                    <Image
+                      source={require('../../assets/images/exam.png')}
+                      style={styles.sectionIconImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <View style={{ flex: 1, paddingRight: 6 }}>
+                    <Text style={[styles.sectionTitle, { color: theme.isDark ? '#FFFFFF' : '#1E293B' }]} numberOfLines={1}>
                       {isNepali ? unicodeToAakriti(sec.title) : sec.title}
                     </Text>
-                    <Text style={styles.sectionSubtitle}>
+                    <Text style={[styles.sectionSubtitle, { color: theme.isDark ? '#94A3B8' : '#64748B' }]} numberOfLines={1}>
                       {isNepali ? unicodeToAakriti(sec.subtitle) : sec.subtitle}
                     </Text>
                   </View>
+                  {isActive && (
+                    <View style={styles.sectionArrowBadge}>
+                      <Ionicons name="chevron-forward" size={18} color="#000000" />
+                    </View>
+                  )}
                 </View>
               </Pressable>
             );
@@ -270,9 +282,15 @@ export default function FourWheelerScreen() {
           return (
             <View key={item.id} style={{ zIndex: show ? 2 : 1 }}>
               <View style={[styles.card, { zIndex: 10 }]}>
-                <Text style={styles.questionText}>
-                  {isNepali ? unicodeToAakriti(item.q) : item.q}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
+                  <QuestionSpeechButton
+                    rawNepaliText={item.q}
+                    englishText={item.q}
+                  />
+                  <Text style={[styles.questionText, { flex: 1, marginBottom: 0 }]}>
+                    {isNepali ? unicodeToAakriti(item.q) : item.q}
+                  </Text>
+                </View>
                 <View style={styles.dashed} />
                 <View style={styles.optionGrid}>
                   {item.opts.map((opt: string, i: number) => (
@@ -363,35 +381,53 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       paddingBottom: 6,
     },
     sectionCard: {
-      backgroundColor: isDark ? glass.backgroundColor : colors.card,
-      borderRadius: isDark ? glass.borderRadius : 16,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : colors.card,
+      borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 14,
-      marginRight: 10,
-      borderWidth: isDark ? glass.borderWidth : 1.5,
-      borderColor: isDark ? glass.borderColor : colors.cardBorder,
-      width: 280,
+      marginRight: 12,
+      borderWidth: 1.5,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : colors.cardBorder,
+      width: 300,
       justifyContent: 'center',
     },
     sectionCardActive: {
-      borderColor: isDark ? colors.accent : '#FF6B35',
+      borderWidth: 2,
+      borderColor: '#22C55E',
+      backgroundColor: isDark ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.05)',
     },
     sectionRow: {
       flexDirection: 'row',
       alignItems: 'center',
     },
     sectionIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F0F4F8',
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#F1F5F9',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,
     },
+    sectionIconActive: {
+      backgroundColor: '#FFFFFF',
+    },
+    sectionIconImage: {
+      width: 28,
+      height: 28,
+    },
+    sectionArrowBadge: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: '#22C55E',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 4,
+    },
     sectionTitle: {
       fontSize: isNepali ? 20 : 17,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       marginBottom: 3,
       fontFamily: fontBold,
       lineHeight: isNepali ? 26 : 22,
@@ -447,7 +483,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     optionCorrect: {
       color: '#4CAF50',
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       fontFamily: fontBold || fontNormal,
     },
     revealRow: {
@@ -479,7 +515,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     answerPillText: {
       color: isDark ? '#81C784' : '#FFFFFF',
       fontSize: isNepali ? 19 : 16,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       textAlign: 'center',
       fontFamily: fontBold || fontNormal,
     },
@@ -529,7 +565,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     paginationText: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       color: isDark ? colors.text : '#434D57',
       fontFamily: fontNormal,
     },

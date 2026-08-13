@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomGlassAlert from '@/components/CustomGlassAlert';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme, ThemeBackground } from '@/context/ThemeContext';
 import { themedHeaderOptions } from '@/constants/screenHelpers';
@@ -58,6 +59,37 @@ export default function NepaliCalendarScreen() {
   const [examBsMonth, setExamBsMonth] = useState(todayBS.month.toString());
   const [examBsDay, setExamBsDay] = useState((todayBS.day + 7).toString());
 
+  // Custom Glass Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    iconName?: keyof typeof Ionicons.glyphMap;
+    iconColor?: string;
+    buttonColor?: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    iconName: keyof typeof Ionicons.glyphMap = 'checkmark-circle',
+    iconColor: string = '#22C55E',
+    buttonColor: string = '#22C55E'
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      iconName,
+      iconColor,
+      buttonColor,
+    });
+  };
+
   const fontStyle = isNepali ? { fontFamily: 'Aakriti', fontWeight: 'normal' as const } : {};
   const fontBoldStyle = isNepali ? { fontFamily: 'AakritiBold', fontWeight: 'normal' as const } : {};
 
@@ -101,7 +133,13 @@ export default function NepaliCalendarScreen() {
     const d = parseNepaliNumber(convBsDay);
 
     if (isNaN(y) || isNaN(m) || isNaN(d) || m < 1 || m > 12 || d < 1 || d > 32) {
-      Alert.alert('अवैध मिति', 'कृपया सही वि.सं. मिति प्रविष्ट गर्नुहोस्।');
+      showAlert(
+        isNepali ? 'अवैध मिति' : 'Invalid Date',
+        isNepali ? 'कृपया सही वि.सं. मिति प्रविष्ट गर्नुहोस्।' : 'Please enter a valid BS date.',
+        'alert-circle',
+        '#EF4444',
+        '#EF4444'
+      );
       return;
     }
 
@@ -116,7 +154,13 @@ export default function NepaliCalendarScreen() {
     const d = parseNepaliNumber(examBsDay);
 
     if (isNaN(y) || isNaN(m) || isNaN(d) || m < 1 || m > 12 || d < 1 || d > 32) {
-      Alert.alert('अवैध मिति', 'कृपया सही वि.सं. परीक्षा मिति प्रविष्ट गर्नुहोस्।');
+      showAlert(
+        isNepali ? 'अवैध मिति' : 'Invalid Date',
+        isNepali ? 'कृपया सही वि.सं. परीक्षा मिति प्रविष्ट गर्नुहोस्।' : 'Please enter a valid BS exam date.',
+        'alert-circle',
+        '#EF4444',
+        '#EF4444'
+      );
       return;
     }
 
@@ -132,9 +176,12 @@ export default function NepaliCalendarScreen() {
     try {
       await syncExamToNativeWidget(record);
       setShowExamModal(false);
-      Alert.alert(
+      showAlert(
         isNepali ? 'परीक्षा मिति सुरक्षित गरियो' : 'Exam Date Saved',
-        isNepali ? 'तपाईंको परीक्षा मिति काउन्टडाउन गृह पृष्ठ तथा iOS विजेटमा देखिनेछ।' : 'Your exam countdown is now active on home screen & iOS Widget!'
+        isNepali ? 'तपाईंको परीक्षा मिति काउन्टडाउन गृह पृष्ठ तथा iOS विजेटमा देखिनेछ।' : 'Your exam countdown is now active on home screen.',
+        'calendar',
+        '#22C55E',
+        '#22C55E'
       );
     } catch (e) {
       console.warn('Failed to save exam date:', e);
@@ -149,6 +196,11 @@ export default function NepaliCalendarScreen() {
         options={{
           ...themedHeaderOptions(theme),
           title: isNepali ? unicodeToAakriti('नेपाली पात्रो र परीक्षा मिति') : 'Nepali Calendar',
+          headerTitleStyle: {
+            fontSize: isNepali ? 22 : 20,
+            color: '#FFFFFF',
+            fontFamily: isNepali ? 'AakritiBold' : undefined,
+          },
         }}
       />
 
@@ -180,7 +232,7 @@ export default function NepaliCalendarScreen() {
           {activeTab === 'calendar' ? (
             <>
               {/* Month Header Navigation */}
-              <View style={[styles.monthHeaderCard, { backgroundColor: theme.colors.card }]}>
+              <View style={[styles.monthHeaderCard, { backgroundColor: theme.colors.card }, !theme.isDark && { elevation: 2 }]}>
                 <TouchableOpacity onPress={handlePrevMonth} style={styles.navBtn}>
                   <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
@@ -215,7 +267,7 @@ export default function NepaliCalendarScreen() {
               </View>
 
               {/* Month Days Grid */}
-              <View style={[styles.daysGrid, { backgroundColor: theme.colors.card }]}>
+              <View style={[styles.daysGrid, { backgroundColor: theme.colors.card }, !theme.isDark && { elevation: 2 }]}>
                 {/* Empty cells before 1st day */}
                 {Array.from({ length: monthStartDayOfWeek }).map((_, idx) => (
                   <View key={`empty-${idx}`} style={styles.dayCell} />
@@ -287,7 +339,7 @@ export default function NepaliCalendarScreen() {
               </TouchableOpacity>
 
               {/* Month Holidays & Events Card */}
-              <View style={[styles.holidaysCard, { backgroundColor: theme.colors.card }]}>
+              <View style={[styles.holidaysCard, { backgroundColor: theme.colors.card }, !theme.isDark && { elevation: 2 }]}>
                 <Text style={[styles.holidaysCardTitle, fontBoldStyle, { color: theme.colors.text }]}>
                   {isNepali ? unicodeToAakriti('यस महिनाका बिदा तथा चाडपर्वहरू') : 'Holidays & Events'}
                 </Text>
@@ -320,16 +372,25 @@ export default function NepaliCalendarScreen() {
               </View>
             </>
           ) : (
-            <View style={[styles.converterCard, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.converterCard, { backgroundColor: theme.colors.card }, !theme.isDark && { elevation: 2 }]}>
               <Text style={[styles.converterTitle, fontBoldStyle, { color: theme.colors.text }]}>
-                {isNepali ? unicodeToAakriti('वि.सं. बाट ई.सं. (BS to AD) रूपान्तरण') : 'Convert BS to AD Date'}
+                {isNepali ? unicodeToAakriti('विसं बाट ईसं रूपान्तरण') : 'Convert BS to AD Date'}
               </Text>
 
               <View style={styles.inputsRow}>
                 <View style={styles.inputCol}>
-                  <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }, fontStyle]}>{isNepali ? unicodeToAakriti('वर्ष (BS)') : 'Year'}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }, fontStyle]}>
+                    {isNepali ? unicodeToAakriti('वर्ष') : 'Year'}
+                  </Text>
                   <TextInput
-                    style={[styles.numInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+                    style={[
+                      styles.numInput,
+                      {
+                        color: theme.colors.text,
+                        borderColor: theme.isDark ? 'transparent' : theme.colors.border,
+                        backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.25)' : '#f8fafc',
+                      },
+                    ]}
                     value={convBsYear}
                     onChangeText={setConvBsYear}
                     keyboardType="numeric"
@@ -340,7 +401,14 @@ export default function NepaliCalendarScreen() {
                 <View style={styles.inputCol}>
                   <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }, fontStyle]}>{isNepali ? unicodeToAakriti('महिना') : 'Month'}</Text>
                   <TextInput
-                    style={[styles.numInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+                    style={[
+                      styles.numInput,
+                      {
+                        color: theme.colors.text,
+                        borderColor: theme.isDark ? 'transparent' : theme.colors.border,
+                        backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.25)' : '#f8fafc',
+                      },
+                    ]}
                     value={convBsMonth}
                     onChangeText={setConvBsMonth}
                     keyboardType="numeric"
@@ -351,7 +419,14 @@ export default function NepaliCalendarScreen() {
                 <View style={styles.inputCol}>
                   <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }, fontStyle]}>{isNepali ? unicodeToAakriti('गते') : 'Day'}</Text>
                   <TextInput
-                    style={[styles.numInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+                    style={[
+                      styles.numInput,
+                      {
+                        color: theme.colors.text,
+                        borderColor: theme.isDark ? 'transparent' : theme.colors.border,
+                        backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.25)' : '#f8fafc',
+                      },
+                    ]}
                     value={convBsDay}
                     onChangeText={setConvBsDay}
                     keyboardType="numeric"
@@ -369,7 +444,7 @@ export default function NepaliCalendarScreen() {
               {convertedAdResult ? (
                 <View style={[styles.resultBox, { backgroundColor: theme.isDark ? 'rgba(16, 185, 129, 0.15)' : '#f0fdf4', borderColor: theme.isDark ? '#10b981' : '#86efac' }]}>
                   <Text style={[styles.resultBoxLabel, { color: theme.isDark ? '#6ee7b7' : '#166534' }, fontStyle]}>
-                    {isNepali ? unicodeToAakriti('अंग्रेजी (AD) मिति:') : 'Converted AD Date:'}
+                    {isNepali ? unicodeToAakriti('अंग्रेजी मिति:') : 'Converted AD Date:'}
                   </Text>
                   <Text style={[styles.resultBoxText, { color: theme.isDark ? '#34d399' : '#15803d' }]}>{convertedAdResult}</Text>
                 </View>
@@ -378,10 +453,17 @@ export default function NepaliCalendarScreen() {
           )}
         </ScrollView>
 
-        {/* Set Exam Date Modal */}
-        <Modal visible={showExamModal} animationType="slide" transparent statusBarTranslucent>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalCard, { backgroundColor: theme.isDark ? '#1e293b' : '#ffffff', borderWidth: theme.isDark ? 1 : 0, borderColor: 'rgba(255, 255, 255, 0.15)' }]}>
+        {/* Set Exam Date In-Page Overlay Modal */}
+        {showExamModal && (
+          <View style={styles.inPageOverlay} pointerEvents="auto">
+            <Pressable style={styles.inPageBackdrop} onPress={() => setShowExamModal(false)} />
+            <View style={[styles.modalCard, { backgroundColor: theme.isDark ? 'rgba(24, 28, 38, 0.96)' : 'rgba(255, 255, 255, 0.98)', borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)' }]}>
+              
+              {/* Header Icon Badge */}
+              <View style={[styles.modalIconHeader, { backgroundColor: theme.isDark ? 'rgba(34, 197, 94, 0.15)' : '#dcfce7', borderColor: 'rgba(34, 197, 94, 0.3)' }]}>
+                <Ionicons name="calendar-outline" size={28} color="#22C55E" />
+              </View>
+
               <Text style={[styles.modalTitle, fontBoldStyle, { color: theme.isDark ? '#ffffff' : '#0f172a' }]}>
                 {isNepali ? unicodeToAakriti('परीक्षा मिति सेटिङ') : 'Set Exam Date'}
               </Text>
@@ -398,8 +480,8 @@ export default function NepaliCalendarScreen() {
                   style={[
                     styles.typeBtn,
                     {
-                      backgroundColor: examType === 'written' ? '#2563eb' : theme.isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
-                      borderColor: examType === 'written' ? '#2563eb' : theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#cbd5e1',
+                      backgroundColor: examType === 'written' ? '#22C55E' : theme.isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
+                      borderColor: examType === 'written' ? '#22C55E' : theme.isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1',
                     },
                   ]}
                   onPress={() => setExamType('written')}
@@ -413,8 +495,8 @@ export default function NepaliCalendarScreen() {
                   style={[
                     styles.typeBtn,
                     {
-                      backgroundColor: examType === 'trial' ? '#2563eb' : theme.isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
-                      borderColor: examType === 'trial' ? '#2563eb' : theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#cbd5e1',
+                      backgroundColor: examType === 'trial' ? '#22C55E' : theme.isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
+                      borderColor: examType === 'trial' ? '#22C55E' : theme.isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1',
                     },
                   ]}
                   onPress={() => setExamType('trial')}
@@ -430,7 +512,14 @@ export default function NepaliCalendarScreen() {
                 <View style={styles.inputCol}>
                   <Text style={[styles.inputLabel, { color: theme.isDark ? '#cbd5e1' : '#64748b' }, fontStyle]}>{isNepali ? unicodeToAakriti('वर्ष') : 'Year'}</Text>
                   <TextInput
-                    style={[styles.numInput, { color: theme.isDark ? '#ffffff' : '#0f172a', backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : '#f8fafc', borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#cbd5e1' }]}
+                    style={[
+                      styles.numInput,
+                      {
+                        color: theme.isDark ? '#ffffff' : '#0f172a',
+                        backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.35)' : '#f8fafc',
+                        borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.15)' : '#cbd5e1',
+                      },
+                    ]}
                     value={examBsYear}
                     onChangeText={setExamBsYear}
                     keyboardType="numeric"
@@ -440,7 +529,14 @@ export default function NepaliCalendarScreen() {
                 <View style={styles.inputCol}>
                   <Text style={[styles.inputLabel, { color: theme.isDark ? '#cbd5e1' : '#64748b' }, fontStyle]}>{isNepali ? unicodeToAakriti('महिना') : 'Month'}</Text>
                   <TextInput
-                    style={[styles.numInput, { color: theme.isDark ? '#ffffff' : '#0f172a', backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : '#f8fafc', borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#cbd5e1' }]}
+                    style={[
+                      styles.numInput,
+                      {
+                        color: theme.isDark ? '#ffffff' : '#0f172a',
+                        backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.35)' : '#f8fafc',
+                        borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.15)' : '#cbd5e1',
+                      },
+                    ]}
                     value={examBsMonth}
                     onChangeText={setExamBsMonth}
                     keyboardType="numeric"
@@ -450,7 +546,14 @@ export default function NepaliCalendarScreen() {
                 <View style={styles.inputCol}>
                   <Text style={[styles.inputLabel, { color: theme.isDark ? '#cbd5e1' : '#64748b' }, fontStyle]}>{isNepali ? unicodeToAakriti('गते') : 'Day'}</Text>
                   <TextInput
-                    style={[styles.numInput, { color: theme.isDark ? '#ffffff' : '#0f172a', backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : '#f8fafc', borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#cbd5e1' }]}
+                    style={[
+                      styles.numInput,
+                      {
+                        color: theme.isDark ? '#ffffff' : '#0f172a',
+                        backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.35)' : '#f8fafc',
+                        borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.15)' : '#cbd5e1',
+                      },
+                    ]}
                     value={examBsDay}
                     onChangeText={setExamBsDay}
                     keyboardType="numeric"
@@ -460,17 +563,33 @@ export default function NepaliCalendarScreen() {
               </View>
 
               <View style={styles.modalActions}>
-                <Pressable style={styles.cancelBtn} onPress={() => setShowExamModal(false)}>
-                  <Text style={[styles.cancelBtnText, { color: theme.isDark ? '#cbd5e1' : '#64748b' }, fontStyle]}>{isNepali ? unicodeToAakriti('रद्द') : 'Cancel'}</Text>
+                <Pressable
+                  style={[styles.cancelBtn, { backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9' }]}
+                  onPress={() => setShowExamModal(false)}
+                >
+                  <Text style={[styles.cancelBtnText, { color: theme.isDark ? '#cbd5e1' : '#64748b' }, fontStyle]}>
+                    {isNepali ? unicodeToAakriti('रद्द') : 'Cancel'}
+                  </Text>
                 </Pressable>
 
                 <Pressable style={styles.saveBtn} onPress={handleSaveExamDate}>
-                  <Text style={[styles.saveBtnText, fontBoldStyle]}>{isNepali ? unicodeToAakriti('सुरक्षित गर्नुहोस्') : 'Save Exam'}</Text>
+                  <Text style={[styles.saveBtnText, fontBoldStyle]}>
+                    {isNepali ? unicodeToAakriti('सुरक्षित गर्नुहोस्') : 'Save Exam'}
+                  </Text>
                 </Pressable>
               </View>
             </View>
           </View>
-        </Modal>
+        )}
+        <CustomGlassAlert
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          iconName={alertConfig.iconName}
+          iconColor={alertConfig.iconColor}
+          buttonColor={alertConfig.buttonColor}
+          onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        />
       </SafeAreaView>
     </ThemeBackground>
   );
@@ -507,7 +626,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     marginBottom: 16,
-    elevation: 2,
   },
   navBtn: {
     padding: 8,
@@ -542,7 +660,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 8,
     marginBottom: 16,
-    elevation: 2,
   },
   dayCell: {
     width: '14.28%',
@@ -590,7 +707,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     marginBottom: 20,
-    elevation: 2,
   },
   holidaysCardTitle: {
     fontSize: 17,
@@ -631,7 +747,6 @@ const styles = StyleSheet.create({
   converterCard: {
     borderRadius: 16,
     padding: 20,
-    elevation: 2,
   },
   converterTitle: {
     fontSize: 18,
@@ -693,48 +808,78 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#15803d',
   },
+  inPageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  inPageBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
   modalCard: {
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  modalIconHeader: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: '700',
     marginBottom: 6,
+    textAlign: 'center',
   },
   modalSubtitle: {
     fontSize: 14,
-    marginBottom: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   typeSelectorRow: {
     flexDirection: 'row',
     marginBottom: 20,
+    width: '100%',
   },
   typeBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
+    borderRadius: 14,
     alignItems: 'center',
     marginHorizontal: 4,
   },
   activeTypeBtn: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+    backgroundColor: '#22C55E',
+    borderColor: '#22C55E',
   },
   typeBtnText: {
     fontSize: 14,
-    color: '#444',
+    fontWeight: '600',
   },
   numBox: {
     borderWidth: 1,
@@ -748,36 +893,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   numInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 12,
     paddingHorizontal: 8,
     textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
   },
   modalActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 20,
+    width: '100%',
+    marginTop: 10,
   },
   cancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginRight: 10,
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
   },
   cancelBtnText: {
-    color: '#666',
     fontSize: 15,
+    fontWeight: '600',
   },
   saveBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    flex: 1,
+    backgroundColor: '#22C55E',
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
   saveBtnText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 15,
     fontWeight: '700',
   },

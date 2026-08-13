@@ -3,80 +3,187 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/exam_widget_background"
-    android:orientation="vertical"
-    android:padding="14dp">
+    android:orientation="horizontal"
+    android:padding="12dp">
 
-    <!-- Header: App Title & Branding -->
+    <!-- LEFT SIDE: Exam Countdown Card -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Header: App Title & Branding -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Lekhit Guru"
-            android:textColor="#94A3B8"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-    <!-- Exam Type Title -->
-    <TextView
-        android:id="@+id/widget_exam_type"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="लिखित परीक्षा"
-        android:textColor="#93C5FD"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Likhit Guru"
+                android:textColor="#94A3B8"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <!-- Countdown Value Row -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:baselineAligned="true"
-        android:gravity="bottom"
-        android:orientation="horizontal">
-
+        <!-- Exam Type Title -->
         <TextView
-            android:id="@+id/widget_days_count"
-            android:layout_width="wrap_content"
+            android:id="@+id/widget_exam_type"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="१२"
-            android:textColor="#FFFFFF"
-            android:textSize="32sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="दिन बाँकी"
-            android:textColor="#FF8C5A"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="लिखित परीक्षा"
+            android:textColor="#93C5FD"
             android:textSize="13sp"
             android:textStyle="bold" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Countdown Value Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:baselineAligned="true"
+            android:gravity="bottom"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widget_days_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="१२"
+                android:textColor="#FFFFFF"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="दिन बाँकी"
+                android:textColor="#FF8C5A"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Date Footer -->
+        <TextView
+            android:id="@+id/widget_date_str"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="२०८३ साउन २५"
+            android:textColor="#CBD5E1"
+            android:textSize="10sp" />
     </LinearLayout>
 
-    <!-- Date Footer -->
-    <TextView
-        android:id="@+id/widget_date_str"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="२०८३ साउन २५"
-        android:textColor="#CBD5E1"
-        android:textSize="11sp" />
+    <!-- DIVIDER -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="#334155" />
+
+    <!-- RIGHT SIDE: Mini Nepali Calendar Card -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Calendar Month Header -->
+        <TextView
+            android:id="@+id/widget_calendar_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="साउन, २०८३"
+            android:textColor="#5CE693"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <!-- Weekday Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="आ" android:textColor="#94A3B8" android:textSize="8sp" android:textStyle="bold" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="सो" android:textColor="#94A3B8" android:textSize="8sp" android:textStyle="bold" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="मं" android:textColor="#94A3B8" android:textSize="8sp" android:textStyle="bold" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="बु" android:textColor="#94A3B8" android:textSize="8sp" android:textStyle="bold" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="बि" android:textColor="#94A3B8" android:textSize="8sp" android:textStyle="bold" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="शु" android:textColor="#94A3B8" android:textSize="8sp" android:textStyle="bold" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="श" android:textColor="#FF6B6B" android:textSize="8sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Day Rows (5 rows x 7 columns = 35 cells) -->
+        <!-- Row 0 -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+            <TextView android:id="@+id/cell_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+        </LinearLayout>
+
+        <!-- Row 1 -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+            <TextView android:id="@+id/cell_7" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_8" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_9" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_10" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_11" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_12" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_13" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+        </LinearLayout>
+
+        <!-- Row 2 -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+            <TextView android:id="@+id/cell_14" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_15" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_16" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_17" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_18" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_19" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_20" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+        </LinearLayout>
+
+        <!-- Row 3 -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+            <TextView android:id="@+id/cell_21" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_22" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_23" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_24" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_25" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_26" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_27" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+        </LinearLayout>
+
+        <!-- Row 4 -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+            <TextView android:id="@+id/cell_28" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_29" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_30" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_31" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_32" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_33" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+            <TextView android:id="@+id/cell_34" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textSize="8sp" />
+        </LinearLayout>
+
+    </LinearLayout>
 
 </LinearLayout>

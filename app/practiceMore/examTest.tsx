@@ -1,8 +1,9 @@
+import CustomGlassAlert from '@/components/CustomGlassAlert';
 import { themedHeaderOptions } from '@/constants/screenHelpers';
 import type { AppTheme } from '@/constants/theme';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme, ThemeBackground } from '@/context/ThemeContext';
-import { useRewardedAd } from '@/utils/mobileAds';
+import { useRewardedAd, TestIds, AD_UNITS } from '@/utils/mobileAds';
 import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,7 +13,7 @@ import { Alert, Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet
 import * as nepaliKnowledge from './bikeKnowledge';
 import * as englishKnowledge from './knowledge';
 
-const rewardedAdUnitId = 'ca-app-pub-9520863212221697/6426303936';
+const rewardedAdUnitId = __DEV__ ? TestIds.REWARDED : AD_UNITS.REWARDED;
 
 let SecureStore: any;
 try {
@@ -53,6 +54,7 @@ export default function ExamTestScreen() {
   const [showGoTop, setShowGoTop] = useState(false);
   const [isReviewUnlocked, setIsReviewUnlocked] = useState(false);
   const [pendingAction, setPendingAction] = useState<'review' | 'restart' | 'back' | null>(null);
+  const [lockedAlertVisible, setLockedAlertVisible] = useState(false);
 
   // Hook for AdMob Rewarded Ad
   const { isLoaded, isClosed, show, reward, load } = useRewardedAd(rewardedAdUnitId, {
@@ -494,10 +496,7 @@ export default function ExamTestScreen() {
                   style={[styles.testCard, isActive && styles.testCardActive, isLocked && styles.testCardLocked]}
                   onPress={() => {
                     if (i >= unlockedTests) {
-                      Alert.alert(
-                        isNepali ? 'अनलक गरिएको छैन' : 'Locked',
-                        isNepali ? 'यो स्तर अनलक गर्न अघिल्लो परीक्षा पूरा गर्नुहोस्।' : 'Complete the previous test to unlock this level.'
-                      );
+                      setLockedAlertVisible(true);
                       return;
                     }
                     // Select the test, reset quiz state, show the start sheet, and reset sheet translation
@@ -942,6 +941,16 @@ export default function ExamTestScreen() {
             <Ionicons name="arrow-up" size={24} color="#FFF" />
           </Pressable>
         )}
+        <CustomGlassAlert
+          visible={lockedAlertVisible}
+          title={isNepali ? 'अनलक गरिएको छैन' : 'Locked'}
+          message={isNepali ? 'यो स्तर अनलक गर्न अघिल्लो परीक्षा पूरा गर्नुहोस्।' : 'Complete the previous test to unlock this level.'}
+          iconName="lock-closed"
+          iconColor="#F59E0B"
+          buttonColor="#22C55E"
+          buttonText={isNepali ? 'ठीक छ' : 'Understood'}
+          onClose={() => setLockedAlertVisible(false)}
+        />
       </View>
     </ThemeBackground>
   );
@@ -1169,8 +1178,8 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       borderRadius: 12,
       paddingVertical: 10,
       paddingHorizontal: 12,
-      borderWidth: 1,
-      borderColor: isDark ? glass.borderColor : colors.cardBorder,
+      borderWidth: isDark ? 0 : 1,
+      borderColor: isDark ? 'transparent' : colors.cardBorder,
     },
     questionTitle: {
       fontSize: isNepali ? 20 : 18,
@@ -1190,8 +1199,8 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       alignItems: 'center',
       backgroundColor: isDark ? glass.backgroundColor : colors.card,
       borderRadius: 12,
-      borderWidth: 1,
-      borderColor: isDark ? glass.borderColor : colors.cardBorder,
+      borderWidth: isDark ? 0 : 1,
+      borderColor: isDark ? 'transparent' : colors.cardBorder,
       paddingVertical: 10,
       paddingHorizontal: 12,
     },
@@ -1221,8 +1230,8 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     optionLetterSelected: { backgroundColor: '#2E3740', borderColor: '#2E3740' },
     optionLetterCorrect: { backgroundColor: '#2E7D32', borderColor: '#2E7D32' },
     optionLetterIncorrect: { backgroundColor: isDark ? 'rgba(244, 67, 54, 0.6)' : '#C62828', borderColor: isDark ? 'rgba(244, 67, 54, 0.8)' : '#C62828' },
-    optionLetterText: { color: '#64748B', fontWeight: '700', fontFamily: fontBold, fontSize: isNepali ? 16 : 14 },
-    optionLetterTextOnDark: { color: '#FFFFFF', fontWeight: '700', fontFamily: fontBold, fontSize: isNepali ? 16 : 14 },
+    optionLetterText: { color: '#64748B', fontWeight: isNepali ? 'normal' : '700', fontFamily: fontBold, fontSize: isNepali ? 16 : 14 },
+    optionLetterTextOnDark: { color: '#FFFFFF', fontWeight: isNepali ? 'normal' : '700', fontFamily: fontBold, fontSize: isNepali ? 16 : 14 },
     optionTextRow: {
       flex: 1,
       color: isDark ? colors.text : '#434D57',
@@ -1322,7 +1331,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     resultChipText: {
       fontSize: 13,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       color: colors.text,
       fontFamily: fontNormal,
     },
@@ -1335,7 +1344,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     resultActionText: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       fontFamily: fontBold,
     },
     headerTimerCapsule: {
@@ -1468,7 +1477,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     modalTitle: {
       fontSize: isNepali ? 26 : 24,
-      fontWeight: '800',
+      fontWeight: isNepali ? 'normal' : '800',
       color: colors.text,
       marginBottom: 8,
       fontFamily: fontBold,
@@ -1526,7 +1535,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     modalButtonText: {
       fontSize: isNepali ? 18 : 16,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: '#FFFFFF',
       fontFamily: fontBold,
     },
@@ -1552,7 +1561,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     sheetStatValue: { color: colors.text, fontSize: isNepali ? 22 : 20, fontFamily: fontBold },
     sheetInstructionTitle: { fontSize: isNepali ? 18 : 16, color: colors.text, marginBottom: 8, fontFamily: fontBold },
     sheetStartButton: { backgroundColor: isDark ? '#4ade80' : '#434D57', paddingVertical: 14, borderRadius: 24, alignItems: 'center' },
-    sheetStartButtonText: { color: isDark ? '#111827' : '#fff', fontSize: isNepali ? 18 : 16, fontWeight: '700', fontFamily: fontBold },
+    sheetStartButtonText: { color: '#FFFFFF', fontSize: isNepali ? 19 : 16, fontWeight: isNepali ? 'normal' : 'bold', fontFamily: fontBold },
     instructionList: { marginBottom: 16 },
     instructionItem: { color: colors.text, marginBottom: 6, lineHeight: isNepali ? 22 : 20, fontFamily: fontNormal, fontSize: isNepali ? 15 : 14 },
     headerBackButton: {

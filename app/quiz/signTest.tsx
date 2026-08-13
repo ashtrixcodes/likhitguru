@@ -8,9 +8,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Modal, Pressable, StyleSheet, Text, View, Platform, ScrollView } from 'react-native';
 import { nepaliQuizData, quizData } from './constant';
 import { useLanguage } from '@/context/LanguageContext';
-import { useRewardedAd, TestIds } from '@/utils/mobileAds';
+import { useRewardedAd, TestIds, AD_UNITS } from '@/utils/mobileAds';
 
-const rewardedAdUnitId = 'ca-app-pub-9520863212221697/6426303936';
+const rewardedAdUnitId = __DEV__ ? TestIds.REWARDED : AD_UNITS.REWARDED;
 
 import AdBanner from '@/components/AdBanner';
 
@@ -442,14 +442,14 @@ export default function SignTest() {
 
                 {/* Game Over Screen */}
                 {gameState === 'finished' && (
-                    <ScrollView 
-                        style={styles.gameOverContainer} 
+                    <ScrollView
+                        style={styles.gameOverContainer}
                         contentContainerStyle={{ paddingBottom: 40, alignItems: 'center' }}
                         showsVerticalScrollIndicator={false}
                     >
                         <Text style={styles.gameOverScore}>{isNepali ? `अन्तिम प्राप्तांक: ${score}/२०` : `Final Score: ${score}/20`}</Text>
                         <Text style={styles.gameOverTime}>{isNepali ? `लागेको समय: ${60 - timeLeft} सेकेन्ड` : `Time Taken: ${60 - timeLeft} seconds`}</Text>
-                        
+
                         {isReviewUnlocked && currentQuiz.map((item, index) => {
                             const userAns = userAnswers[index];
                             const isCorrect = userAns === item.correctAnswer;
@@ -457,13 +457,13 @@ export default function SignTest() {
                                 <View key={index} style={styles.reviewCard}>
                                     <Text style={styles.reviewNumber}>{isNepali ? `प्रश्न ${index + 1}` : `Question ${index + 1}`}</Text>
                                     <Image source={item.image} style={styles.reviewImage} resizeMode="contain" />
-                                    
+
                                     <View style={styles.reviewAnswers}>
                                         <Text style={styles.reviewTextLabel}>{isNepali ? 'तपाईंको उत्तर:' : 'Your Answer:'}</Text>
                                         <Text style={[styles.reviewTextValue, { color: isCorrect ? '#4CAF50' : '#F44336' }]}>
                                             {userAns || (isNepali ? 'उत्तर नदिएको' : 'Unanswered')}
                                         </Text>
-                                        
+
                                         {!isCorrect && (
                                             <>
                                                 <Text style={styles.reviewTextLabel}>{isNepali ? 'सही उत्तर:' : 'Correct Answer:'}</Text>
@@ -476,7 +476,7 @@ export default function SignTest() {
                                 </View>
                             );
                         })}
-                        
+
                         <Pressable style={styles.restartButton} onPress={resetGame}>
                             <Text style={styles.restartButtonText}>{isNepali ? 'पुनः परीक्षा दिनुहोस्' : 'Play Again'}</Text>
                         </Pressable>
@@ -503,6 +503,7 @@ export default function SignTest() {
             <Modal
                 visible={showModal}
                 transparent
+                statusBarTranslucent
                 animationType="fade"
                 onRequestClose={dismissModal}
             >
@@ -557,12 +558,12 @@ export default function SignTest() {
 
                         {/* Buttons */}
                         <View style={styles.modalButtonRow}>
-                            <Pressable 
-                                style={styles.modalButtonSecondary} 
-                                onPress={() => { 
+                            <Pressable
+                                style={styles.modalButtonSecondary}
+                                onPress={() => {
                                     if (isReviewUnlocked) {
-                                        dismissModal(); 
-                                        resetGame(); 
+                                        dismissModal();
+                                        resetGame();
                                     } else {
                                         if (isLoaded) {
                                             setPendingAction('restart');
@@ -577,12 +578,12 @@ export default function SignTest() {
                                 <Ionicons name="refresh-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
                                 <Text style={styles.modalButtonSecondaryText}>{isNepali ? 'पुनः परीक्षा' : 'Play Again'}</Text>
                             </Pressable>
-                            
-                            <Pressable 
+
+                            <Pressable
                                 style={[
-                                    styles.modalButtonPrimary, 
+                                    styles.modalButtonPrimary,
                                     { backgroundColor: isReviewUnlocked ? '#4CAF50' : '#FF6B35' }
-                                ]} 
+                                ]}
                                 onPress={() => {
                                     if (isReviewUnlocked) {
                                         dismissModal();
@@ -791,8 +792,8 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
             borderRadius: 12,
             alignItems: 'center',
             justifyContent: 'center',
-            borderWidth: isDark ? 1 : 0,
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+            borderWidth: 0,
+            borderColor: 'transparent',
         },
         correctAnswer: {
             backgroundColor: isDark ? 'rgba(76, 175, 80, 0.25)' : '#4CAF50',
