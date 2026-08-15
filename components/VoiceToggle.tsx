@@ -73,7 +73,7 @@ function createStyles(isDark: boolean, isNepali: boolean) {
     },
     btnText: {
       fontSize: isNepali ? 14 : 11,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       color: isDark ? '#94A3B8' : '#64748B',
       fontFamily: isNepali ? 'AakritiBold' : undefined,
     },

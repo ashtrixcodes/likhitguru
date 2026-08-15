@@ -1,11 +1,10 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
+import { View } from 'react-native';
 import { DarkTheme as NavDarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import LoadingScreen from '@/components/LoadingScreen';
 import { SidebarProvider } from '@/components/SidebarContext';
 import SidebarOverlay from '@/components/SidebarOverlay';
 import { LanguageProvider } from '@/context/LanguageContext';
@@ -15,7 +14,7 @@ import { initializeMobileAds } from '@/utils/mobileAds';
 import { HapticsProvider } from '@/context/HapticsContext';
 import { VoiceProvider } from '@/context/VoiceContext';
 
-// Prevent native splash screen from hiding before assets are loaded
+// Keep native splash screen visible until all initial resources are loaded and rendered
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // ─── Inner layout that has access to ThemeContext ────────────────────
@@ -61,18 +60,12 @@ function InnerLayout() {
 
 // ─── Root layout ─────────────────────────────────────────────────────
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     Aakriti: require('../assets/fonts/Aakriti.ttf'),
     AakritiBold: require('../assets/fonts/Aakriti Bold.ttf'),
     'Aakriti Bold': require('../assets/fonts/Aakriti Bold.ttf'),
   });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [loaded]);
 
   useEffect(() => {
     initializeMobileAds()
@@ -84,31 +77,31 @@ export default function RootLayout() {
       });
   }, []);
 
-  if (!loaded) {
-    // Show custom loading screen while fonts are loading
-    return <LoadingScreen />;
+  const isReady = fontsLoaded || !!fontError;
+
+  const onLayoutRootView = useCallback(async () => {
+    if (isReady) {
+      await SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isReady]);
+
+  if (!isReady) {
+    return null;
   }
 
   return (
-    <HapticsProvider>
-      <LanguageProvider>
-        <ThemeProvider>
-          <VoiceProvider>
-            <SidebarProvider>
-              <InnerLayout />
-            </SidebarProvider>
-          </VoiceProvider>
-        </ThemeProvider>
-      </LanguageProvider>
-    </HapticsProvider>
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <HapticsProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <VoiceProvider>
+              <SidebarProvider>
+                <InnerLayout />
+              </SidebarProvider>
+            </VoiceProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      </HapticsProvider>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#434D57',
-  },
-});

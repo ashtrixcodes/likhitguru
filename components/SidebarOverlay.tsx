@@ -442,6 +442,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       color: colors.sidebarTextSecondary,
       marginTop: 2,
       fontFamily: fontNormal,
+      fontWeight: isNepali ? 'normal' : undefined,
     },
     closeButton: {
       padding: 6,
@@ -464,27 +465,27 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     countdownTitle: {
       fontSize: isNepali ? 15 : 12,
-      fontWeight: '600',
       color: colors.sidebarTextSecondary,
       fontFamily: fontBold || fontNormal,
+      fontWeight: isNepali ? 'normal' : '600',
     },
     countdownValue: {
       fontSize: isNepali ? 16 : 14,
-      fontWeight: '700',
       color: isDark ? '#4ADE80' : '#15803D',
       fontFamily: fontBold || fontNormal,
+      fontWeight: isNepali ? 'normal' : '700',
     },
     scrollContent: {
       flex: 1,
     },
     sectionHeader: {
       fontSize: isNepali ? 15 : 11,
-      fontWeight: '700',
       letterSpacing: isNepali ? 0 : 1.1,
       color: colors.sidebarTextSecondary,
       marginTop: 14,
       marginBottom: 10,
       fontFamily: fontBold || fontNormal,
+      fontWeight: isNepali ? 'normal' : '700',
     },
     menuItem: {
       flexDirection: 'row',
@@ -506,9 +507,9 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     menuItemLabel: {
       flex: 1,
       fontSize: isNepali ? 17 : 14,
-      fontWeight: '600',
       color: colors.sidebarText,
       fontFamily: fontBold || fontNormal,
+      fontWeight: isNepali ? 'normal' : '600',
     },
     preferenceRow: {
       flexDirection: 'row',

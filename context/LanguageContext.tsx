@@ -22,14 +22,20 @@ interface LanguageContextValue {
   fontFamilyBold: string | undefined;
 }
 
-const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
+const defaultLanguageContext: LanguageContextValue = {
+  language: 'np',
+  isNepali: true,
+  setLanguage: () => {},
+  toggleLanguage: () => {},
+  fontFamily: 'Aakriti',
+  fontFamilyBold: 'AakritiBold',
+};
+
+const LanguageContext = createContext<LanguageContextValue>(defaultLanguageContext);
 
 export function useLanguage(): LanguageContextValue {
   const ctx = useContext(LanguageContext);
-  if (ctx === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
-  }
-  return ctx;
+  return ctx || defaultLanguageContext;
 }
 
 interface LanguageProviderProps {

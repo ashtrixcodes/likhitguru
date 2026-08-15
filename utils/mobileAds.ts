@@ -73,6 +73,15 @@ export const AdEventType = isMobileAdsAvailable && MobileAdsModule?.AdEventType
       LOADED: 'loaded',
       ERROR: 'error',
       CLOSED: 'closed',
+      OPENED: 'opened',
+      CLICKED: 'clicked',
+    };
+
+export const RewardedAdEventType = isMobileAdsAvailable && MobileAdsModule?.RewardedAdEventType
+  ? MobileAdsModule.RewardedAdEventType
+  : {
+      LOADED: 'rewarded_loaded',
+      EARNED_REWARD: 'rewarded_earned_reward',
     };
 
 export function initializeMobileAds() {

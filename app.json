@@ -4,7 +4,7 @@
     "slug": "likhit-guru",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/splashnepal.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "likhitguru",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -45,7 +45,11 @@
           "image": "./assets/images/nepal.png",
           "imageWidth": 130,
           "resizeMode": "contain",
-          "backgroundColor": "#091020"
+          "backgroundColor": "#091020",
+          "dark": {
+            "image": "./assets/images/nepal.png",
+            "backgroundColor": "#091020"
+          }
         }
       ],
       [

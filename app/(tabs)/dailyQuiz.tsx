@@ -19,9 +19,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { RewardedInterstitialAd, AdEventType, AD_UNITS } from '@/utils/mobileAds';
-import { dailyquizQT } from "./dailyquizQT";
-import { knowledgeQuestions as nepaliKnowledgeQuestions } from "../practiceMore/bikeKnowledge";
+import { RewardedInterstitialAd, AdEventType, RewardedAdEventType, AD_UNITS } from '@/utils/mobileAds';
+import {
+  DailyQuizProgress,
+  getDailyQuizProgress,
+  getDailyQuestionsForDate,
+  getTodayDateString,
+  recordQuizCompletion,
+  Question,
+} from '@/utils/dailyQuizStorage';
 
 import type { AppTheme } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
@@ -32,12 +38,6 @@ import QuestionSpeechButton from '@/components/QuestionSpeechButton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const backgroundImage = require('../../assets/images/background.jpg');
-
-interface Question {
-  question: string;
-  options: [string, string, string, string];
-  correctAnswer: string;
-}
 
 function toNepaliNumber(num: number | string): string {
   const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
@@ -51,41 +51,6 @@ function getOptionBadgeLetter(index: number, isNepali: boolean): string {
   const nepaliLetters = ['क', 'ख', 'ग', 'घ'];
   const letter = nepaliLetters[index] || 'क';
   return unicodeToAakriti(letter);
-}
-
-function shuffleArray<T>(array: T[]): T[] {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
-}
-
-const TOTAL_QUESTIONS_COUNT = Math.min(dailyquizQT.length, nepaliKnowledgeQuestions.length);
-
-function getQuestionAtIndex(index: number, isNepali: boolean): Question {
-  const englishQ = dailyquizQT[index];
-  const nepaliQ = nepaliKnowledgeQuestions[index];
-
-  if (isNepali && nepaliQ && Array.isArray(nepaliQ.options) && nepaliQ.options.length === 4) {
-    const cleanNepaliOptions = nepaliQ.options.map(opt => opt.replace(/^(\([a-dक-घ]\)|[a-dक-घ]\.|\([a-d]\))\s*/i, '')) as [string, string, string, string];
-    const correctIdx = englishQ ? englishQ.options.indexOf(englishQ.correctAnswer) : 0;
-    const validCorrectIdx = correctIdx >= 0 && correctIdx < 4 ? correctIdx : 0;
-    const correctAnswer = cleanNepaliOptions[validCorrectIdx];
-
-    return {
-      question: nepaliQ.question,
-      options: shuffleArray([...cleanNepaliOptions]) as [string, string, string, string],
-      correctAnswer: correctAnswer,
-    };
-  }
-
-  return {
-    question: englishQ?.question || "Question missing",
-    options: shuffleArray([...(englishQ?.options || ["Option A", "Option B", "Option C", "Option D"])]) as [string, string, string, string],
-    correctAnswer: englishQ?.correctAnswer || "Option A",
-  };
 }
 
 const interstitialAdUnitId = AD_UNITS.REWARDED_INTERSTITIAL;
@@ -126,6 +91,14 @@ export default function GamifiedDailyQuizScreen() {
     : ['#6B5B95', '#434D57'];
 
   // State
+  const [progress, setProgress] = useState<DailyQuizProgress | null>(null);
+  const [isTodayCompleted, setIsTodayCompleted] = useState(false);
+  const [todayScore, setTodayScore] = useState<number | null>(null);
+  const [completionStats, setCompletionStats] = useState<{
+    xpEarned: number;
+    streakIncremented: boolean;
+  } | null>(null);
+
   const [isQuizActive, setIsQuizActive] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -136,8 +109,8 @@ export default function GamifiedDailyQuizScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [adLoaded, setAdLoaded] = useState(false);
-  const [userXP, setUserXP] = useState(450);
-  const [userStreak, setUserStreak] = useState(5);
+  const [userXP, setUserXP] = useState(0);
+  const [userStreak, setUserStreak] = useState(0);
   const [userName, setUserName] = useState('Prashant');
 
   // Realtime Countdown
@@ -216,21 +189,32 @@ export default function GamifiedDailyQuizScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  const loadProgress = useCallback(async () => {
+    const p = await getDailyQuizProgress();
+    setProgress(p);
+    setUserXP(p.totalXP);
+    setUserStreak(p.currentStreak);
+
+    const today = getTodayDateString();
+    const todayRecord = p.history[today];
+    if (todayRecord) {
+      setIsTodayCompleted(true);
+      setTodayScore(todayRecord.score);
+    } else {
+      setIsTodayCompleted(false);
+      setTodayScore(null);
+    }
+  }, []);
+
   // Load User Stats & Ads
   useEffect(() => {
     AsyncStorage.getItem('user_name').then((name) => {
       if (name) setUserName(name);
     }).catch(() => {});
 
-    AsyncStorage.getItem('@user_xp').then((val) => {
-      if (val) setUserXP(parseInt(val, 10));
-    }).catch(() => {});
+    loadProgress();
 
-    AsyncStorage.getItem('@user_streak').then((val) => {
-      if (val) setUserStreak(parseInt(val, 10));
-    }).catch(() => {});
-
-    const unsubscribeLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => setAdLoaded(true));
+    const unsubscribeLoaded = interstitial.addAdEventListener(RewardedAdEventType.LOADED, () => setAdLoaded(true));
     const unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
       setAdLoaded(false);
       interstitial.load();
@@ -244,29 +228,13 @@ export default function GamifiedDailyQuizScreen() {
       unsubscribeClosed();
       unsubscribeError();
     };
-  }, []);
-
-  // Generate quiz set
-  const generateNewQuizSet = useCallback(async () => {
-    if (TOTAL_QUESTIONS_COUNT === 0) {
-      setHasError(true);
-      setIsLoading(false);
-      return [];
-    }
-
-    const indices = Array.from({ length: TOTAL_QUESTIONS_COUNT }, (_, i) => i);
-    const shuffledIndices = shuffleArray(indices);
-    const selectedIndices = shuffledIndices.slice(0, Math.min(5, TOTAL_QUESTIONS_COUNT));
-    const dailySet: Question[] = selectedIndices.map(idx => getQuestionAtIndex(idx, isNepali));
-
-    return dailySet;
-  }, [isNepali]);
+  }, [loadProgress]);
 
   // Start Gameplay
-  const handleStartDailyQuiz = async () => {
+  const handleStartDailyQuiz = () => {
     triggerImpact();
     setIsLoading(true);
-    const newQuestions = await generateNewQuizSet();
+    const newQuestions = getDailyQuestionsForDate(getTodayDateString(), isNepali, 5);
     setQuestions(newQuestions);
     setCurrentIndex(0);
     setScore(0);
@@ -316,11 +284,22 @@ export default function GamifiedDailyQuizScreen() {
     });
   };
 
-  const finishQuiz = () => {
+  const finishQuiz = async () => {
     triggerNotification();
-    const newXP = userXP + 100;
-    setUserXP(newXP);
-    AsyncStorage.setItem('@user_xp', String(newXP)).catch(() => {});
+    try {
+      const result = await recordQuizCompletion(score, questions.length);
+      setProgress(result.progress);
+      setUserXP(result.progress.totalXP);
+      setUserStreak(result.progress.currentStreak);
+      setIsTodayCompleted(true);
+      setTodayScore(score);
+      setCompletionStats({
+        xpEarned: result.xpEarned,
+        streakIncremented: result.streakIncremented,
+      });
+    } catch (e) {
+      console.warn('Failed to record quiz completion:', e);
+    }
 
     if (adLoaded) {
       try { interstitial.show(); } catch (e) {}
@@ -331,9 +310,9 @@ export default function GamifiedDailyQuizScreen() {
   // Progress Bar Animation
   useEffect(() => {
     if (isQuizActive && questions.length > 0) {
-      const progress = (currentIndex + 1) / questions.length;
+      const progressRatio = (currentIndex + 1) / questions.length;
       Animated.timing(progressAnim, {
-        toValue: progress,
+        toValue: progressRatio,
         duration: 300,
         useNativeDriver: false,
       }).start();
@@ -373,7 +352,9 @@ export default function GamifiedDailyQuizScreen() {
   // ─── 1. QUIZ RESULTS VIEW ──────────────────────────────────────────
   if (showResult) {
     const finalScore = score;
-    const percentage = Math.round((finalScore / questions.length) * 100);
+    const percentage = Math.round((finalScore / (questions.length || 1)) * 100);
+    const earnedXP = completionStats?.xpEarned ?? finalScore * 10;
+    const streakAdded = completionStats?.streakIncremented ?? false;
 
     return (
       <BackgroundWrapper isDark={theme.isDark} colors={gradientReverse} style={s.container}>
@@ -385,7 +366,15 @@ export default function GamifiedDailyQuizScreen() {
               <Text style={[s.resultTitle, fontBoldStyle]}>
                 {isNepali ? unicodeToAakriti("दैनिक प्रश्नोत्तरी पूरा भयो!") : "Daily Challenge Complete!"}
               </Text>
-              <Text style={s.xpEarnedBadge}>+100 XP EARNED! 🪙</Text>
+              <Text style={s.xpEarnedBadge}>+{earnedXP} XP EARNED! 🪙</Text>
+
+              {streakAdded && (
+                <View style={s.streakMilestoneBadge}>
+                  <Text style={s.streakMilestoneText}>
+                    ⚡ STREAK: {userStreak} {userStreak === 1 ? 'DAY' : 'DAYS'} ACTIVE! 🔥
+                  </Text>
+                </View>
+              )}
 
               <View style={s.scoreContainer}>
                 <Text style={[s.scoreNumber, fontBoldStyle]}>
@@ -546,7 +535,9 @@ export default function GamifiedDailyQuizScreen() {
           <View style={s.heroCardContainer}>
             <View style={s.heroHeaderRow}>
               <View>
-                <Text style={s.heroBadgeTag}>🔥 DAILY LIVE ARENA</Text>
+                <Text style={[s.heroBadgeTag, isTodayCompleted && { color: '#60A5FA' }]}>
+                  {isTodayCompleted ? '✅ COMPLETED TODAY' : '🔥 DAILY LIVE ARENA'}
+                </Text>
                 <Text style={[s.heroTitleText, fontBoldStyle]}>
                   {isNepali ? unicodeToAakriti("दैनिक सवारी ज्ञान परीक्षा") : "Daily Driving Challenge"}
                 </Text>
@@ -555,39 +546,65 @@ export default function GamifiedDailyQuizScreen() {
 
             {/* Countdown Circular Ring */}
             <View style={s.countdownRingContainer}>
-              <View style={s.countdownRingBg}>
+              <View
+                style={[
+                  s.countdownRingBg,
+                  isTodayCompleted && {
+                    borderColor: '#3B82F6',
+                    shadowColor: '#3B82F6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.06)',
+                  },
+                ]}
+              >
                 <Text style={s.countdownNumber}>{timeLeft.hours}:{timeLeft.mins}:{timeLeft.secs}</Text>
-                <Text style={s.countdownSubLabel}>REMAINING UNTIL RESET</Text>
+                <Text style={s.countdownSubLabel}>
+                  {isTodayCompleted ? 'NEXT CHALLENGE IN' : 'REMAINING UNTIL RESET'}
+                </Text>
               </View>
             </View>
 
             <View style={s.heroMetaRow}>
               <View style={s.heroMetaItem}>
-                <Ionicons name="people" size={16} color="#22C55E" />
-                <Text style={s.heroMetaText}>1,292 Playing Today</Text>
+                <Ionicons
+                  name={isTodayCompleted ? 'checkmark-circle' : 'flame'}
+                  size={16}
+                  color={isTodayCompleted ? '#3B82F6' : '#22C55E'}
+                />
+                <Text style={s.heroMetaText}>
+                  {isTodayCompleted
+                    ? `Today: ${todayScore !== null ? (isNepali ? toNepaliNumber(todayScore) : todayScore) : 5}/5 Correct`
+                    : `Streak: ${userStreak} Days Active`}
+                </Text>
               </View>
               <View style={s.heroMetaItem}>
                 <Ionicons name="ribbon" size={16} color="#F59E0B" />
-                <Text style={s.heroMetaText}>Prize: +100 XP</Text>
+                <Text style={s.heroMetaText}>Prize: +50-70 XP</Text>
               </View>
             </View>
 
-            {/* Pulsing CTA Join Button */}
-            <Animated.View style={{ transform: [{ scale: pulseBtnAnim }] }}>
+            {/* CTA Join / Practice Button */}
+            <Animated.View style={{ transform: [{ scale: isTodayCompleted ? 1 : pulseBtnAnim }] }}>
               <TouchableOpacity
                 style={s.heroJoinBtn}
                 onPress={handleStartDailyQuiz}
                 activeOpacity={0.85}
               >
                 <LinearGradient
-                  colors={['#22C55E', '#16A34A']}
+                  colors={isTodayCompleted ? ['#2563EB', '#1D4ED8'] : ['#22C55E', '#16A34A']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={s.heroBtnGradient}
                 >
-                  <Ionicons name="play" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Ionicons
+                    name={isTodayCompleted ? 'repeat' : 'play'}
+                    size={20}
+                    color="#FFFFFF"
+                    style={{ marginRight: 8 }}
+                  />
                   <Text style={[s.heroBtnText, fontBoldStyle]}>
-                    {isNepali ? unicodeToAakriti("आजको प्रश्नोत्तरी सुरु गर्नुहोस्") : "Join Daily Challenge"}
+                    {isTodayCompleted
+                      ? (isNepali ? unicodeToAakriti("पुन: अभ्यास गर्नुहोस्") : "Practice Again (Review)")
+                      : (isNepali ? unicodeToAakriti("आजको प्रश्नोत्तरी सुरु गर्नुहोस्") : "Join Daily Challenge")}
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -1275,7 +1292,22 @@ function createDailyQuizStyles(theme: AppTheme, isNepali: boolean) {
       paddingHorizontal: 12,
       paddingVertical: 4,
       borderRadius: 12,
+      marginBottom: 10,
+    },
+    streakMilestoneBadge: {
+      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+      borderColor: 'rgba(245, 158, 11, 0.4)',
+      borderWidth: 1,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 14,
       marginBottom: 16,
+    },
+    streakMilestoneText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#FBBF24',
+      textAlign: 'center',
     },
     scoreContainer: {
       flexDirection: 'row',

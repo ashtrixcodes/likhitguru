@@ -5,14 +5,16 @@ interface SidebarContextType {
   setSidebarVisible: (visible: boolean) => void;
 }
 
-const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
+const defaultSidebarContext: SidebarContextType = {
+  sidebarVisible: false,
+  setSidebarVisible: () => {},
+};
+
+const SidebarContext = createContext<SidebarContextType>(defaultSidebarContext);
 
 export const useSidebar = () => {
   const context = useContext(SidebarContext);
-  if (context === undefined) {
-    throw new Error('useSidebar must be used within a SidebarProvider');
-  }
-  return context;
+  return context || defaultSidebarContext;
 };
 
 interface SidebarProviderProps {

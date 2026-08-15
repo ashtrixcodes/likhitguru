@@ -1,13 +1,12 @@
-import LoadingScreen from '@/components/LoadingScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
+import React, {
   createContext,
-  ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
+  type ReactNode,
 } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
@@ -26,7 +25,14 @@ interface ThemeContextValue {
   theme: AppTheme;
 }
 
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+const defaultTheme = resolveTheme(true);
+const defaultThemeContext: ThemeContextValue = {
+  isDarkMode: true,
+  toggleTheme: () => {},
+  theme: defaultTheme,
+};
+
+const ThemeContext = createContext<ThemeContextValue>(defaultThemeContext);
 
 // ─── Hook ────────────────────────────────────────────────────────────
 /**
@@ -34,10 +40,7 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
  */
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
-  if (ctx === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return ctx;
+  return ctx || defaultThemeContext;
 }
 
 // ─── Provider ────────────────────────────────────────────────────────
@@ -46,8 +49,7 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   // Hydrate persisted preference on mount
   useEffect(() => {
@@ -59,8 +61,6 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         }
       } catch (err) {
         console.warn('[ThemeProvider] Failed to read dark-mode preference:', err);
-      } finally {
-        setIsReady(true);
       }
     })();
   }, []);
@@ -81,12 +81,6 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     () => ({ isDarkMode, toggleTheme, theme }),
     [isDarkMode, toggleTheme, theme],
   );
-
-  // Don't render children until we've hydrated the stored preference
-  // so there's no flash of wrong theme.
-  if (!isReady) {
-    return <LoadingScreen />;
-  }
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
