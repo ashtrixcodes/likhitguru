@@ -36,12 +36,20 @@ export async function stopGlobalSpeech() {
   }
 }
 
+// Feature flag: set to false to softly turn off TTS audio button across all question cards.
+// Set to true whenever you want to re-enable the audio feature!
+const IS_TTS_ENABLED = false;
+
 export default function QuestionSpeechButton({
   rawNepaliText,
   englishText,
   options,
   size = 18,
 }: QuestionSpeechButtonProps) {
+  if (!IS_TTS_ENABLED) {
+    return null;
+  }
+
   const { isNepali } = useLanguage();
   const { voiceOption } = useVoice();
   const [isSpeaking, setIsSpeaking] = useState(false);

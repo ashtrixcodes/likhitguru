@@ -178,7 +178,7 @@ export default function NepaliCalendarScreen() {
       setShowExamModal(false);
       showAlert(
         isNepali ? 'परीक्षा मिति सुरक्षित गरियो' : 'Exam Date Saved',
-        isNepali ? 'तपाईंको परीक्षा मिति काउन्टडाउन गृह पृष्ठ तथा iOS विजेटमा देखिनेछ।' : 'Your exam countdown is now active on home screen.',
+        isNepali ? 'तपाईंको परीक्षा मिति काउन्टडाउन गृह पृष्ठमा सेट गरिएको छ।' : 'Your exam date countdown has been set to home page.',
         'calendar',
         '#22C55E',
         '#22C55E'

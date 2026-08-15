@@ -24,6 +24,8 @@ export const isAdsAvailable = isMobileAdsAvailable;
 export const AD_UNITS = {
   BANNER: 'ca-app-pub-9520863212221697/6130790460',
   REWARDED: 'ca-app-pub-9520863212221697/6426303936',
+  // TODO: Replace with your real Interstitial ad unit ID from AdMob console
+  INTERSTITIAL: 'ca-app-pub-9520863212221697/REPLACE_WITH_INTERSTITIAL_ID',
 };
 
 // ─── Test IDs - Use the library's built-in Platform-specific test IDs ─
