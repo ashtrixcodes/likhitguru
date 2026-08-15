@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -101,11 +102,41 @@ export default function MoreInfoScreen() {
                 />
               </View>
             </TouchableOpacity>
+            {/* Legal / Policy Links */}
+            <View style={s.linksSection}>
+              <TouchableOpacity
+                style={s.linkButton}
+                onPress={() => WebBrowser.openBrowserAsync('https://likhitguru.com/privacy-policy.html')}
+                activeOpacity={0.7}
+              >
+                <View style={s.linkLeft}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color="#22C55E" />
+                  <Text style={s.linkText}>
+                    {isNepali ? unicodeToAakriti('गोपनीयता नीति (Privacy Policy)') : 'Privacy Policy'}
+                  </Text>
+                </View>
+                <Ionicons name="open-outline" size={16} color={theme.colors.textTertiary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={s.linkButton}
+                onPress={() => WebBrowser.openBrowserAsync('https://likhitguru.com/terms.html')}
+                activeOpacity={0.7}
+              >
+                <View style={s.linkLeft}>
+                  <Ionicons name="document-text-outline" size={18} color="#6366F1" />
+                  <Text style={s.linkText}>
+                    {isNepali ? unicodeToAakriti('प्रयोगका सर्तहरू (Terms of Service)') : 'Terms of Service'}
+                  </Text>
+                </View>
+                <Ionicons name="open-outline" size={16} color={theme.colors.textTertiary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Footer */}
           <View style={s.footer}>
-            <Text style={s.footerText}>© Likhit Guru 2025</Text>
+            <Text style={s.footerText}>© Likhit Guru 2026</Text>
           </View>
         </View>
       </ScrollView>
@@ -184,9 +215,37 @@ function createMoreInfoStyles(theme: AppTheme, isNepali: boolean = false) {
       color: colors.text,
       fontFamily: fontBold,
     },
+    linksSection: {
+      marginTop: 24,
+      gap: 12,
+    },
+    linkButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E2E8F0',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+    },
+    linkLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+    },
+    linkText: {
+      fontSize: isNepali ? 16 : 14,
+      color: colors.text,
+      fontFamily: fontNormal,
+      fontWeight: isNepali ? 'normal' : '500',
+    },
     footer: {
       alignItems: 'center',
-      marginTop: 'auto',
+      marginTop: 32,
+      marginBottom: 16,
     },
     footerText: {
       fontSize: 14,

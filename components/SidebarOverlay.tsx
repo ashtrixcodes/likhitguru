@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -172,6 +173,20 @@ export default function SidebarOverlay() {
         triggerHapticLight();
         onClose();
         await shareApp();
+      },
+    },
+    {
+      id: 'privacy',
+      titleEn: 'Privacy Policy',
+      titleNp: 'गोपनीयता नीति',
+      icon: 'shield-checkmark' as const,
+      color: '#10B981',
+      action: async () => {
+        triggerHapticLight();
+        onClose();
+        try {
+          await WebBrowser.openBrowserAsync('https://likhitguru.com/privacy-policy.html');
+        } catch {}
       },
     },
     {
