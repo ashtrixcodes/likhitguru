@@ -3,7 +3,7 @@ import { themedHeaderOptions } from '@/constants/screenHelpers';
 import type { AppTheme } from '@/constants/theme';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme, ThemeBackground } from '@/context/ThemeContext';
-import { useRewardedAd, TestIds, AD_UNITS } from '@/utils/mobileAds';
+import { useRewardedAd, AD_UNITS } from '@/utils/mobileAds';
 import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,7 +13,7 @@ import { Alert, Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet
 import * as nepaliKnowledge from './bikeKnowledge';
 import * as englishKnowledge from './knowledge';
 
-const rewardedAdUnitId = __DEV__ ? TestIds.REWARDED : AD_UNITS.REWARDED;
+const rewardedAdUnitId = AD_UNITS.REWARDED;
 
 let SecureStore: any;
 try {

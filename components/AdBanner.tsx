@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds, AD_UNITS, isAdsAvailable } from '@/utils/mobileAds';
+import { BannerAd, BannerAdSize, AD_UNITS, isAdsAvailable } from '@/utils/mobileAds';
 
-// In __DEV__ (dev client builds), use Google's official test banner
-// In production (EAS release builds), use your real AdMob banner unit
-const adUnitId = __DEV__
-  ? TestIds.ADAPTIVE_BANNER
-  : AD_UNITS.BANNER;
+// Real Production AdMob Banner Ad Unit
+const adUnitId = AD_UNITS.BANNER;
 
 export default function AdBanner() {
   const [hasError, setHasError] = useState(false);

@@ -8,9 +8,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Modal, Pressable, StyleSheet, Text, View, Platform, ScrollView } from 'react-native';
 import { nepaliQuizData, quizData } from './constant';
 import { useLanguage } from '@/context/LanguageContext';
-import { useRewardedAd, TestIds, AD_UNITS } from '@/utils/mobileAds';
+import { useRewardedAd, AD_UNITS } from '@/utils/mobileAds';
 
-const rewardedAdUnitId = __DEV__ ? TestIds.REWARDED : AD_UNITS.REWARDED;
+const rewardedAdUnitId = AD_UNITS.REWARDED;
 
 import AdBanner from '@/components/AdBanner';
 

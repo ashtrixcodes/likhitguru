@@ -19,7 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { InterstitialAd, AdEventType, TestIds } from '@/utils/mobileAds';
+import { RewardedInterstitialAd, AdEventType, AD_UNITS } from '@/utils/mobileAds';
 import { dailyquizQT } from "./dailyquizQT";
 import { knowledgeQuestions as nepaliKnowledgeQuestions } from "../practiceMore/bikeKnowledge";
 
@@ -88,8 +88,8 @@ function getQuestionAtIndex(index: number, isNepali: boolean): Question {
   };
 }
 
-const interstitialAdUnitId = TestIds.INTERSTITIAL;
-const interstitial = InterstitialAd.createForAdRequest(interstitialAdUnitId, {
+const interstitialAdUnitId = AD_UNITS.REWARDED_INTERSTITIAL;
+const interstitial = RewardedInterstitialAd.createForAdRequest(interstitialAdUnitId, {
   requestNonPersonalizedAdsOnly: true,
 });
 

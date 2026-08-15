@@ -24,8 +24,8 @@ export const isAdsAvailable = isMobileAdsAvailable;
 export const AD_UNITS = {
   BANNER: 'ca-app-pub-9520863212221697/6130790460',
   REWARDED: 'ca-app-pub-9520863212221697/6426303936',
-  // TODO: Replace with your real Interstitial ad unit ID from AdMob console
-  INTERSTITIAL: 'ca-app-pub-9520863212221697/REPLACE_WITH_INTERSTITIAL_ID',
+  REWARDED_INTERSTITIAL: 'ca-app-pub-9520863212221697/2950384931',
+  INTERSTITIAL: 'ca-app-pub-9520863212221697/2950384931',
 };
 
 // ─── Test IDs - Use the library's built-in Platform-specific test IDs ─
@@ -150,3 +150,37 @@ export const InterstitialAd = {
     };
   },
 };
+
+export const RewardedInterstitialAd = {
+  createForAdRequest: (unitId: string, options?: any) => {
+    if (isMobileAdsAvailable && MobileAdsModule?.RewardedInterstitialAd) {
+      try {
+        return MobileAdsModule.RewardedInterstitialAd.createForAdRequest(unitId, options);
+      } catch {
+        // Fallback
+      }
+    }
+    return {
+      load: () => {},
+      addAdEventListener: () => () => {},
+      show: () => {},
+    };
+  },
+};
+
+export function useRewardedInterstitialAd(unitId: string, options?: any) {
+  if (isMobileAdsAvailable && MobileAdsModule?.useRewardedInterstitialAd) {
+    try {
+      return MobileAdsModule.useRewardedInterstitialAd(unitId, options);
+    } catch {
+      // Fallback
+    }
+  }
+  return {
+    isLoaded: false,
+    isClosed: false,
+    show: () => {},
+    reward: null,
+    load: () => {},
+  };
+}
