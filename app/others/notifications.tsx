@@ -281,7 +281,7 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
     markAllReadText: {
       color: '#60A5FA',
       fontSize: isNepali ? 16 : 13,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       fontFamily: fontBold || fontNormal,
     },
 
@@ -296,11 +296,13 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
       paddingVertical: 12,
       borderWidth: 1,
       borderColor: isDark ? 'rgba(96, 165, 250, 0.3)' : '#DBEAFE',
+      elevation: 0,
+      overflow: 'hidden',
     },
     summaryText: {
       color: isDark ? '#93C5FD' : '#1D4ED8',
       fontSize: isNepali ? 16 : 13,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       fontFamily: fontNormal,
     },
 
@@ -318,7 +320,8 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: isDark ? 0.2 : 0.04,
       shadowRadius: 6,
-      elevation: 2,
+      elevation: 0,
+      overflow: 'hidden',
     },
     notificationCardUnread: {
       backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : '#F0F7FF',
@@ -331,6 +334,7 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
       justifyContent: 'center',
       alignItems: 'center',
       marginTop: 2,
+      overflow: 'hidden',
     },
     notifContent: {
       flex: 1,
@@ -343,7 +347,7 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
     },
     notifTitle: {
       fontSize: isNepali ? 18 : 15,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: isDark ? '#FFFFFF' : '#0F172A',
       flex: 1,
       fontFamily: fontBold,
@@ -360,6 +364,7 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
       lineHeight: isNepali ? 22 : 18,
       marginBottom: 6,
       fontFamily: fontNormal,
+      fontWeight: isNepali ? 'normal' : undefined,
     },
     notifTime: {
       fontSize: 11,
@@ -394,7 +399,7 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
     },
     emptyTitle: {
       fontSize: isNepali ? 22 : 20,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: isDark ? '#FFFFFF' : '#0F172A',
       marginBottom: 8,
       textAlign: 'center',
@@ -406,6 +411,7 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
       textAlign: 'center',
       lineHeight: isNepali ? 24 : 20,
       fontFamily: fontNormal,
+      fontWeight: isNepali ? 'normal' : undefined,
     },
 
     // ── Clear All ──
@@ -424,7 +430,7 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
     clearAllText: {
       color: '#EF4444',
       fontSize: isNepali ? 16 : 14,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       fontFamily: fontNormal,
     },
 
@@ -439,6 +445,8 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
       borderRadius: 16,
       padding: 12,
       marginBottom: 2,
+      elevation: 0,
+      overflow: 'hidden',
     },
     testIconCircle: {
       width: 36,
@@ -447,10 +455,11 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
       backgroundColor: isDark ? 'rgba(34, 197, 94, 0.2)' : '#DCFCE7',
       justifyContent: 'center',
       alignItems: 'center',
+      overflow: 'hidden',
     },
     testBannerTitle: {
       fontSize: isNepali ? 16 : 14,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: isDark ? '#FFFFFF' : '#166534',
       fontFamily: fontBold,
     },
@@ -458,6 +467,7 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
       fontSize: isNepali ? 14 : 11,
       color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#15803D',
       fontFamily: fontNormal,
+      fontWeight: isNepali ? 'normal' : undefined,
       marginTop: 1,
     },
     testNotificationButton: {
@@ -478,7 +488,7 @@ function createStyles(theme: AppTheme, isNepali: boolean) {
     testNotificationButtonText: {
       color: '#FFFFFF',
       fontSize: isNepali ? 16 : 14,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       fontFamily: fontBold || fontNormal,
     },
   });

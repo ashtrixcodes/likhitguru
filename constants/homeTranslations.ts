@@ -23,6 +23,8 @@ export const homeTranslations = {
     sections: {
       lekhitExam: 'लिखित परीक्षा',
       quiz: 'प्रश्नोत्तरी',
+      mockExam: 'नमुना परीक्षा',
+      trafficSigns: 'ट्राफिक संकेतहरू',
       practiceMore: 'थप अभ्यास',
       others: 'अन्य सेवाहरू',
     },
@@ -39,10 +41,16 @@ export const homeTranslations = {
       eyeTestSubtitle: 'अंक ढाँचा',
       practiceAction: 'अभ्यास →',
     },
+    examTestCard: {
+      tag: 'नमुना परीक्षा',
+      title: 'लिखित नमुना परीक्षा',
+      subtitle: '५००+ आधिकारिक प्रश्नहरू • वास्तविक परीक्षा ढाँचा',
+      action: 'सुरु गर्नुहोस्',
+    },
     practiceCards: {
       informative: 'सूचनामूलक\nसंकेत',
       restrictive: 'प्रतिबन्धात्मक\nसंकेत',
-      numbers: 'संख्यात्मक\nसंकेत',
+      numbers: 'सडक रेखांकन\nतथा चिन्ह',
       examTest: 'परीक्षण\nमोड',
     },
     otherCards: {
@@ -74,7 +82,9 @@ export const homeTranslations = {
     },
     sections: {
       lekhitExam: 'Likhit Exam',
-      quiz: 'Quiz',
+      quiz: 'Quiz Arena',
+      mockExam: 'Mock Exam',
+      trafficSigns: 'Traffic Signs',
       practiceMore: 'Practice More',
       others: 'Others',
     },
@@ -91,10 +101,16 @@ export const homeTranslations = {
       eyeTestSubtitle: 'Numbers Pattern',
       practiceAction: 'Practice →',
     },
+    examTestCard: {
+      tag: 'Model Exam',
+      title: 'Written Exam Test',
+      subtitle: '500+ Official Questions • Real Exam Mode',
+      action: 'Start',
+    },
     practiceCards: {
-      informative: 'Informative',
-      restrictive: 'Restrictive',
-      numbers: 'Numbers',
+      informative: 'Informative\nSigns',
+      restrictive: 'Restrictive\nSigns',
+      numbers: 'Road Signs\n& Markings',
       examTest: 'Exam Test',
     },
     otherCards: {

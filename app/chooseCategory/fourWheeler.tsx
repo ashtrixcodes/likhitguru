@@ -221,7 +221,7 @@ export default function FourWheelerScreen() {
     <ThemeBackground>
       <Stack.Screen
         options={{
-          title: isNepali ? unicodeToAakriti("४-पाङ्ग्रे लिखित परीक्षा") : "4-Wheeler Exam Test",
+          title: isNepali ? unicodeToAakriti("४-पाङ्ग्रे लिखित परीक्षा") : "Four Wheeler Test",
           ...themedHeaderOptions(theme),
           headerTitleStyle: {
             fontSize: isNepali ? 22 : 20,

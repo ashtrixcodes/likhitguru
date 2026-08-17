@@ -108,7 +108,7 @@ const vehicleCharges: VehicleCharge[] = [
     id: 'heavy-equipment',
     nameEn: 'Heavy Equipment',
     nameNp: 'भारी उपकरण (हेभी इक्विपमेन्ट)',
-    image: require('@/assets/images/bike.png'),
+    image: require('@/assets/images/heavy-equipment.png'),
     enteringChargeEn: 'NPR 600',
     enteringChargeNp: 'रु. ६००',
     exitingChargeEn: 'NPR 250',
@@ -152,7 +152,7 @@ export default function NagdhungaPassScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.vehicleHeader}>
-          <Image source={vehicle.image} style={styles.vehicleImage} />
+          <Image source={vehicle.image} style={styles.vehicleImage} resizeMode="contain" />
           <View style={styles.vehicleInfo}>
             <Text style={styles.vehicleName}>
               {isNepali ? unicodeToAakriti(vehicle.nameNp) : vehicle.nameEn}

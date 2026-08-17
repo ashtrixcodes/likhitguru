@@ -119,21 +119,25 @@ export default function GamifiedDailyQuizScreen() {
     if (effectiveName && effectiveName.trim() !== '') {
       return effectiveName.trim().split(' ')[0];
     }
-    return isNepali ? unicodeToAakriti('प्रशान्त') : 'Prashant';
-  }, [authUserName, userName, isNepali]);
+    return 'Prashant';
+  }, [authUserName, userName]);
 
   const greetingSub = useMemo(() => {
-    if (firstName) {
-      return isNepali ? unicodeToAakriti(`${firstName}को`) : `${firstName}'s`;
-    }
-    return isNepali ? unicodeToAakriti('चालकको') : "Driver's";
+    return isNepali ? unicodeToAakriti('दैनिक चुनौती') : (firstName ? `${firstName}'s` : "Driver's");
   }, [firstName, isNepali]);
 
   const greetingTitle = useMemo(() => {
     return isNepali ? unicodeToAakriti('दैनिक प्रश्नोत्तरी') : 'Daily Quiz';
   }, [isNepali]);
 
-  const levelTitle = userXP >= 1000 ? 'Pro Rider' : userXP >= 400 ? 'Active Learner' : 'Novice Driver';
+  const levelTitle = useMemo(() => {
+    if (!isNepali) {
+      return userXP >= 1000 ? 'Pro Rider' : userXP >= 400 ? 'Active Learner' : 'Novice Driver';
+    }
+    return unicodeToAakriti(
+      userXP >= 1000 ? 'अनुभवी चालक' : userXP >= 400 ? 'सक्रिय शिक्षार्थी' : 'नयाँ चालक'
+    );
+  }, [userXP, isNepali]);
 
   // Sync auth name
   useEffect(() => {
@@ -626,7 +630,9 @@ export default function GamifiedDailyQuizScreen() {
               <View style={s.telemetryItem}>
                 <View style={s.telemetryIconRow}>
                   <Ionicons name="flash" size={13} color="#FBBF24" />
-                  <Text style={s.telemetryLabel}>Total XP</Text>
+                  <Text style={s.telemetryLabel}>
+                    {isNepali ? unicodeToAakriti('कुल अंक') : 'Total XP'}
+                  </Text>
                 </View>
                 <Text style={s.telemetryValue}>{userXP.toLocaleString()}</Text>
                 <Text style={s.telemetrySub}>{levelTitle}</Text>
@@ -637,10 +643,19 @@ export default function GamifiedDailyQuizScreen() {
               <View style={s.telemetryItem}>
                 <View style={s.telemetryIconRow}>
                   <Ionicons name="flame" size={13} color="#EF4444" />
-                  <Text style={s.telemetryLabel}>Streak</Text>
+                  <Text style={s.telemetryLabel}>
+                    {isNepali ? unicodeToAakriti('स्ट्रिक') : 'Streak'}
+                  </Text>
                 </View>
-                <Text style={s.telemetryValue}>{userStreak} Days</Text>
-                <Text style={s.telemetrySub}>Daily Quiz</Text>
+                <Text style={s.telemetryValue}>
+                  {userStreak}{' '}
+                  <Text style={{ fontFamily: isNepali ? fontFamily || 'Aakriti' : undefined, fontSize: isNepali ? 14 : 12, fontWeight: 'normal' }}>
+                    {isNepali ? unicodeToAakriti('दिन') : userStreak === 1 ? 'Day' : 'Days'}
+                  </Text>
+                </Text>
+                <Text style={s.telemetrySub}>
+                  {isNepali ? unicodeToAakriti('दैनिक क्विज') : 'Daily Quiz'}
+                </Text>
               </View>
 
               <View style={s.telemetryDivider} />
@@ -648,10 +663,33 @@ export default function GamifiedDailyQuizScreen() {
               <View style={s.telemetryItem}>
                 <View style={s.telemetryIconRow}>
                   <Ionicons name="trophy" size={13} color="#4ADE80" />
-                  <Text style={s.telemetryLabel}>Rank</Text>
+                  <Text style={s.telemetryLabel}>
+                    {isNepali ? unicodeToAakriti('स्थान') : 'Rank'}
+                  </Text>
                 </View>
-                <Text style={s.telemetryValue}>{userRank ? `#${userRank}` : (leaderboardOnline ? 'Top 10' : 'Offline')}</Text>
-                <Text style={s.telemetrySub}>Leaderboard</Text>
+                <Text style={s.telemetryValue}>
+                  {userRank ? (
+                    `#${userRank}`
+                  ) : leaderboardOnline ? (
+                    isNepali ? (
+                      <>
+                        <Text style={{ fontFamily: isNepali ? fontFamily || 'Aakriti' : undefined, fontSize: 13, fontWeight: 'normal' }}>
+                          {unicodeToAakriti('शीर्ष ')}
+                        </Text>
+                        10
+                      </>
+                    ) : (
+                      'Top 10'
+                    )
+                  ) : isNepali ? (
+                    unicodeToAakriti('अफलाइन')
+                  ) : (
+                    'Offline'
+                  )}
+                </Text>
+                <Text style={s.telemetrySub}>
+                  {isNepali ? unicodeToAakriti('लिडरबोर्ड') : 'Leaderboard'}
+                </Text>
               </View>
             </View>
           </View>
@@ -755,11 +793,20 @@ export default function GamifiedDailyQuizScreen() {
                 <Ionicons name="warning" size={24} color="#EF4444" />
               </View>
 
-              <Text style={s.arenaCardTitle}>Sign Test</Text>
-              <Text style={s.arenaCardSub}>Traffic Signals</Text>
+              <Text style={s.arenaCardTitle}>
+                {isNepali ? unicodeToAakriti('ट्राफिक चिन्ह') : 'Sign Test'}
+              </Text>
+              <Text style={s.arenaCardSub}>
+                {isNepali ? unicodeToAakriti('भिजुअल संकेतहरू') : 'Traffic Signals'}
+              </Text>
               <View style={s.arenaLiveRow}>
                 <Ionicons name="person" size={12} color="#94A3B8" />
-                <Text style={s.arenaLiveText}>650 playing</Text>
+                <Text style={s.arenaLiveText}>
+                  650{' '}
+                  <Text style={isNepali ? { fontFamily: 'Aakriti', fontSize: 13 } : undefined}>
+                    {isNepali ? unicodeToAakriti('खेल्दै') : 'playing'}
+                  </Text>
+                </Text>
               </View>
             </TouchableOpacity>
 
@@ -775,11 +822,20 @@ export default function GamifiedDailyQuizScreen() {
                 <Ionicons name="eye" size={24} color="#3B82F6" />
               </View>
 
-              <Text style={s.arenaCardTitle}>Eye Test</Text>
-              <Text style={s.arenaCardSub}>Numbers Pattern</Text>
+              <Text style={s.arenaCardTitle}>
+                {isNepali ? unicodeToAakriti('दृष्टि परीक्षण') : 'Eye Test'}
+              </Text>
+              <Text style={s.arenaCardSub}>
+                {isNepali ? unicodeToAakriti('इशिहारा प्लेट्स') : 'Numbers Pattern'}
+              </Text>
               <View style={s.arenaLiveRow}>
                 <Ionicons name="person" size={12} color="#94A3B8" />
-                <Text style={s.arenaLiveText}>420 playing</Text>
+                <Text style={s.arenaLiveText}>
+                  420{' '}
+                  <Text style={isNepali ? { fontFamily: 'Aakriti', fontSize: 13 } : undefined}>
+                    {isNepali ? unicodeToAakriti('खेल्दै') : 'playing'}
+                  </Text>
+                </Text>
               </View>
             </TouchableOpacity>
 
@@ -795,11 +851,27 @@ export default function GamifiedDailyQuizScreen() {
                 <Ionicons name="car" size={24} color="#A855F7" />
               </View>
 
-              <Text style={s.arenaCardTitle}>Category A/B</Text>
-              <Text style={s.arenaCardSub}>Driving Rules</Text>
+              <Text style={s.arenaCardTitle}>
+                {isNepali ? (
+                  <>
+                    <Text style={{ fontFamily: 'AakritiBold' }}>{unicodeToAakriti('वर्ग ')}</Text>
+                    A / B
+                  </>
+                ) : (
+                  'Category A/B'
+                )}
+              </Text>
+              <Text style={s.arenaCardSub}>
+                {isNepali ? unicodeToAakriti('सवारी चालक नियम') : 'Driving Rules'}
+              </Text>
               <View style={s.arenaLiveRow}>
                 <Ionicons name="person" size={12} color="#94A3B8" />
-                <Text style={s.arenaLiveText}>890 playing</Text>
+                <Text style={s.arenaLiveText}>
+                  890{' '}
+                  <Text style={isNepali ? { fontFamily: 'Aakriti', fontSize: 13 } : undefined}>
+                    {isNepali ? unicodeToAakriti('खेल्दै') : 'playing'}
+                  </Text>
+                </Text>
               </View>
             </TouchableOpacity>
 
@@ -812,11 +884,26 @@ export default function GamifiedDailyQuizScreen() {
                 <Ionicons name="flash" size={24} color="#22C55E" />
               </View>
 
-              <Text style={s.arenaCardTitle}>Speed Challenge</Text>
-              <Text style={s.arenaCardSub}>5 Quick Qs</Text>
+              <Text style={s.arenaCardTitle}>
+                {isNepali ? unicodeToAakriti('द्रुत चुनौती') : 'Speed Challenge'}
+              </Text>
+              <Text style={s.arenaCardSub}>
+                {isNepali ? (
+                  <>
+                    5 <Text style={{ fontFamily: 'Aakriti' }}>{unicodeToAakriti('द्रुत प्रश्नहरू')}</Text>
+                  </>
+                ) : (
+                  '5 Quick Qs'
+                )}
+              </Text>
               <View style={s.arenaLiveRow}>
                 <Ionicons name="person" size={12} color="#94A3B8" />
-                <Text style={s.arenaLiveText}>310 playing</Text>
+                <Text style={s.arenaLiveText}>
+                  310{' '}
+                  <Text style={isNepali ? { fontFamily: 'Aakriti', fontSize: 13 } : undefined}>
+                    {isNepali ? unicodeToAakriti('खेल्दै') : 'playing'}
+                  </Text>
+                </Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -1101,11 +1188,12 @@ function createDailyQuizStyles(theme: AppTheme, isNepali: boolean) {
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 3,
       fontFamily: isNepali ? 'Aakriti' : undefined,
+      fontWeight: isNepali ? 'normal' : undefined,
     },
     headerMainTitle: {
       color: theme.colors.headerText || '#FFFFFF',
       fontSize: 20,
-      fontWeight: 'bold',
+      fontWeight: isNepali ? 'normal' : 'bold',
       fontFamily: isNepali ? 'AakritiBold' : undefined,
       textShadowColor: 'rgba(0, 0, 0, 0.4)',
       textShadowOffset: { width: 0, height: 1 },
@@ -1134,10 +1222,11 @@ function createDailyQuizStyles(theme: AppTheme, isNepali: boolean) {
       marginBottom: 2,
     },
     telemetryLabel: {
-      fontSize: 10,
+      fontSize: isNepali ? 11 : 10,
       color: '#94A3B8',
-      fontWeight: '700',
-      textTransform: 'uppercase',
+      fontWeight: isNepali ? 'normal' : '700',
+      textTransform: isNepali ? 'none' : 'uppercase',
+      fontFamily: isNepali ? 'AakritiBold' : undefined,
     },
     telemetryValue: {
       fontSize: 15,
@@ -1146,9 +1235,10 @@ function createDailyQuizStyles(theme: AppTheme, isNepali: boolean) {
       marginBottom: 1,
     },
     telemetrySub: {
-      fontSize: 10,
+      fontSize: isNepali ? 11 : 10,
       color: '#38BDF8',
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
+      fontFamily: isNepali ? 'Aakriti' : undefined,
     },
     telemetryDivider: {
       width: 1,
@@ -1170,7 +1260,8 @@ function createDailyQuizStyles(theme: AppTheme, isNepali: boolean) {
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: isDark ? 0.35 : 0.08,
       shadowRadius: 16,
-      elevation: 4,
+      elevation: 0,
+      overflow: 'hidden',
     },
     heroHeaderRow: {
       flexDirection: 'row',
@@ -1291,7 +1382,8 @@ function createDailyQuizStyles(theme: AppTheme, isNepali: boolean) {
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: isDark ? 0.2 : 0.05,
       shadowRadius: 6,
-      elevation: 2,
+      elevation: 0,
+      overflow: 'hidden',
     },
     arenaIconBadge: {
       width: 44,
@@ -1300,17 +1392,21 @@ function createDailyQuizStyles(theme: AppTheme, isNepali: boolean) {
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 12,
+      overflow: 'hidden',
     },
     arenaCardTitle: {
       fontSize: 15,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: isDark ? '#FFFFFF' : colors.text,
+      fontFamily: isNepali ? 'AakritiBold' : undefined,
     },
     arenaCardSub: {
       fontSize: 12,
       color: isDark ? '#94A3B8' : colors.textSecondary,
       marginTop: 2,
       marginBottom: 10,
+      fontFamily: isNepali ? 'Aakriti' : undefined,
+      fontWeight: isNepali ? 'normal' : undefined,
     },
     arenaLiveRow: {
       flexDirection: 'row',
@@ -1318,7 +1414,7 @@ function createDailyQuizStyles(theme: AppTheme, isNepali: boolean) {
       gap: 4,
     },
     arenaLiveText: {
-      fontSize: 11,
+      fontSize: isNepali ? 12 : 11,
       color: isDark ? '#94A3B8' : colors.textTertiary,
       fontWeight: '500',
     },

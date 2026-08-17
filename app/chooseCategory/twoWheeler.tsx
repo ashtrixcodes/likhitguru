@@ -223,7 +223,7 @@ export default function TwoWheelerScreen() {
     <ThemeBackground>
       <Stack.Screen
         options={{
-          title: isNepali ? unicodeToAakriti("२-पाङ्ग्रे लिखित परीक्षा") : "2-Wheeler Exam Test",
+          title: isNepali ? unicodeToAakriti("२-पाङ्ग्रे लिखित परीक्षा") : "Two Wheeler Test",
           ...themedHeaderOptions(theme),
           headerTitleStyle: {
             fontSize: isNepali ? 22 : 20,

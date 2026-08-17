@@ -356,8 +356,7 @@ export default function ProfileScreen() {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: 'images',
       allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.85,
+      quality: 0.9,
     });
     if (!result.canceled && result.assets[0]) {
       savePhoto(result.assets[0]);
@@ -376,8 +375,7 @@ export default function ProfileScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.85,
+      quality: 0.9,
     });
     if (!result.canceled && result.assets[0]) {
       savePhoto(result.assets[0]);
@@ -486,8 +484,8 @@ export default function ProfileScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScrollView
-        style={s.container}
-        contentContainerStyle={{ paddingBottom: 60 }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
         {/* ══════════════════════════════════════════════════════════════
@@ -795,7 +793,9 @@ export default function ProfileScreen() {
                 <Ionicons name="calendar" size={20} color="#EA4335" />
               </View>
               <Text style={s.quickHubTitle}>{isNepali ? unicodeToAakriti('दैनिक क्विज') : 'Daily Quiz'}</Text>
-              <Text style={s.quickHubSub}>{isNepali ? unicodeToAakriti('+१०० XP') : 'Earn +100 XP'}</Text>
+              <Text style={s.quickHubSub}>
+                {isNepali ? `+100 ${unicodeToAakriti('अंक')}` : 'Earn +100 XP'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -823,10 +823,14 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 20 }} />
-          <AdBanner />
+          <View style={{ height: 16 }} />
         </View>
       </ScrollView>
+
+      {/* Bottom Anchored Ad Banner */}
+      <View style={s.bottomAdWrapper}>
+        <AdBanner />
+      </View>
 
       {/* Fullscreen Image Viewer Modal */}
       {licensePhoto && ImageViewing && (
@@ -1022,6 +1026,12 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       flex: 1,
       backgroundColor: colors.background,
     },
+    bottomAdWrapper: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingTop: 4,
+      paddingBottom: 2,
+    },
 
     // ── DASHBOARD UNIFIED HEADER ──
     dashboardHeader: {
@@ -1104,11 +1114,12 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 3,
       fontFamily: fontNormal,
+      fontWeight: isNepali ? 'normal' : undefined,
     },
     headerMainTitle: {
       color: colors.headerText || '#FFFFFF',
       fontSize: 20,
-      fontWeight: 'bold',
+      fontWeight: isNepali ? 'normal' : 'bold',
       fontFamily: fontBold,
       textShadowColor: 'rgba(0, 0, 0, 0.4)',
       textShadowOffset: { width: 0, height: 1 },
@@ -1242,7 +1253,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     telemetryLabel: {
       fontSize: isNepali ? 11 : 10,
       color: '#94A3B8',
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       textTransform: isNepali ? 'none' : 'uppercase',
       fontFamily: fontBold,
     },
@@ -1255,7 +1266,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     telemetrySub: {
       fontSize: isNepali ? 11 : 10,
       color: '#38BDF8',
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       fontFamily: fontNormal,
     },
     telemetryDivider: {
@@ -1283,7 +1294,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     googleSignInActionText: {
       fontSize: 13,
-      fontWeight: '800',
+      fontWeight: isNepali ? 'normal' : '800',
       color: '#111827',
       fontFamily: fontBold,
     },
@@ -1301,7 +1312,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     signOutActionText: {
       fontSize: 13,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: '#FCA5A5',
       fontFamily: fontBold,
     },
@@ -1329,7 +1340,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     sectionHeading: {
       fontSize: isNepali ? 18 : 16,
-      fontWeight: '800',
+      fontWeight: isNepali ? 'normal' : '800',
       color: colors.text,
       fontFamily: fontBold,
     },
@@ -1337,6 +1348,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       fontSize: isNepali ? 13 : 12,
       color: colors.textTertiary,
       fontFamily: fontNormal,
+      fontWeight: isNepali ? 'normal' : undefined,
     },
     emptyLicenseCard: {
       width: '100%',
@@ -1361,7 +1373,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     emptyLicenseTitle: {
       fontSize: isNepali ? 17 : 15,
-      fontWeight: '800',
+      fontWeight: isNepali ? 'normal' : '800',
       color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
@@ -1375,6 +1387,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       marginBottom: 16,
       paddingHorizontal: 12,
       fontFamily: fontNormal,
+      fontWeight: isNepali ? 'normal' : undefined,
     },
     emptyScanButton: {
       flexDirection: 'row',
@@ -1391,7 +1404,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     emptyScanButtonText: {
       fontSize: 13,
-      fontWeight: '800',
+      fontWeight: isNepali ? 'normal' : '800',
       color: '#FFFFFF',
       fontFamily: fontBold,
     },
@@ -1504,17 +1517,18 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     quickHubTile: {
       flex: 1,
-      backgroundColor: isDark ? glass.backgroundColor : colors.card,
-      borderColor: isDark ? glass.borderColor : '#E2E8F0',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : colors.card,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#E2E8F0',
       borderWidth: 1,
       borderRadius: 18,
       padding: 14,
       alignItems: 'center',
-      shadowColor: colors.shadow,
+      shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: isDark ? 0.2 : 0.05,
       shadowRadius: 6,
-      elevation: 2,
+      elevation: 0,
+      overflow: 'hidden',
     },
     quickHubIconCircle: {
       width: 40,
@@ -1523,10 +1537,11 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 8,
+      overflow: 'hidden',
     },
     quickHubTitle: {
       fontSize: isNepali ? 14 : 12,
-      fontWeight: '800',
+      fontWeight: isNepali ? 'normal' : '800',
       color: colors.text,
       textAlign: 'center',
       marginBottom: 2,
@@ -1535,7 +1550,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     quickHubSub: {
       fontSize: isNepali ? 11 : 10,
       color: colors.textTertiary,
-      fontWeight: '600',
+      fontWeight: isNepali ? 'normal' : '600',
       fontFamily: fontNormal,
     },
 
@@ -1572,7 +1587,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     alertTitle: {
       fontSize: isNepali ? 20 : 19,
-      fontWeight: '800',
+      fontWeight: isNepali ? 'normal' : '800',
       color: colors.text,
       textAlign: 'center',
       marginBottom: 8,
@@ -1605,6 +1620,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       marginBottom: 20,
       lineHeight: isNepali ? 20 : 18,
       fontFamily: fontNormal,
+      fontWeight: isNepali ? 'normal' : undefined,
     },
     alertButtonsContainer: {
       width: '100%',
@@ -1645,7 +1661,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     alertButtonText: {
       fontSize: isNepali ? 16 : 14,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       fontFamily: fontBold,
     },
     alertButtonTextDefault: {
@@ -1692,7 +1708,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     actionItemText: {
       fontSize: 15,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       fontFamily: fontBold,
     },
     actionCancelButton: {
@@ -1704,7 +1720,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     actionCancelButtonText: {
       fontSize: 15,
-      fontWeight: '700',
+      fontWeight: isNepali ? 'normal' : '700',
       color: colors.text,
       fontFamily: fontBold,
     },

@@ -102,14 +102,76 @@ function QuizItemCard({ title, subtitle, icon, iconStyle, onPress, s, isLoading,
 	);
 }
 
-function PracticeCard({ title, icon, onPress, s, isLoading, isNepali }: any) {
+function FeaturedExamCard({ title, subtitle, tag, actionLabel, onPress, s, theme, isLoading, isNepali }: any) {
 	const handlePress = (e: any) => {
 		triggerHapticLight();
 		onPress?.(e);
 	};
 
 	return (
-		<TouchableOpacity style={s.practiceCard} onPress={handlePress} disabled={isLoading}>
+		<TouchableOpacity
+			style={s.featuredExamCard}
+			onPress={handlePress}
+			activeOpacity={0.85}
+			disabled={isLoading}
+		>
+			{isLoading ? (
+				<View style={{ flexDirection: 'row', width: '100%', alignItems: 'center', padding: 10 }}>
+					<ShimmerBar width={50} height={50} borderRadius={25} style={{ marginRight: 15 }} />
+					<View style={{ flex: 1 }}>
+						<ShimmerBar width={140} height={18} style={{ marginBottom: 8 }} />
+						<ShimmerBar width={200} height={14} />
+					</View>
+				</View>
+			) : (
+				<View style={s.featuredExamContent}>
+					<View style={s.featuredExamIconWrapper}>
+						<Image
+							source={require('@/assets/images/exam.png')}
+							style={s.featuredExamIcon}
+							resizeMode="contain"
+						/>
+					</View>
+
+					<View style={s.featuredExamDetails}>
+						<View style={s.featuredExamTagRow}>
+							<View style={s.featuredExamTag}>
+								<Text style={s.featuredExamTagText}>
+									{isNepali ? unicodeToAakriti(tag || 'नमुना परीक्षा') : (tag || 'Model Exam')}
+								</Text>
+							</View>
+						</View>
+
+						<Text style={s.featuredExamTitle}>
+							{isNepali ? unicodeToAakriti(title || 'लिखित नमुना परीक्षा') : (title || 'Written Exam Test')}
+						</Text>
+						<Text style={s.featuredExamSubtitle} numberOfLines={2}>
+							{isNepali
+								? unicodeToAakriti(subtitle || '५००+ आधिकारिक प्रश्नहरू • वास्तविक परीक्षा ढाँचा')
+								: (subtitle || '500+ Official Questions • Real Exam Mode')}
+						</Text>
+					</View>
+
+					<View style={s.featuredExamActionPill}>
+						<Ionicons name="play" size={12} color="#FFFFFF" style={{ marginRight: 3 }} />
+						<Text style={s.featuredExamActionText}>
+							{isNepali ? unicodeToAakriti(actionLabel || 'सुरु') : (actionLabel || 'Start')}
+						</Text>
+					</View>
+				</View>
+			)}
+		</TouchableOpacity>
+	);
+}
+
+function PracticeCard({ title, icon, onPress, s, isLoading, isNepali, customCardStyle }: any) {
+	const handlePress = (e: any) => {
+		triggerHapticLight();
+		onPress?.(e);
+	};
+
+	return (
+		<TouchableOpacity style={[s.practiceCard, customCardStyle]} onPress={handlePress} disabled={isLoading}>
 			{isLoading ? (
 				<View style={{ width: '100%', alignItems: 'center' }}>
 					<ShimmerBar width={40} height={40} borderRadius={20} style={{ marginBottom: 12 }} />
@@ -450,6 +512,21 @@ export default function HomeScreen() {
 					</View>
 				</View>
 
+				{/* Featured Mock Exam Section */}
+				<View style={s.section}>
+					<FeaturedExamCard
+						title={t.examTestCard?.title}
+						subtitle={t.examTestCard?.subtitle}
+						tag={t.examTestCard?.tag}
+						actionLabel={t.examTestCard?.action}
+						onPress={() => router.push('/practiceMore/examTest')}
+						s={s}
+						theme={theme}
+						isLoading={isLoading}
+						isNepali={isNepali}
+					/>
+				</View>
+
 				{/* Quiz Section */}
 				<View style={s.section}>
 					<Text style={s.sectionTitle}>{isNepali ? unicodeToAakriti(t.sections.quiz) : t.sections.quiz}</Text>
@@ -475,23 +552,17 @@ export default function HomeScreen() {
 					</View>
 				</View>
 
-				{/* Practice More Section */}
+				{/* Traffic Signs Practice Section */}
 				<View style={s.section}>
-					<Text style={s.sectionTitle}>{isNepali ? unicodeToAakriti(t.sections.practiceMore) : t.sections.practiceMore}</Text>
-					<View style={s.practiceGrid}>
-						<PracticeCard
-							title={t.practiceCards.examTest}
-							icon={require('@/assets/images/exam.png')}
-							onPress={() => router.push('/practiceMore/examTest')}
-							s={s} isLoading={isLoading}
-							isNepali={isNepali}
-						/>
+					<Text style={s.sectionTitle}>{isNepali ? unicodeToAakriti(t.sections.trafficSigns) : t.sections.trafficSigns}</Text>
+					<View style={s.signsGrid}>
 						<PracticeCard
 							title={t.practiceCards.informative}
 							icon={require('@/assets/images/stop-sgn.png')}
 							onPress={() => router.push('/practiceMore/informativeSign')}
 							s={s} isLoading={isLoading}
 							isNepali={isNepali}
+							customCardStyle={s.signCard}
 						/>
 						<PracticeCard
 							title={t.practiceCards.restrictive}
@@ -499,6 +570,7 @@ export default function HomeScreen() {
 							onPress={() => router.push('/practiceMore/restrictiveSign')}
 							s={s} isLoading={isLoading}
 							isNepali={isNepali}
+							customCardStyle={s.signCard}
 						/>
 						<PracticeCard
 							title={t.practiceCards.numbers}
@@ -506,6 +578,7 @@ export default function HomeScreen() {
 							onPress={() => router.push('/practiceMore/numberSign')}
 							s={s} isLoading={isLoading}
 							isNepali={isNepali}
+							customCardStyle={s.signCard}
 						/>
 					</View>
 				</View>
@@ -984,6 +1057,101 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 			color: colors.practiceLink,
 			fontFamily: fontBold || fontNormal,
 			fontSize: isNepali ? 17 : 14,
+		},
+		// Featured Exam Hero Card
+		featuredExamCard: {
+			backgroundColor: isDark ? glass.backgroundColor : colors.card,
+			borderRadius: isDark ? glass.borderRadius : 20,
+			borderWidth: 1,
+			borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)',
+			padding: 16,
+			shadowColor: colors.shadow,
+			shadowOffset: { width: 0, height: 3 },
+			shadowOpacity: isDark ? 0.3 : 0.1,
+			shadowRadius: isDark ? 8 : 6,
+			elevation: isDark ? 0 : 3,
+		},
+		featuredExamContent: {
+			flexDirection: 'row',
+			alignItems: 'center',
+		},
+		featuredExamIconWrapper: {
+			width: 52,
+			height: 52,
+			borderRadius: 26,
+			backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)',
+			alignItems: 'center',
+			justifyContent: 'center',
+			marginRight: 14,
+		},
+		featuredExamIcon: {
+			width: 32,
+			height: 32,
+		},
+		featuredExamDetails: {
+			flex: 1,
+			marginRight: 10,
+		},
+		featuredExamTagRow: {
+			flexDirection: 'row',
+			marginBottom: 4,
+		},
+		featuredExamTag: {
+			backgroundColor: isDark ? 'rgba(255, 107, 53, 0.2)' : 'rgba(255, 107, 53, 0.12)',
+			paddingHorizontal: 8,
+			paddingVertical: 2,
+			borderRadius: 6,
+		},
+		featuredExamTagText: {
+			color: '#FF6B35',
+			fontSize: isNepali ? 12 : 10,
+			fontWeight: isNepali ? 'normal' : '700',
+			fontFamily: fontBold || fontNormal,
+		},
+		featuredExamTitle: {
+			fontSize: isNepali ? 18 : 15,
+			color: colors.text,
+			fontWeight: isNepali ? 'normal' : '700',
+			fontFamily: fontBold,
+			marginBottom: 2,
+		},
+		featuredExamSubtitle: {
+			fontSize: isNepali ? 13 : 11,
+			color: colors.textSecondary,
+			fontFamily: fontNormal,
+			lineHeight: isNepali ? 16 : 14,
+		},
+		featuredExamActionPill: {
+			flexDirection: 'row',
+			alignItems: 'center',
+			backgroundColor: '#2563EB',
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 16,
+			shadowColor: '#2563EB',
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.3,
+			shadowRadius: 4,
+			elevation: 2,
+		},
+		featuredExamActionText: {
+			color: '#FFFFFF',
+			fontSize: isNepali ? 14 : 12,
+			fontWeight: isNepali ? 'normal' : '700',
+			fontFamily: fontBold || fontNormal,
+		},
+		// 3-Column Signs Grid
+		signsGrid: {
+			flexDirection: 'row',
+			justifyContent: 'space-between',
+			gap: 8,
+		},
+		signCard: {
+			width: '31.5%',
+			paddingTop: 14,
+			paddingBottom: 10,
+			paddingHorizontal: 4,
+			borderRadius: isDark ? glass.borderRadius : 16,
 		},
 		// Practice grid — glass cards (4-column layout)
 		practiceGrid: {

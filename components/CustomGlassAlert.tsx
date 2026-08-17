@@ -15,6 +15,10 @@ interface CustomGlassAlertProps {
   iconColor?: string;
   buttonColor?: string;
   buttonText?: string;
+  cancelText?: string;
+  confirmText?: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
   onClose: () => void;
 }
 
@@ -26,6 +30,10 @@ export default function CustomGlassAlert({
   iconColor = '#F59E0B',
   buttonColor = '#22C55E',
   buttonText,
+  cancelText,
+  confirmText,
+  onConfirm,
+  onCancel,
   onClose,
 }: CustomGlassAlertProps) {
   const { theme } = useTheme();
@@ -108,7 +116,7 @@ export default function CustomGlassAlert({
 
   return (
     <Animated.View style={[styles.overlay, { opacity: opacityAnim }]} pointerEvents="auto">
-      <Pressable style={styles.backdrop} onPress={onClose} />
+      <Pressable style={styles.backdrop} onPress={onCancel || onClose} />
       <Animated.View
         style={[
           styles.card,
@@ -155,15 +163,46 @@ export default function CustomGlassAlert({
           {isNepali ? unicodeToAakriti(message) : message}
         </Text>
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: buttonColor }]}
-          onPress={onClose}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.buttonText, fontBoldStyle, { color: '#FFFFFF' }]}>
-            {isNepali ? unicodeToAakriti(finalBtnText) : finalBtnText}
-          </Text>
-        </TouchableOpacity>
+        {onConfirm ? (
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[
+                styles.dualButton,
+                styles.cancelButton,
+                {
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+                },
+              ]}
+              onPress={onCancel || onClose}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.buttonText, fontBoldStyle, { color: isDark ? '#E2E8F0' : '#475569' }]}>
+                {isNepali ? unicodeToAakriti(cancelText || 'रद्द गर्नुहोस्') : (cancelText || 'Cancel')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.dualButton, { backgroundColor: buttonColor }]}
+              onPress={onConfirm}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.buttonText, fontBoldStyle, { color: '#FFFFFF' }]}>
+                {isNepali ? unicodeToAakriti(confirmText || finalBtnText) : (confirmText || finalBtnText)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: buttonColor }]}
+            onPress={onClose}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.buttonText, fontBoldStyle, { color: '#FFFFFF' }]}>
+              {isNepali ? unicodeToAakriti(finalBtnText) : finalBtnText}
+            </Text>
+          </TouchableOpacity>
+        )}
       </Animated.View>
     </Animated.View>
   );
@@ -234,6 +273,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 10,
+  },
+  dualButton: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
   },
   buttonText: {
     fontSize: 16,

@@ -5,7 +5,9 @@ import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, Modal, Pressable, StyleSheet, Text, View, Platform, ScrollView } from 'react-native';
+import { Animated, Image, Modal, Pressable, StyleSheet, Text, View, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useHaptics } from '@/context/HapticsContext';
 import { nepaliQuizData, quizData } from './constant';
 import { useLanguage } from '@/context/LanguageContext';
 import { useRewardedAd, AD_UNITS } from '@/utils/mobileAds';
@@ -22,6 +24,10 @@ export default function SignTest() {
     const activeQuizData = isNepali ? nepaliQuizData : quizData;
     const styles = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
     const router = useRouter();
+    const { triggerImpact, triggerNotification } = useHaptics();
+    const fontStyle = isNepali ? { fontFamily: 'Aakriti', fontWeight: 'normal' as const } : {};
+    const fontBoldStyle = isNepali ? { fontFamily: 'AakritiBold', fontWeight: 'normal' as const } : {};
+
     const [gameState, setGameState] = useState<'idle' | 'playing' | 'finished'>('idle');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -326,7 +332,7 @@ export default function SignTest() {
                 }}
             />
             <View style={styles.container}>
-                {/* Timer Section */}
+                {/* Timer Section (Always at top) */}
                 <View style={styles.timerContainer}>
                     <View style={styles.timerLeft}>
                         <Animated.View
@@ -342,11 +348,13 @@ export default function SignTest() {
                             />
                         </Animated.View>
                         <View style={styles.timerTextContainer}>
-                            <Text style={styles.timerLabel}>{isNepali ? 'समय' : 'Timer'}</Text>
-                            <Text style={styles.timerSubtext}>
-                                {gameState === 'playing' ? (isNepali ? "समय चलिरहेको छ" : "Time is running") :
-                                    gameState === 'finished' ? (isNepali ? "समय समाप्त भयो" : "Time has ended") :
-                                        (isNepali ? "सुरु गर्न Start थिच्नुहोस्" : "Press start to begin")}
+                            <Text style={[styles.timerLabel, fontBoldStyle]}>
+                                {isNepali ? unicodeToAakriti('समय') : 'Timer'}
+                            </Text>
+                            <Text style={[styles.timerSubtext, fontStyle]}>
+                                {gameState === 'playing' ? (isNepali ? unicodeToAakriti("समय चलिरहेको छ") : "Time is running") :
+                                    gameState === 'finished' ? (isNepali ? unicodeToAakriti("समय समाप्त भयो") : "Time has ended") :
+                                        (isNepali ? unicodeToAakriti("सुरु गर्न Start थिच्नुहोस्") : "Press start to begin")}
                             </Text>
                         </View>
                     </View>
@@ -374,9 +382,14 @@ export default function SignTest() {
                         ) : (
                             <Pressable
                                 style={styles.startButton}
-                                onPress={handleStart}
+                                onPress={() => {
+                                    triggerImpact();
+                                    handleStart();
+                                }}
                             >
-                                <Text style={styles.startButtonText}>{isNepali ? 'सुरु गर्नुहोस्' : 'Start'}</Text>
+                                <Text style={[styles.startButtonText, fontBoldStyle]}>
+                                    {isNepali ? unicodeToAakriti('सुरु गर्नुहोस्') : 'Start'}
+                                </Text>
                             </Pressable>
                         )}
                     </Animated.View>
@@ -465,7 +478,7 @@ export default function SignTest() {
                                         </Text>
 
                                         {!isCorrect && (
-                                            <>
+                                             <>
                                                 <Text style={styles.reviewTextLabel}>{isNepali ? 'सही उत्तर:' : 'Correct Answer:'}</Text>
                                                 <Text style={[styles.reviewTextValue, { color: '#4CAF50' }]}>
                                                     {item.correctAnswer}
@@ -480,23 +493,106 @@ export default function SignTest() {
                         <Pressable style={styles.restartButton} onPress={resetGame}>
                             <Text style={styles.restartButtonText}>{isNepali ? 'पुनः परीक्षा दिनुहोस्' : 'Play Again'}</Text>
                         </Pressable>
-                        <AdBanner />
                     </ScrollView>
                 )}
 
-                {/* Instructions */}
+                {/* Modern How to Play Card */}
                 {gameState === 'idle' && (
-                    <View style={styles.instructionsContainer}>
-                        <Text style={styles.instructionsTitle}>{isNepali ? 'परीक्षा निर्देशनहरू' : 'How to Play'}</Text>
-                        <Text style={styles.instructionsText}>
-                            • {isNepali ? '६० सेकेन्डभित्र २० वटा ट्राफिक संकेतहरूको पहिचान गर्नुहोस्' : 'Identify 20 traffic signs within 60 seconds'}{'\n'}
-                            • {isNepali ? '३ वटा विकल्पहरू मध्ये सही उत्तर छान्नुहोस्' : 'Click the correct answer from 3 options'}{'\n'}
-                            • {isNepali ? 'हरियो रङ्ग → सही उत्तर' : 'Green glow → correct answer'}{'\n'}
-                            • {isNepali ? 'रातो रङ्ग → गलत उत्तर' : 'Red glow → incorrect answer'}{'\n'}
-                            • {isNepali ? 'समय सकिनु अघि सबै प्रश्न पूरा गर्नुहोस्!' : 'Complete all questions before time runs out!'}
-                        </Text>
-                    </View>
+                    <ScrollView 
+                        style={{ flex: 1 }}
+                        contentContainerStyle={{ paddingBottom: 10 }}
+                        showsVerticalScrollIndicator={false}
+                    >
+                        <View style={styles.howToPlayCard}>
+                            <View style={styles.howToPlayHeader}>
+                                <View style={styles.howToPlayIconCircle}>
+                                    <Ionicons name="help-circle" size={24} color="#FF6B35" />
+                                </View>
+                                <Text style={[styles.howToPlayTitle, fontBoldStyle]}>
+                                    {isNepali ? unicodeToAakriti('परीक्षा निर्देशनहरू') : 'How to Play'}
+                                </Text>
+                            </View>
+
+                            {/* Rule Item 1 */}
+                            <View style={styles.ruleItemCard}>
+                                <View style={[styles.ruleIconCircle, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                                    <Ionicons name="time" size={20} color="#F59E0B" />
+                                </View>
+                                <View style={styles.ruleTextCol}>
+                                    <Text style={[styles.ruleItemHeading, fontBoldStyle]}>
+                                        {isNepali ? unicodeToAakriti('६० सेकेन्ड समय सीमा') : '60 Seconds Time Limit'}
+                                    </Text>
+                                    <Text style={[styles.ruleItemDesc, fontStyle]}>
+                                        {isNepali
+                                            ? unicodeToAakriti('समय सकिनु अगावै २० वटा ट्राफिक संकेतहरूको पहिचान गर्नुहोस्।')
+                                            : 'Identify 20 traffic signs within 60 seconds.'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Rule Item 2 */}
+                            <View style={styles.ruleItemCard}>
+                                <View style={[styles.ruleIconCircle, { backgroundColor: 'rgba(34, 197, 94, 0.15)' }]}>
+                                    <Ionicons name="checkmark-circle" size={20} color="#22C55E" />
+                                </View>
+                                <View style={styles.ruleTextCol}>
+                                    <Text style={[styles.ruleItemHeading, fontBoldStyle]}>
+                                        {isNepali ? unicodeToAakriti('३ बहुविकल्पहरू र द्रुत संकेत') : '3 Options & Visual Glow'}
+                                    </Text>
+                                    <Text style={[styles.ruleItemDesc, fontStyle]}>
+                                        {isNepali
+                                            ? unicodeToAakriti('हरियो रङ्गले सही र रातो रङ्गले गलत उत्तरको तत्काल संकेत दिन्छ।')
+                                            : 'Green glow for correct answer, Red glow for incorrect answer.'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Rule Item 3 */}
+                            <View style={styles.ruleItemCard}>
+                                <View style={[styles.ruleIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+                                    <Ionicons name="trophy" size={20} color="#3B82F6" />
+                                </View>
+                                <View style={styles.ruleTextCol}>
+                                    <Text style={[styles.ruleItemHeading, fontBoldStyle]}>
+                                        {isNepali ? unicodeToAakriti('उत्तीर्ण लक्ष्य: १४/२० अंक') : 'Pass Mark: 14+ / 20'}
+                                    </Text>
+                                    <Text style={[styles.ruleItemDesc, fontStyle]}>
+                                        {isNepali
+                                            ? unicodeToAakriti('समय सकिनु अघि सबै प्रश्न पूरा गरी परीक्षा उत्तीर्ण गर्नुहोस्।')
+                                            : 'Complete all questions before time runs out to pass!'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Start Button inside How to Play Card */}
+                            <TouchableOpacity
+                                style={styles.cardStartBtn}
+                                onPress={() => {
+                                    triggerImpact();
+                                    handleStart();
+                                }}
+                                activeOpacity={0.85}
+                            >
+                                <LinearGradient
+                                    colors={['#FF6B35', '#EA580C']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.cardStartBtnGradient}
+                                >
+                                    <Ionicons name="play" size={20} color="#FFFFFF" />
+                                    <Text style={[styles.cardStartBtnText, fontBoldStyle]}>
+                                        {isNepali ? unicodeToAakriti('परीक्षा सुरु गर्नुहोस्') : 'Start Sign Test'}
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    </ScrollView>
                 )}
+
+                {/* Bottom Anchored Ad Banner */}
+                <View style={styles.bottomAdWrapper}>
+                    <AdBanner />
+                </View>
             </View>
 
             {/* Custom Result Modal */}
@@ -645,7 +741,13 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
             flex: 1,
             backgroundColor: colors.background,
             paddingHorizontal: 20,
-            paddingTop: 20,
+            paddingTop: 16,
+        },
+        bottomAdWrapper: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingTop: 4,
+            paddingBottom: 2,
         },
         timerContainer: {
             flexDirection: 'row',
@@ -888,33 +990,93 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
             fontFamily: 'Raleway-Bold',
             fontSize: 18,
         },
-        instructionsContainer: {
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
+        howToPlayCard: {
             backgroundColor: isDark ? glass.backgroundColor : colors.card,
-            borderRadius: 12,
-            padding: 30,
-            marginBottom: 30,
+            borderRadius: 18,
+            padding: 20,
+            marginBottom: 20,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E2E8F0',
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
+            shadowOpacity: isDark ? 0.2 : 0.05,
             shadowRadius: 8,
-            elevation: isDark ? 0 : 3,
+            elevation: isDark ? 0 : 2,
         },
-        instructionsTitle: {
-            fontFamily: 'Raleway-Bold',
-            fontSize: 24,
+        howToPlayHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 16,
+            gap: 10,
+        },
+        howToPlayIconCircle: {
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: isDark ? 'rgba(255, 107, 53, 0.18)' : 'rgba(255, 107, 53, 0.1)',
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        howToPlayTitle: {
+            fontSize: isNepali ? 20 : 18,
+            fontWeight: isNepali ? 'normal' : '700',
             color: colors.text,
-            marginBottom: 20,
-            textAlign: 'center',
         },
-        instructionsText: {
-            fontFamily: 'Raleway-Medium',
-            fontSize: 16,
+        ruleItemCard: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.025)',
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 12,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+        },
+        ruleIconCircle: {
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 12,
+        },
+        ruleTextCol: {
+            flex: 1,
+        },
+        ruleItemHeading: {
+            fontSize: isNepali ? 15 : 14,
+            fontWeight: isNepali ? 'normal' : '700',
+            color: colors.text,
+            marginBottom: 2,
+        },
+        ruleItemDesc: {
+            fontSize: isNepali ? 13 : 12,
             color: colors.textSecondary,
-            lineHeight: 24,
-            textAlign: 'center',
+            lineHeight: 17,
+        },
+        cardStartBtn: {
+            borderRadius: 14,
+            overflow: 'hidden',
+            marginTop: 6,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 6,
+            elevation: 3,
+        },
+        cardStartBtnGradient: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            gap: 8,
+        },
+        cardStartBtnText: {
+            color: '#FFFFFF',
+            fontSize: isNepali ? 18 : 16,
+            fontWeight: isNepali ? 'normal' : '700',
+            letterSpacing: 0.3,
         },
         headerBackButton: {
             padding: 8,

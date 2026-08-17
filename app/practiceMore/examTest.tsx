@@ -5,6 +5,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme, ThemeBackground } from '@/context/ThemeContext';
 import { useRewardedAd, AD_UNITS } from '@/utils/mobileAds';
 import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
+import { triggerHapticLight } from '@/context/HapticsContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Stack, useRouter } from 'expo-router';
@@ -12,6 +14,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 import * as nepaliKnowledge from './bikeKnowledge';
 import * as englishKnowledge from './knowledge';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const rewardedAdUnitId = AD_UNITS.REWARDED;
 
@@ -21,6 +25,30 @@ try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   SecureStore = require('expo-secure-store');
 } catch { }
+
+async function getStorageItem(key: string): Promise<string | null> {
+  try {
+    if (SecureStore?.getItemAsync) {
+      const val = await SecureStore.getItemAsync(key);
+      if (val !== null && val !== undefined) return val;
+    }
+  } catch { }
+  try {
+    return await AsyncStorage.getItem(key);
+  } catch { }
+  return null;
+}
+
+async function setStorageItem(key: string, value: string): Promise<void> {
+  try {
+    if (SecureStore?.setItemAsync) {
+      await SecureStore.setItemAsync(key, value);
+    }
+  } catch { }
+  try {
+    await AsyncStorage.setItem(key, value);
+  } catch { }
+}
 
 function toNepaliNumber(num: number | string): string {
   const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
@@ -50,11 +78,13 @@ export default function ExamTestScreen() {
   const [hasPassed, setHasPassed] = useState<boolean>(false);
   const [showOutcomeModal, setShowOutcomeModal] = useState<boolean>(false);
   const [answers, setAnswers] = useState<(string | null)[]>([]);
-  const [showSheet, setShowSheet] = useState(true);
+  const [showSheet, setShowSheet] = useState(false);
   const [showGoTop, setShowGoTop] = useState(false);
   const [isReviewUnlocked, setIsReviewUnlocked] = useState(false);
   const [pendingAction, setPendingAction] = useState<'review' | 'restart' | 'back' | null>(null);
   const [lockedAlertVisible, setLockedAlertVisible] = useState(false);
+  const [showLeaveAlert, setShowLeaveAlert] = useState(false);
+  const [pendingSwitchIndex, setPendingSwitchIndex] = useState<number | null>(null);
 
   // Hook for AdMob Rewarded Ad
   const { isLoaded, isClosed, show, reward, load } = useRewardedAd(rewardedAdUnitId, {
@@ -65,6 +95,34 @@ export default function ExamTestScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const switchTestSeries = (i: number) => {
+    setSelectedTestIndex(i);
+    setGameState('idle');
+    setCurrentQuiz([]);
+    setAnswers([]);
+    setShowResults(false);
+    setShowSheet(false);
+    resetScrollToTop();
+
+    const CARD_W = 300;
+    const GAP = 12;
+    const PADDING = 20;
+    const x = Math.max(0, i * (CARD_W + GAP) - PADDING);
+    setTimeout(() => {
+      testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
+    }, 50);
+  };
+
+  const handleConfirmLeave = () => {
+    setShowLeaveAlert(false);
+    if (pendingSwitchIndex === -1) {
+      router.back();
+    } else if (pendingSwitchIndex !== null) {
+      switchTestSeries(pendingSwitchIndex);
+    }
+    setPendingSwitchIndex(null);
+  };
 
   const handleNextTest = () => {
     const next = selectedTestIndex + 1;
@@ -91,6 +149,11 @@ export default function ExamTestScreen() {
   };
 
   const handleBackPress = () => {
+    if (gameState === 'playing') {
+      setPendingSwitchIndex(-1);
+      setShowLeaveAlert(true);
+      return;
+    }
     if (gameState === 'finished' && !isReviewUnlocked) {
       if (isLoaded) {
         setPendingAction('back');
@@ -132,7 +195,7 @@ export default function ExamTestScreen() {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const buttonWidthAnim = useRef(new Animated.Value(100)).current;
   const liquidProgressAnim = useRef(new Animated.Value(0)).current;
-  const sheetTranslateY = useRef(new Animated.Value(0)).current;
+  const sheetTranslateY = useRef(new Animated.Value(600)).current;
   const scrollRef = useRef<ScrollView>(null);
   const lastScrollYRef = useRef(0);
   const questionOffsetsRef = useRef<number[]>([]);
@@ -140,6 +203,24 @@ export default function ExamTestScreen() {
   const testSelectorRef = useRef<ScrollView>(null);
   const sheetHeightRef = useRef(0);
   const MAX_SCROLL_RETRY = 80;
+
+  const openGetReadySheet = () => {
+    triggerHapticLight();
+    setShowSheet(true);
+    sheetTranslateY.setValue(600);
+    Animated.spring(sheetTranslateY, {
+      toValue: 0,
+      tension: 65,
+      friction: 9,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const dismissSheet = () => {
+    Animated.timing(sheetTranslateY, { toValue: 600, duration: 200, useNativeDriver: true }).start(() => {
+      setShowSheet(false);
+    });
+  };
 
   const scrollToNextQuestionWithRetry = (currentIndex: number, attempt: number = 0) => {
     const nextIndex = currentIndex + 1;
@@ -203,10 +284,15 @@ export default function ExamTestScreen() {
         if (gesture.dy > 0) sheetTranslateY.setValue(gesture.dy);
       },
       onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy > 100) {
-          closeSheetAndStart();
+        if (gesture.dy > 100 || gesture.vy > 0.5) {
+          dismissSheet();
         } else {
-          Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true }).start();
+          Animated.spring(sheetTranslateY, {
+            toValue: 0,
+            tension: 70,
+            friction: 10,
+            useNativeDriver: true,
+          }).start();
         }
       },
     })
@@ -301,14 +387,14 @@ export default function ExamTestScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const saved = await SecureStore.getItemAsync('exam_unlocked_tests');
+        const saved = await getStorageItem('exam_unlocked_tests');
         if (saved) setUnlockedTests(Number(saved) || 1);
-        const savedSelected = await SecureStore.getItemAsync('exam_selected_test_index');
+        const savedSelected = await getStorageItem('exam_selected_test_index');
         if (savedSelected !== null && savedSelected !== undefined) {
           const parsed = Number(savedSelected);
           if (!Number.isNaN(parsed)) setSelectedTestIndex(parsed);
         }
-        const savedCleared = await SecureStore.getItemAsync('exam_cleared_tests');
+        const savedCleared = await getStorageItem('exam_cleared_tests');
         if (savedCleared) {
           try {
             const parsed: number[] = JSON.parse(savedCleared);
@@ -329,7 +415,7 @@ export default function ExamTestScreen() {
   useEffect(() => {
     (async () => {
       try {
-        await SecureStore.setItemAsync('exam_selected_test_index', String(selectedTestIndex));
+        await setStorageItem('exam_selected_test_index', String(selectedTestIndex));
       } catch { }
     })();
   }, [selectedTestIndex]);
@@ -337,16 +423,16 @@ export default function ExamTestScreen() {
   useEffect(() => {
     (async () => {
       try {
-        await SecureStore.setItemAsync('exam_cleared_tests', JSON.stringify(clearedTests));
+        await setStorageItem('exam_cleared_tests', JSON.stringify(clearedTests));
       } catch { }
     })();
   }, [clearedTests]);
 
   const persistAllProgress = async () => {
     try {
-      await SecureStore.setItemAsync('exam_unlocked_tests', String(unlockedTests));
-      await SecureStore.setItemAsync('exam_selected_test_index', String(selectedTestIndex));
-      await SecureStore.setItemAsync('exam_cleared_tests', JSON.stringify(clearedTests));
+      await setStorageItem('exam_unlocked_tests', String(unlockedTests));
+      await setStorageItem('exam_selected_test_index', String(selectedTestIndex));
+      await setStorageItem('exam_cleared_tests', JSON.stringify(clearedTests));
     } catch { }
   };
 
@@ -364,7 +450,7 @@ export default function ExamTestScreen() {
 
   const persistUnlocked = async (next: number) => {
     try {
-      await SecureStore.setItemAsync('exam_unlocked_tests', String(next));
+      await setStorageItem('exam_unlocked_tests', String(next));
     } catch { }
   };
 
@@ -499,40 +585,36 @@ export default function ExamTestScreen() {
                       setLockedAlertVisible(true);
                       return;
                     }
-                    // Select the test, reset quiz state, show the start sheet, and reset sheet translation
-                    setSelectedTestIndex(i);
-                    setGameState('idle');
-                    setCurrentQuiz([]);
-                    setAnswers([]);
-                    setShowResults(false);
-                    setShowSheet(true);
-                    sheetTranslateY.setValue(0);
-                    resetScrollToTop();
+                    if (i === selectedTestIndex && gameState === 'idle') return;
 
-                    // Slide the selected card to the left for better visibility
-                    const CARD_W = 300;
-                    const GAP = 12;
-                    const PADDING = 20;
-                    const x = Math.max(0, i * (CARD_W + GAP) - PADDING);
-                    setTimeout(() => {
-                      testSelectorRef.current?.scrollTo({ x, y: 0, animated: true });
-                    }, 50);
+                    // If a test is in progress, confirm before switching/leaving
+                    if (gameState === 'playing') {
+                      setPendingSwitchIndex(i);
+                      setShowLeaveAlert(true);
+                      return;
+                    }
+
+                    switchTestSeries(i);
                   }}
                 >
                   <View style={styles.testCardRow}>
                     <View style={styles.testIconCircle}>
-                      <Image source={require('../../assets/images/exam.png')} style={styles.testIcon} resizeMode="contain" />
+                      <Image
+                        source={require('@/assets/images/exam.png')}
+                        style={styles.testIcon}
+                        resizeMode="contain"
+                      />
                     </View>
                     <View style={styles.testCardTextArea}>
                       <Text style={styles.testTitle}>
-                        {isNepali ? unicodeToAakriti(`परीक्षा सेट ${toNepaliNumber(i + 1)}`) : `Test ${i + 1}`}
+                        {isNepali ? unicodeToAakriti(`परीक्षा सेट ${toNepaliNumber(i + 1)}`) : `Test Series ${i + 1}`}
                       </Text>
-                      <Text style={styles.testSubtitle}>
-                        {i === 0
-                          ? (isNepali ? unicodeToAakriti(`परीक्षा ${toNepaliNumber(2)} अनलक गर्न यो परीक्षा पूरा गर्नुहोस्`) : 'Complete this test in time to unlock test 2')
+                      <Text style={styles.testSubtitle} numberOfLines={2}>
+                        {isCleared
+                          ? (isNepali ? unicodeToAakriti('पूरा भयो') : 'Completed')
                           : isLocked
                             ? (isNepali ? unicodeToAakriti('अनलक गर्न अघिल्लो परीक्षा पूरा गर्नुहोस्') : 'Complete previous test to unlock')
-                            : (isNepali ? unicodeToAakriti('तपाईं सुरु गर्न तयार हुनुहुन्छ') : 'You are ready to start')}
+                            : (isNepali ? unicodeToAakriti('सुरु गर्न तयार हुनुहुन्छ') : 'Ready to start')}
                       </Text>
                     </View>
                     <View style={[styles.testArrowCircle, isActive && styles.testArrowCircleActive]}>
@@ -603,6 +685,43 @@ export default function ExamTestScreen() {
                   />
                 </View>
               </View>
+
+              {/* Ready / Start Exam Action Button */}
+              <Pressable
+                style={styles.dashboardReadyBtn}
+                onPress={openGetReadySheet}
+              >
+                <LinearGradient
+                  colors={['#2563EB', '#1D4ED8']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.dashboardReadyGradient}
+                >
+                  <View style={styles.dashboardReadyLeft}>
+                    <View style={styles.dashboardReadyIconCircle}>
+                      <Ionicons name="play" size={16} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.dashboardReadyTextArea}>
+                      <Text style={styles.dashboardReadyTitle} numberOfLines={1} ellipsizeMode="tail">
+                        {isNepali
+                          ? unicodeToAakriti(`सेट ${toNepaliNumber(selectedTestIndex + 1)} सुरु गर्नुहोस्`)
+                          : `Start Series ${selectedTestIndex + 1}`}
+                      </Text>
+                      <Text style={styles.dashboardReadySubtitle} numberOfLines={1} ellipsizeMode="tail">
+                        {isNepali
+                          ? unicodeToAakriti('२० प्रश्नहरू • ४ मिनेट')
+                          : '20 Questions • 4 Mins'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.dashboardReadyPill}>
+                    <Text style={styles.dashboardReadyPillText}>
+                      {isNepali ? unicodeToAakriti('तयार') : 'Get Ready'}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                  </View>
+                </LinearGradient>
+              </Pressable>
             </View>
           )}
 
@@ -764,8 +883,18 @@ export default function ExamTestScreen() {
         {/* Bottom Sheet (Get ready) */}
         {showSheet && (
           <Animated.View
-            style={[styles.sheetOverlay, { opacity: sheetTranslateY.interpolate({ inputRange: [0, 300], outputRange: [1, 0.5] }) }]}
+            style={[
+              styles.sheetOverlay,
+              {
+                opacity: sheetTranslateY.interpolate({
+                  inputRange: [0, 600],
+                  outputRange: [1, 0],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ]}
           >
+            <Pressable style={StyleSheet.absoluteFill} onPress={dismissSheet} />
             <Animated.View
               {...panResponder.panHandlers}
               style={[styles.sheetContainer, { transform: [{ translateY: sheetTranslateY }] }]}
@@ -774,47 +903,135 @@ export default function ExamTestScreen() {
               }}
             >
               <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>
-                {isNepali ? unicodeToAakriti('तयार हुनुहुन्छ') : 'Get ready?'}
-              </Text>
-              <Text style={styles.sheetSubtitle}>
-                {isNepali ? unicodeToAakriti(`परीक्षा सेट ${toNepaliNumber(selectedTestIndex + 1)}`) : `#test series ${selectedTestIndex + 1}`}
-              </Text>
+
+              {/* Sheet Header Row */}
+              <View style={styles.sheetHeaderRow}>
+                <View style={styles.sheetHeaderLeft}>
+                  <View style={styles.sheetBadge}>
+                    <Ionicons name="sparkles" size={13} color="#3B82F6" />
+                    <Text style={styles.sheetBadgeText}>
+                      {isNepali ? unicodeToAakriti(`नमुना सेट ${toNepaliNumber(selectedTestIndex + 1)}`) : `Test Series ${selectedTestIndex + 1}`}
+                    </Text>
+                  </View>
+                  <Text style={styles.sheetTitle}>
+                    {isNepali ? unicodeToAakriti('तयार हुनुहुन्छ?') : 'Get Ready?'}
+                  </Text>
+                </View>
+
+                <View style={styles.sheetIconCircle}>
+                  <Image
+                    source={require('@/assets/images/exam.png')}
+                    style={styles.sheetHeaderIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+
+              {/* Bento Stats Row */}
               <View style={styles.sheetStatsRow}>
-                <View style={styles.sheetStatBox}>
-                  <Text style={styles.sheetStatLabel}>{isNepali ? unicodeToAakriti('प्रश्नहरू') : 'Questions'}</Text>
-                  <Text style={styles.sheetStatValue}>{isNepali ? unicodeToAakriti('२०') : '20'}</Text>
+                {/* Stat 1: Questions */}
+                <View style={[styles.sheetStatBox, { backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.06)' }]}>
+                  <View style={[styles.sheetStatIconBg, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+                    <Ionicons name="document-text" size={16} color="#3B82F6" />
+                  </View>
+                  <Text style={styles.sheetStatValue}>
+                    {isNepali ? unicodeToAakriti('२०') : '20'}
+                  </Text>
+                  <Text style={styles.sheetStatLabel}>
+                    {isNepali ? unicodeToAakriti('प्रश्नहरू') : 'Questions'}
+                  </Text>
                 </View>
-                <View style={styles.sheetStatBox}>
-                  <Text style={styles.sheetStatLabel}>{isNepali ? unicodeToAakriti('विकल्पहरू') : 'Choices'}</Text>
-                  <Text style={styles.sheetStatValue}>{isNepali ? unicodeToAakriti('४') : '4'}</Text>
+
+                {/* Stat 2: Time */}
+                <View style={[styles.sheetStatBox, { backgroundColor: theme.isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.06)' }]}>
+                  <View style={[styles.sheetStatIconBg, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                    <Ionicons name="time" size={16} color="#F59E0B" />
+                  </View>
+                  <Text style={styles.sheetStatValue}>
+                    {isNepali ? unicodeToAakriti('४ मिनेट') : '4 Mins'}
+                  </Text>
+                  <Text style={styles.sheetStatLabel}>
+                    {isNepali ? unicodeToAakriti('समय सीमा') : 'Time Limit'}
+                  </Text>
                 </View>
-                <View style={styles.sheetStatBox}>
-                  <Text style={styles.sheetStatLabel}>{isNepali ? unicodeToAakriti('अङ्क') : 'Marks'}</Text>
-                  <Text style={styles.sheetStatValue}>{isNepali ? unicodeToAakriti('१') : '1'}</Text>
+
+                {/* Stat 3: Pass Mark */}
+                <View style={[styles.sheetStatBox, { backgroundColor: theme.isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.06)' }]}>
+                  <View style={[styles.sheetStatIconBg, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                    <Ionicons name="trophy" size={16} color="#10B981" />
+                  </View>
+                  <Text style={styles.sheetStatValue}>
+                    {isNepali ? unicodeToAakriti('४०%') : '40%'}
+                  </Text>
+                  <Text style={styles.sheetStatLabel}>
+                    {isNepali ? unicodeToAakriti('उत्तीर्ण लक्ष्य') : 'Pass Mark'}
+                  </Text>
                 </View>
               </View>
+
+              {/* Instructions Header */}
               <Text style={styles.sheetInstructionTitle}>
-                {isNepali ? unicodeToAakriti('निर्देशनहरू') : 'Instruction'}
+                {isNepali ? unicodeToAakriti('परीक्षा निर्देशनहरू') : 'Key Instructions'}
               </Text>
+
+              {/* Instruction Cards List */}
               <View style={styles.instructionList}>
-                <Text style={styles.instructionItem}>
-                  {isNepali ? unicodeToAakriti('• परीक्षाको समय सीमा ४ मिनेटको हुनेछ।') : '• The quiz has a 4-minute time limit.'}
-                </Text>
-                <Text style={styles.instructionItem}>
-                  {isNepali ? unicodeToAakriti('• कुल २० वटा वस्तुगत प्रश्नहरू रहनेछन्।') : '• There are 20 objective questions.'}
-                </Text>
-                <Text style={styles.instructionItem}>
-                  {isNepali ? unicodeToAakriti('• उत्तीर्ण हुन न्यूनतम ४०% अङ्क ल्याउनुपर्नेछ।') : '• You need 40% to pass.'}
-                </Text>
-                <Text style={styles.instructionItem}>
-                  {isNepali ? unicodeToAakriti('• प्रश्नहरू सवारी सञ्चालन, ऐन-नियम, मेकानिक्स र ट्राफिक सङ्केतमा आधारित छन्।') : '• Questions cover driving, vehicle laws, mechanics, pollution, accidents, and traffic signals.'}
-                </Text>
+                {/* Guideline 1 */}
+                <View style={styles.instructionCard}>
+                  <View style={[styles.instructionBullet, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                    <Ionicons name="timer-outline" size={15} color="#F59E0B" />
+                  </View>
+                  <Text style={styles.instructionItem}>
+                    {isNepali
+                      ? unicodeToAakriti('४ मिनेटको समय सीमा सकिनासाथ परीक्षा स्वतः सबमिट हुनेछ।')
+                      : 'The quiz will automatically submit when the 4-minute timer ends.'}
+                  </Text>
+                </View>
+
+                {/* Guideline 2 */}
+                <View style={styles.instructionCard}>
+                  <View style={[styles.instructionBullet, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+                    <Ionicons name="checkbox-outline" size={15} color="#3B82F6" />
+                  </View>
+                  <Text style={styles.instructionItem}>
+                    {isNepali
+                      ? unicodeToAakriti('प्रत्येक प्रश्नमा ४ वटा बहुविकल्पहरू रहनेछन् (१ सही उत्तर)।')
+                      : 'Each question has 4 objective multiple-choice options.'}
+                  </Text>
+                </View>
+
+                {/* Guideline 3 */}
+                <View style={styles.instructionCard}>
+                  <View style={[styles.instructionBullet, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                    <Ionicons name="ribbon-outline" size={15} color="#10B981" />
+                  </View>
+                  <Text style={styles.instructionItem}>
+                    {isNepali
+                      ? unicodeToAakriti('उत्तीर्ण हुन कम्तिमा ८ प्रश्न (४०% अङ्क) सही हुनुपर्छ।')
+                      : 'You need at least 8 correct answers (40%) to pass the test.'}
+                  </Text>
+                </View>
               </View>
-              <Pressable style={styles.sheetStartButton} onPress={() => closeSheetAndStart()}>
-                <Text style={styles.sheetStartButtonText}>
-                  {isNepali ? unicodeToAakriti('सुरु गर्नुहोस्') : 'Start'}
-                </Text>
+
+              {/* Glowing LinearGradient Start Button */}
+              <Pressable
+                style={styles.sheetStartButton}
+                onPress={() => {
+                  triggerHapticLight();
+                  closeSheetAndStart();
+                }}
+              >
+                <LinearGradient
+                  colors={['#2563EB', '#1D4ED8']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.sheetStartGradient}
+                >
+                  <Ionicons name="play" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.sheetStartButtonText}>
+                    {isNepali ? unicodeToAakriti('परीक्षा सुरु गर्नुहोस्') : 'Start Exam'}
+                  </Text>
+                </LinearGradient>
               </Pressable>
             </Animated.View>
           </Animated.View>
@@ -950,6 +1167,29 @@ export default function ExamTestScreen() {
           buttonColor="#22C55E"
           buttonText={isNepali ? 'ठीक छ' : 'Understood'}
           onClose={() => setLockedAlertVisible(false)}
+        />
+        <CustomGlassAlert
+          visible={showLeaveAlert}
+          title={isNepali ? 'परीक्षा छोड्न चाहनुहुन्छ?' : 'Leave Current Test?'}
+          message={
+            isNepali
+              ? 'अर्को परीक्षामा जाँदा वा पछाडि फर्कँदा तपाईंको हालको परीक्षा समाप्त हुनेछ।'
+              : 'Switching tests or leaving will end your current active test attempt.'
+          }
+          iconName="alert-circle"
+          iconColor="#EF4444"
+          buttonColor="#EF4444"
+          confirmText={isNepali ? 'छोड्नुहोस्' : 'Leave'}
+          cancelText={isNepali ? 'जारी राख्नुहोस्' : 'Stay'}
+          onConfirm={handleConfirmLeave}
+          onCancel={() => {
+            setShowLeaveAlert(false);
+            setPendingSwitchIndex(null);
+          }}
+          onClose={() => {
+            setShowLeaveAlert(false);
+            setPendingSwitchIndex(null);
+          }}
         />
       </View>
     </ThemeBackground>
@@ -1363,18 +1603,18 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     headerTimerDivider: { width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.8)', marginHorizontal: 6 },
     headerTimerText: { color: '#fff', fontSize: 12, paddingLeft: 2, paddingRight: 2 },
     dashboardContainer: {
-      backgroundColor: isDark ? glass.backgroundColor : '#FFFFFF',
+      backgroundColor: isDark ? glass.backgroundColor : colors.card,
       marginHorizontal: 20,
       marginTop: 20,
       padding: 16,
-      borderRadius: 16,
-      borderWidth: 1,
+      borderRadius: isDark ? glass.borderRadius : 16,
+      borderWidth: isDark ? glass.borderWidth : 1,
       borderColor: isDark ? glass.borderColor : '#E5E7EB',
-      shadowColor: '#000',
+      shadowColor: colors.shadow,
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0 : 0.05,
-      shadowRadius: 10,
-      elevation: 2,
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: isDark ? 8 : 10,
+      elevation: isDark ? 0 : 2,
     },
     dashboardTitle: {
       fontSize: isNepali ? 20 : 16,
@@ -1389,12 +1629,12 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     dashboardCard: {
       flex: 1,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : (colors.surface || '#F9FAFB'),
       borderRadius: 12,
       padding: 10,
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6',
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6',
     },
     dashboardCardIcon: {
       marginBottom: 6,
@@ -1416,7 +1656,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     },
     dashboardProgressBarTrack: {
       height: 6,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F3F4F6',
       borderRadius: 3,
       overflow: 'hidden',
     },
@@ -1425,13 +1665,81 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       backgroundColor: '#2E7D32',
       borderRadius: 3,
     },
+    dashboardReadyBtn: {
+      marginTop: 18,
+      borderRadius: 14,
+      overflow: 'hidden',
+      shadowColor: '#2563EB',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.4 : 0.2,
+      shadowRadius: 8,
+      elevation: isDark ? 0 : 4,
+    },
+    dashboardReadyGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+    },
+    dashboardReadyLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: 10,
+      minWidth: 0,
+    },
+    dashboardReadyIconCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+      flexShrink: 0,
+    },
+    dashboardReadyTextArea: {
+      flex: 1,
+      justifyContent: 'center',
+      minWidth: 0,
+    },
+    dashboardReadyTitle: {
+      color: '#FFFFFF',
+      fontSize: isNepali ? 16 : 14.5,
+      fontWeight: isNepali ? 'normal' : '700',
+      fontFamily: fontBold,
+      marginBottom: 2,
+    },
+    dashboardReadySubtitle: {
+      color: 'rgba(255, 255, 255, 0.85)',
+      fontSize: isNepali ? 12 : 11,
+      fontFamily: fontNormal,
+    },
+    dashboardReadyPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.35)',
+      flexShrink: 0,
+    },
+    dashboardReadyPillText: {
+      color: '#FFFFFF',
+      fontSize: isNepali ? 13 : 11.5,
+      fontWeight: isNepali ? 'normal' : '700',
+      fontFamily: fontBold || fontNormal,
+    },
     sheetOverlay: {
       position: 'absolute',
-      top: 130,
+      top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'transparent',
+      backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)',
       justifyContent: 'flex-end',
     },
     modalOverlay: {
@@ -1540,30 +1848,166 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       fontFamily: fontBold,
     },
     sheetContainer: {
-      backgroundColor: isDark ? glass.backgroundColor : colors.card,
-      borderTopLeftRadius: 16,
-      borderTopRightRadius: 16,
-      padding: 16,
+      backgroundColor: isDark ? 'rgba(24, 28, 36, 0.98)' : colors.card,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 32,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -6 },
+      shadowOpacity: isDark ? 0.4 : 0.1,
+      shadowRadius: 16,
+      elevation: isDark ? 0 : 12,
     },
     sheetHandle: {
       alignSelf: 'center',
-      width: 48,
+      width: 44,
       height: 4,
       borderRadius: 2,
-      backgroundColor: isDark ? '#4ade80' : '#00000020',
-      marginBottom: 10,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+      marginBottom: 16,
     },
-    sheetTitle: { fontSize: isNepali ? 24 : 22, color: colors.text, marginBottom: 4, fontFamily: fontBold },
-    sheetSubtitle: { fontSize: isNepali ? 16 : 14, color: '#888', marginBottom: 12, fontFamily: fontNormal },
-    sheetStatsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-    sheetStatBox: { flex: 1, borderWidth: 1, borderColor: '#eee', borderRadius: 12, alignItems: 'center', paddingVertical: 12 },
-    sheetStatLabel: { color: '#777', marginBottom: 4, fontFamily: fontNormal, fontSize: isNepali ? 14 : 12 },
-    sheetStatValue: { color: colors.text, fontSize: isNepali ? 22 : 20, fontFamily: fontBold },
-    sheetInstructionTitle: { fontSize: isNepali ? 18 : 16, color: colors.text, marginBottom: 8, fontFamily: fontBold },
-    sheetStartButton: { backgroundColor: isDark ? '#4ade80' : '#434D57', paddingVertical: 14, borderRadius: 24, alignItems: 'center' },
-    sheetStartButtonText: { color: '#FFFFFF', fontSize: isNepali ? 19 : 16, fontWeight: isNepali ? 'normal' : 'bold', fontFamily: fontBold },
-    instructionList: { marginBottom: 16 },
-    instructionItem: { color: colors.text, marginBottom: 6, lineHeight: isNepali ? 22 : 20, fontFamily: fontNormal, fontSize: isNepali ? 15 : 14 },
+    sheetHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    sheetHeaderLeft: {
+      flex: 1,
+    },
+    sheetBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : 'rgba(59, 130, 246, 0.1)',
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      borderRadius: 12,
+      gap: 5,
+      marginBottom: 6,
+    },
+    sheetBadgeText: {
+      fontSize: isNepali ? 13 : 11,
+      color: '#3B82F6',
+      fontWeight: isNepali ? 'normal' : '700',
+      fontFamily: fontBold || fontNormal,
+    },
+    sheetTitle: {
+      fontSize: isNepali ? 24 : 22,
+      color: colors.text,
+      fontFamily: fontBold,
+      fontWeight: isNepali ? 'normal' : '800',
+    },
+    sheetIconCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sheetHeaderIcon: {
+      width: 28,
+      height: 28,
+    },
+    sheetStatsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 18,
+    },
+    sheetStatBox: {
+      flex: 1,
+      borderRadius: 16,
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 6,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+    },
+    sheetStatIconBg: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 6,
+    },
+    sheetStatValue: {
+      color: colors.text,
+      fontSize: isNepali ? 18 : 16,
+      fontWeight: isNepali ? 'normal' : '700',
+      fontFamily: fontBold,
+      marginBottom: 2,
+    },
+    sheetStatLabel: {
+      color: colors.textSecondary,
+      fontFamily: fontNormal,
+      fontSize: isNepali ? 12 : 11,
+    },
+    sheetInstructionTitle: {
+      fontSize: isNepali ? 16 : 14,
+      color: colors.text,
+      marginBottom: 10,
+      fontFamily: fontBold,
+      fontWeight: isNepali ? 'normal' : '700',
+    },
+    instructionList: {
+      marginBottom: 20,
+      gap: 8,
+    },
+    instructionCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+      borderRadius: 12,
+      padding: 10,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+    },
+    instructionBullet: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    instructionItem: {
+      flex: 1,
+      color: colors.textSecondary,
+      lineHeight: isNepali ? 18 : 16,
+      fontFamily: fontNormal,
+      fontSize: isNepali ? 13 : 12,
+    },
+    sheetStartButton: {
+      borderRadius: 16,
+      overflow: 'hidden',
+      shadowColor: '#2563EB',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: isDark ? 0 : 4,
+    },
+    sheetStartGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+    },
+    sheetStartButtonText: {
+      color: '#FFFFFF',
+      fontSize: isNepali ? 18 : 16,
+      fontWeight: isNepali ? 'normal' : '700',
+      fontFamily: fontBold,
+      letterSpacing: 0.3,
+    },
     headerBackButton: {
       padding: 8,
       marginLeft: 10,

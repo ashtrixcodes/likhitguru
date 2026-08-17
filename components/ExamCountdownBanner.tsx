@@ -79,7 +79,7 @@ export default function ExamCountdownBanner() {
           NotificationTemplates.examCountdown(daysRemaining, examRecord.typeEn, examRecord.typeNp)
         );
         await AsyncStorage.setItem(alertKey, 'true');
-      } catch {}
+      } catch { }
     })();
   }, [daysRemaining, examRecord]);
 

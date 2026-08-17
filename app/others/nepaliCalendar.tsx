@@ -715,7 +715,6 @@ const styles = StyleSheet.create({
   },
   noHolidaysText: {
     fontSize: 14,
-    fontStyle: 'italic',
   },
   holidayRow: {
     flexDirection: 'row',
