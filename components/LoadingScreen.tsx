@@ -6,7 +6,7 @@ export default function LoadingScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('@/assets/images/nepal.png')}
+        source={require('@/assets/images/logo-transparent.png')}
         style={styles.logo}
         resizeMode="contain"
       />
@@ -25,14 +25,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#091020', // Sleek dark midnight blue background matching the dark theme
   },
   logo: {
-    width: 130,
-    height: 130,
+    width: 140,
+    height: 140,
     marginBottom: 40,
-    // Subtle shadow for the logo container
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
   },
   dotsContainer: {
     height: 40,

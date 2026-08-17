@@ -619,7 +619,7 @@ export default function ExamTestScreen() {
               >
                 <View style={styles.questionHeader}>
                   <View style={styles.flagBadge}>
-                    <Image source={require('../../assets/images/nepal.png')} style={styles.flagIcon} resizeMode="contain" />
+                    <Image source={require('@/assets/images/nepal.png')} style={styles.flagIcon} resizeMode="contain" />
                   </View>
                   <View style={styles.questionBubble}>
                     <Text style={styles.questionTitle}>{isNepali ? unicodeToAakriti(q.question) : q.question}</Text>

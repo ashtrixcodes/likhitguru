@@ -195,7 +195,7 @@ export default function NepaliCalendarScreen() {
       <Stack.Screen
         options={{
           ...themedHeaderOptions(theme),
-          title: isNepali ? unicodeToAakriti('नेपाली पात्रो र परीक्षा मिति') : 'Nepali Calendar',
+          title: isNepali ? unicodeToAakriti('नेपाली पात्रो र परीक्षा मिति') : 'Calendar & Dates',
           headerTitleStyle: {
             fontSize: isNepali ? 22 : 20,
             color: '#FFFFFF',

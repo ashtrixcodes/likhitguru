@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dailyquizQT } from '@/app/(tabs)/dailyquizQT';
 import { knowledgeQuestions as nepaliKnowledgeQuestions } from '@/app/practiceMore/bikeKnowledge';
 import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
+import { upsertPlayerScore } from '@/utils/leaderboardService';
 
 export const DAILY_QUIZ_STORAGE_KEY = '@lekhitguru/daily_quiz_progress';
 export const USER_XP_STORAGE_KEY = '@user_xp';
@@ -162,12 +163,93 @@ export async function recordQuizCompletion(
 
   await saveDailyQuizProgress(progress);
 
+  // Fire-and-forget: sync to cloud leaderboard (non-blocking)
+  const userName = await AsyncStorage.getItem('user_name').catch(() => null);
+  const userAvatar = await AsyncStorage.getItem('user_avatar').catch(() => null);
+  upsertPlayerScore({
+    userName: userName || 'Player',
+    avatarUrl: userAvatar,
+    totalXP: progress.totalXP,
+    currentStreak: progress.currentStreak,
+    bestStreak: progress.bestStreak,
+    lastQuizDate: progress.lastCompletedDate,
+  }).catch(() => {});
+
+  // Fire-and-forget: trigger achievement notifications for milestones
+  fireAchievementNotifications(progress, score, totalQuestions).catch(() => {});
+
   return {
     progress,
     isFirstCompletionToday,
     xpEarned,
     streakIncremented,
   };
+}
+
+/**
+ * Checks for milestone achievements and adds in-app notifications.
+ */
+async function fireAchievementNotifications(
+  progress: DailyQuizProgress,
+  score: number,
+  totalQuestions: number
+): Promise<void> {
+  const { addNotification, NotificationTemplates } = await import('@/utils/notificationStorage');
+
+  const streak = progress.currentStreak;
+  const xp = progress.totalXP;
+
+  // Streak milestones
+  const streakMilestones: Record<number, { en: string; np: string }> = {
+    3: { en: '3-Day Streak! 🔥', np: '३ दिनको स्ट्रिक! 🔥' },
+    5: { en: '5-Day Streak! 🔥🔥', np: '५ दिनको स्ट्रिक! 🔥🔥' },
+    7: { en: 'Week-Long Streak! 🏆', np: 'एक हप्ताको स्ट्रिक! 🏆' },
+    10: { en: '10-Day Streak! ⭐', np: '१० दिनको स्ट्रिक! ⭐' },
+    14: { en: '2-Week Streak! 💎', np: '२ हप्ताको स्ट्रिक! 💎' },
+    30: { en: 'Monthly Streak! 👑', np: 'एक महिनाको स्ट्रिक! 👑' },
+  };
+
+  if (streakMilestones[streak]) {
+    const m = streakMilestones[streak];
+    await addNotification(NotificationTemplates.achievementUnlocked(
+      m.en,
+      m.np,
+      `Amazing! You've completed the daily quiz for ${streak} days in a row!`,
+      `अद्भुत! तपाईंले ${streak} दिन लगातार दैनिक क्विज पूरा गर्नुभयो!`
+    ));
+  }
+
+  // XP milestones
+  const xpMilestones: Record<number, { en: string; np: string }> = {
+    100: { en: '100 XP Reached! 🌟', np: '१०० XP पुग्यो! 🌟' },
+    250: { en: '250 XP Milestone! 💫', np: '२५० XP माइलस्टोन! 💫' },
+    500: { en: '500 XP Champion! 🏅', np: '५०० XP च्याम्पियन! 🏅' },
+    1000: { en: '1000 XP Master! 🎖️', np: '१००० XP मास्टर! 🎖️' },
+    2500: { en: '2500 XP Legend! 🏆', np: '२५०० XP लेजेन्ड! 🏆' },
+  };
+
+  for (const [threshold, m] of Object.entries(xpMilestones)) {
+    const t = Number(threshold);
+    // Fire only when crossing the threshold (previous XP was below)
+    if (xp >= t && (xp - (score * 10 + (score === totalQuestions ? 20 : 0))) < t) {
+      await addNotification(NotificationTemplates.achievementUnlocked(
+        m.en,
+        m.np,
+        `You've earned ${xp} total XP! Keep learning!`,
+        `तपाईंले ${xp} कुल XP कमाउनुभयो! सिक्दै जानुहोस्!`
+      ));
+    }
+  }
+
+  // Perfect score notification
+  if (score === totalQuestions && totalQuestions > 0) {
+    await addNotification(NotificationTemplates.achievementUnlocked(
+      'Perfect Score! 💯',
+      'पूर्ण स्कोर! 💯',
+      `You answered all ${totalQuestions} questions correctly!`,
+      `तपाईंले सबै ${totalQuestions} प्रश्नको सही उत्तर दिनुभयो!`
+    ));
+  }
 }
 
 /**

@@ -18,6 +18,7 @@ import { triggerHapticLight } from '@/context/HapticsContext';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import type { AppTheme } from '@/constants/theme';
 import { useSidebar } from './SidebarContext';
 import DarkModeToggle from './DarkModeToggle';
@@ -28,11 +29,14 @@ import { shareApp } from '@/app/(tabs)/shareapp';
 import { EXAM_DATE_STORAGE_KEY, ExamDateRecord } from './ExamCountdownBanner';
 import { unicodeToAakriti } from '@/utils/unicodeToAakriti';
 import { toNepaliDigits } from '@/utils/nepaliCalendar';
+import { ShimmerBox, AvatarShimmer } from './ProfileShimmer';
 
 export default function SidebarOverlay() {
   const { sidebarVisible, setSidebarVisible } = useSidebar();
   const { theme } = useTheme();
   const { isNepali } = useLanguage();
+  const { user, userName: authUserName, userAvatar, isSyncing } = useAuth();
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const router = useRouter();
   const s = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
 
@@ -122,7 +126,7 @@ export default function SidebarOverlay() {
   const utilities = [
     {
       id: 'calendar',
-      titleEn: 'Nepali Calendar & Exam Date',
+      titleEn: 'Calendar & Dates',
       titleNp: 'नेपाली पात्रो र परीक्षा मिति',
       icon: 'calendar' as const,
       color: '#3B82F6',
@@ -218,15 +222,48 @@ export default function SidebarOverlay() {
         <Animated.View style={[s.sidebarContent, { opacity: contentOpacity }]}>
           {/* Header Profile Section */}
           <View style={s.profileHeader}>
-            <View style={s.avatarContainer}>
-              <Image source={require('@/assets/images/profile.png')} style={s.avatar} />
-            </View>
-            <View style={s.userInfo}>
-              <Text style={s.userName}>{userName}</Text>
-              <Text style={s.userSubtitle}>
-                {isNepali ? unicodeToAakriti('लिखित गुरु विद्यार्थी') : 'Likhit Guru Learner'}
-              </Text>
-            </View>
+            {isSyncing ? (
+              <View style={s.profileHeaderMain}>
+                <View style={s.avatarContainer}>
+                  <AvatarShimmer size={44} isDark={theme.isDark} />
+                </View>
+                <View style={s.userInfo}>
+                  <ShimmerBox width={120} height={16} borderRadius={8} isDark={theme.isDark} style={{ marginBottom: 6 }} />
+                  <ShimmerBox width={150} height={12} borderRadius={6} isDark={theme.isDark} />
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={s.profileHeaderMain}
+                onPress={() => handleNavigate('/profile')}
+                activeOpacity={0.8}
+              >
+                <View style={s.avatarContainer}>
+                  {userAvatar ? (
+                    <View style={{ width: 44, height: 44, position: 'relative' }}>
+                      {avatarLoading && (
+                        <AvatarShimmer size={44} isDark={theme.isDark} style={{ position: 'absolute', top: 0, left: 0 }} />
+                      )}
+                      <Image 
+                        source={{ uri: userAvatar }} 
+                        style={s.avatar}
+                        onLoadStart={() => setAvatarLoading(true)}
+                        onLoadEnd={() => setAvatarLoading(false)}
+                      />
+                    </View>
+                  ) : (
+                    <Image source={require('@/assets/images/profile.png')} style={s.avatar} />
+                  )}
+                  {user && <View style={s.activeBeacon} />}
+                </View>
+                <View style={s.userInfo}>
+                  <Text style={s.userName} numberOfLines={1}>{authUserName || userName}</Text>
+                  <Text style={s.userSubtitle} numberOfLines={1}>
+                    {user?.email ?? (isNepali ? unicodeToAakriti('लिखित गुरु विद्यार्थी') : 'Likhit Guru Learner')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={s.closeButton} onPress={onClose} activeOpacity={0.7}>
               <Ionicons name="close" size={22} color={theme.colors.textSecondary} />
             </TouchableOpacity>
@@ -415,8 +452,15 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
     profileHeader: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       marginBottom: 16,
       paddingVertical: 4,
+    },
+    profileHeaderMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: 10,
     },
     avatarContainer: {
       position: 'relative',
@@ -428,6 +472,18 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
       borderRadius: 22,
       borderWidth: 1.5,
       borderColor: colors.accent,
+      backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
+    },
+    activeBeacon: {
+      position: 'absolute',
+      bottom: -1,
+      right: -1,
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: '#22C55E',
+      borderWidth: 2,
+      borderColor: isDark ? '#1F2937' : '#FFFFFF',
     },
     userInfo: {
       flex: 1,

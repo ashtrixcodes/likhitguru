@@ -61,6 +61,28 @@ export default function ExamCountdownBanner() {
     return days >= 0 ? days : 0;
   }, [examRecord]);
 
+  // Fire exam countdown milestone notifications
+  useEffect(() => {
+    if (!examRecord || daysRemaining === null || daysRemaining <= 0) return;
+
+    const milestones = [30, 14, 7, 3, 1];
+    if (!milestones.includes(daysRemaining)) return;
+
+    (async () => {
+      try {
+        const alertKey = `@lekhitguru/exam_notif_${daysRemaining}d_${examRecord.targetAdTimestamp}`;
+        const alreadySent = await AsyncStorage.getItem(alertKey);
+        if (alreadySent) return;
+
+        const { addNotification, NotificationTemplates } = await import('@/utils/notificationStorage');
+        await addNotification(
+          NotificationTemplates.examCountdown(daysRemaining, examRecord.typeEn, examRecord.typeNp)
+        );
+        await AsyncStorage.setItem(alertKey, 'true');
+      } catch {}
+    })();
+  }, [daysRemaining, examRecord]);
+
   useEffect(() => {
     if (isExpanded) {
       // Auto-collapse after 3 minutes (180,000 ms)

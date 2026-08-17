@@ -13,7 +13,7 @@ install! 'cocoapods',
 
 prepare_react_native_project!
 
-target 'LekhitGuru' do
+target 'LikhitGuru' do
   use_expo_modules!
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
@@ -61,7 +61,7 @@ target 'LekhitGuru' do
       end
     end
 
-    # Fix for fmt library C++20 consteval build error
+    # Fix for Xcode clang error in fmt library with C++20 consteval
     installer.pods_project.targets.each do |target|
       if target.name == 'fmt'
         target.build_configurations.each do |config|

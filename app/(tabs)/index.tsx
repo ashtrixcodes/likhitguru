@@ -28,7 +28,7 @@ import {
 	TouchableOpacity,
 	View
 } from 'react-native';
-import { shareApp } from './shareapp'; // Import the share function
+import { useNotifications } from '@/context/NotificationContext';
 
 // ─── Reusable Dynamic Cards ──────────────────────────────────────────
 function CategoryCard({ tag, image, onPress, s, theme, isLoading, imageStyle, viewLabel, isNepali }: any) {
@@ -264,13 +264,14 @@ function UsernameReq() {
 
 // ─── HomeHeader ──────────────────────────────────────────────────────
 type HomeHeaderProps = {
-	onSharePress: () => void;
 	onMenuPress: () => void;
 };
 
-function HomeHeader({ onSharePress, onMenuPress }: HomeHeaderProps) {
+function HomeHeader({ onMenuPress }: HomeHeaderProps) {
 	const { theme } = useTheme();
 	const { language, isNepali } = useLanguage();
+	const { unreadCount } = useNotifications();
+	const router = useRouter();
 	const tGreetings = homeTranslations[language].greetings;
 	const s = useMemo(() => createStyles(theme, isNepali), [theme, isNepali]);
 
@@ -301,8 +302,13 @@ function HomeHeader({ onSharePress, onMenuPress }: HomeHeaderProps) {
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
 						<LanguageToggle />
 						<DarkModeToggle />
-						<TouchableOpacity style={s.shareButton} onPress={onSharePress}>
-							<Ionicons name="share-social" size={20} color={theme.colors.headerText} />
+						<TouchableOpacity style={s.notificationButton} onPress={() => router.push('/others/notifications' as any)}>
+							<Ionicons name="notifications-outline" size={20} color={theme.colors.headerText} />
+							{unreadCount > 0 && (
+								<View style={s.notificationBadge}>
+									<Text style={s.notificationBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+								</View>
+							)}
 						</TouchableOpacity>
 					</View>
 					<View style={{ marginTop: 4 }}>
@@ -363,10 +369,6 @@ export default function HomeScreen() {
 	};
 
 
-	const handleShareApp = async () => {
-		await shareApp();
-	};
-
 	const handleMenuPress = () => {
 		setSidebarVisible(true);
 	};
@@ -381,7 +383,7 @@ export default function HomeScreen() {
 				<View style={s.header}>
 					<WeatherOverlay />
 					<View style={s.headerContent}>
-						<HomeHeader onSharePress={handleShareApp} onMenuPress={handleMenuPress} />
+						<HomeHeader onMenuPress={handleMenuPress} />
 					</View>
 				</View>
 
@@ -478,6 +480,13 @@ export default function HomeScreen() {
 					<Text style={s.sectionTitle}>{isNepali ? unicodeToAakriti(t.sections.practiceMore) : t.sections.practiceMore}</Text>
 					<View style={s.practiceGrid}>
 						<PracticeCard
+							title={t.practiceCards.examTest}
+							icon={require('@/assets/images/exam.png')}
+							onPress={() => router.push('/practiceMore/examTest')}
+							s={s} isLoading={isLoading}
+							isNepali={isNepali}
+						/>
+						<PracticeCard
 							title={t.practiceCards.informative}
 							icon={require('@/assets/images/stop-sgn.png')}
 							onPress={() => router.push('/practiceMore/informativeSign')}
@@ -495,13 +504,6 @@ export default function HomeScreen() {
 							title={t.practiceCards.numbers}
 							icon={require('@/assets/images/numbers.png')}
 							onPress={() => router.push('/practiceMore/numberSign')}
-							s={s} isLoading={isLoading}
-							isNepali={isNepali}
-						/>
-						<PracticeCard
-							title={t.practiceCards.examTest}
-							icon={require('@/assets/images/exam.png')}
-							onPress={() => router.push('/practiceMore/examTest')}
 							s={s} isLoading={isLoading}
 							isNepali={isNepali}
 						/>
@@ -541,16 +543,16 @@ export default function HomeScreen() {
 							isNepali={isNepali}
 						/>
 						<PracticeCard
-							title={t.otherCards.moreInfo}
-							icon={require('@/assets/images/question.png')}
-							onPress={() => router.push('/others/moreInfo')}
+							title={t.otherCards.nepaliCalendar}
+							icon={require('@/assets/images/testing.png')}
+							onPress={() => router.push('/others/nepaliCalendar')}
 							s={s} isLoading={isLoading}
 							isNepali={isNepali}
 						/>
 						<PracticeCard
-							title={t.otherCards.nepaliCalendar}
-							icon={require('@/assets/images/testing.png')}
-							onPress={() => router.push('/others/nepaliCalendar')}
+							title={t.otherCards.moreInfo}
+							icon={require('@/assets/images/question.png')}
+							onPress={() => router.push('/others/moreInfo')}
 							s={s} isLoading={isLoading}
 							isNepali={isNepali}
 						/>
@@ -662,7 +664,7 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 			gap: 2,
 			marginTop: 20,
 		},
-		shareButton: {
+		notificationButton: {
 			padding: 8,
 			borderRadius: 30,
 			width: 40,
@@ -670,6 +672,26 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 			justifyContent: 'center',
 			alignItems: 'center',
 			opacity: 0.9,
+			position: 'relative' as const,
+		},
+		notificationBadge: {
+			position: 'absolute' as const,
+			top: 4,
+			right: 4,
+			backgroundColor: '#22C55E',
+			borderRadius: 8,
+			minWidth: 16,
+			height: 16,
+			justifyContent: 'center' as const,
+			alignItems: 'center' as const,
+			paddingHorizontal: 3,
+			borderColor: colors.header || '#1A365D',
+		},
+		notificationBadgeText: {
+			color: '#FFFFFF',
+			fontSize: 9,
+			fontWeight: 'bold' as const,
+			lineHeight: 12,
 		},
 		// UsernameReq styles
 		userNameContainer: {
@@ -1012,25 +1034,6 @@ function createStyles(theme: AppTheme, isNepali: boolean = false) {
 		},
 		bottomSpacing: {
 			height: 120,
-		},
-		// Unused but kept for backward compat
-		notificationButton: {
-			padding: 8,
-			marginTop: 20,
-			position: 'relative',
-		},
-		notificationIcon: {
-			width: 24,
-			height: 24,
-		},
-		notificationDot: {
-			position: 'absolute',
-			top: 8,
-			right: 8,
-			width: 8,
-			height: 8,
-			borderRadius: 4,
-			backgroundColor: '#4CAF50',
 		},
 		searchSection: {
 			marginTop: 10,

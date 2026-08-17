@@ -105,8 +105,8 @@ export function ThemeBackground({ children }: ThemeBackgroundProps) {
       {theme.isDark && (
         <Image
           source={require('@/assets/images/background.jpg')}
-          style={StyleSheet.absoluteFill}
-          resizeMode="stretch"
+          style={styles.backgroundImageFixed}
+          resizeMode="cover"
         />
       )}
       {children}
@@ -155,10 +155,17 @@ export function GlassCard({ children, style, borderRadius }: GlassCardProps) {
 
 // ─── Styles ──────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
+  backgroundImageFixed: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   backgroundSolid: {
     flex: 1,
+    overflow: 'hidden',
   },
 });

@@ -13,6 +13,8 @@ import { initializeMobileAds } from '@/utils/mobileAds';
 
 import { HapticsProvider } from '@/context/HapticsContext';
 import { VoiceProvider } from '@/context/VoiceContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 
 // Keep native splash screen visible until all initial resources are loaded and rendered
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -91,17 +93,21 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      <HapticsProvider>
-        <LanguageProvider>
-          <ThemeProvider>
-            <VoiceProvider>
-              <SidebarProvider>
-                <InnerLayout />
-              </SidebarProvider>
-            </VoiceProvider>
-          </ThemeProvider>
-        </LanguageProvider>
-      </HapticsProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <HapticsProvider>
+            <LanguageProvider>
+              <ThemeProvider>
+                <VoiceProvider>
+                  <SidebarProvider>
+                    <InnerLayout />
+                  </SidebarProvider>
+                </VoiceProvider>
+              </ThemeProvider>
+            </LanguageProvider>
+          </HapticsProvider>
+        </NotificationProvider>
+      </AuthProvider>
     </View>
   );
 }

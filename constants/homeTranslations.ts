@@ -103,7 +103,7 @@ export const homeTranslations = {
       trafficFines: 'Traffic Fines Info',
       nagdhunga: 'Nagdhunga Charges',
       moreInfo: 'More Info',
-      nepaliCalendar: 'Nepali Calendar\n& Exam Date',
+      nepaliCalendar: 'Calendar\n& Dates',
     },
   },
 };

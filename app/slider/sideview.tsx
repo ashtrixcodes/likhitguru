@@ -51,10 +51,10 @@ export default function SideView() {
       label: 'Practice More',
       icon: 'library-outline',
       subItems: [
+        { id: 'exam-test', label: 'Exam Test', icon: 'document-text-outline', route: '/practiceMore/examTest' },
         { id: 'informative-sign', label: 'Informative', icon: 'information-circle-outline', route: '/practiceMore/informativeSign' },
         { id: 'restrictive-sign', label: 'Restrictive', icon: 'remove-circle-outline', route: '/practiceMore/restrictiveSign' },
         { id: 'number-sign', label: 'Numbers', icon: 'calculator-outline', route: '/practiceMore/numberSign' },
-        { id: 'exam-test', label: 'Exam Test', icon: 'document-text-outline', route: '/practiceMore/examTest' },
       ]
     },
     {
@@ -65,8 +65,8 @@ export default function SideView() {
         { id: 'license-form', label: 'Online License Form', icon: 'document-outline', route: '/others/licenseForm' },
         { id: 'license-print-check', label: 'License Print Check', icon: 'print-outline', route: '/others/licensePrintCheck' },
         { id: 'traffic-fines', label: 'Traffic Fines Info', icon: 'warning-outline', route: '/others/trafficFines' },
+        { id: 'nepali-calendar', label: 'Calendar & Dates', icon: 'calendar-outline', route: '/others/nepaliCalendar' },
         { id: 'more-info', label: 'More Info', icon: 'help-outline', route: '/others/moreInfo' },
-        { id: 'nepali-calendar', label: 'Nepali Calendar', icon: 'calendar-outline', route: '/others/nepaliCalendar' },
       ]
     },
     {
